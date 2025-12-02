@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { DateRange } from "react-day-picker";
+import { subDays } from "date-fns";
 import {
   BarChart3,
   Users,
@@ -20,6 +22,7 @@ import { MarketingRecommendations } from "@/components/dashboard/MarketingRecomm
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytics";
 import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
+import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
@@ -93,6 +96,11 @@ const personas = [
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
+  const [comparisonPeriod, setComparisonPeriod] = useState("previous");
 
   const handleExport = () => {
     toast({
@@ -114,7 +122,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-6 py-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -178,6 +186,13 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
+          
+          <DateRangePicker
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            comparisonPeriod={comparisonPeriod}
+            onComparisonPeriodChange={setComparisonPeriod}
+          />
         </div>
       </header>
 
@@ -224,6 +239,7 @@ export default function Dashboard() {
                 subtitle="Cette période"
                 icon={TrendingUp}
                 trend={{ value: 23, isPositive: true }}
+                comparison={{ value: "103 720 €", period: "Période précédente" }}
                 index={0}
               />
               <MetricCard
@@ -232,6 +248,7 @@ export default function Dashboard() {
                 subtitle="Diagnostic → Achat"
                 icon={BarChart3}
                 trend={{ value: 12, isPositive: true }}
+                comparison={{ value: "3.57%", period: "Période précédente" }}
                 index={1}
               />
               <MetricCard
@@ -240,6 +257,7 @@ export default function Dashboard() {
                 subtitle="vs 52.30 € sans"
                 icon={TrendingUp}
                 trend={{ value: 36, isPositive: true }}
+                comparison={{ value: "52.35 €", period: "Période précédente" }}
                 index={2}
               />
               <MetricCard
@@ -248,6 +266,7 @@ export default function Dashboard() {
                 subtitle="Ce mois"
                 icon={Users}
                 trend={{ value: 8, isPositive: true }}
+                comparison={{ value: "5 772", period: "Période précédente" }}
                 index={3}
               />
             </div>
