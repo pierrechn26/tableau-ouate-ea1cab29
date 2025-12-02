@@ -11,6 +11,10 @@ interface MetricCardProps {
     value: number;
     isPositive: boolean;
   };
+  comparison?: {
+    value: string;
+    period: string;
+  };
   index?: number;
 }
 
@@ -20,6 +24,7 @@ export function MetricCard({
   subtitle,
   icon: Icon,
   trend,
+  comparison,
   index = 0,
 }: MetricCardProps) {
   return (
@@ -48,6 +53,16 @@ export function MetricCard({
               >
                 <span>{trend.isPositive ? "↑" : "↓"}</span>
                 <span>{Math.abs(trend.value)}%</span>
+              </div>
+            )}
+            {comparison && (
+              <div className="mt-3 pt-3 border-t border-border/30">
+                <p className="text-xs text-muted-foreground">
+                  {comparison.period}:{" "}
+                  <span className="font-semibold text-foreground">
+                    {comparison.value}
+                  </span>
+                </p>
               </div>
             )}
           </div>
