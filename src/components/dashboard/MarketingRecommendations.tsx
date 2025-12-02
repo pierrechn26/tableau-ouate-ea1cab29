@@ -137,13 +137,13 @@ export function MarketingRecommendations() {
   }, {} as Record<string, Recommendation[]>);
 
   return (
-    <Card className="p-8 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
+    <Card className="p-8 bg-background border border-border shadow-sm">
       <div className="space-y-6">
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl font-bold text-foreground">
+            <h2 className="text-2xl font-bold text-foreground font-heading">
               Hub Marketing IA
             </h2>
           </div>

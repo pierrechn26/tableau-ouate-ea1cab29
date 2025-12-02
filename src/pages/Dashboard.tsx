@@ -179,16 +179,16 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+    <div className="min-h-screen bg-background">
       {/* Header with stronger visual emphasis */}
-      <header className="border-b border-border/40 bg-gradient-to-r from-primary/20 via-primary/15 to-accent/15 backdrop-blur-sm sticky top-0 z-50 shadow-lg">
+      <header className="border-b border-border bg-gradient-to-r from-primary via-secondary to-accent backdrop-blur-sm sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-primary">
+              <h1 className="text-2xl font-bold text-white font-heading">
                 Ask-It Dashboard
               </h1>
-              <p className="text-sm text-primary/80 font-medium mt-1">
+              <p className="text-sm text-white/90 font-medium mt-1">
                 Marque : TALM — Data Premium
               </p>
             </div>
@@ -292,8 +292,8 @@ export default function Dashboard() {
 
           <TabsContent value="overview" className="space-y-8">
             {/* Key Metrics */}
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-4">Métriques clés</h3>
+            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+              <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                   title="CA généré via diagnostic"
@@ -335,8 +335,8 @@ export default function Dashboard() {
             </div>
 
             {/* Personas Preview */}
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-4">Aperçu des Personas</h3>
+            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+              <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {personas.map((persona, index) => (
                   <motion.div
@@ -376,8 +376,8 @@ export default function Dashboard() {
             </div>
 
             {/* Diagnostic Performance */}
-            <div>
-              <h3 className="text-xl font-semibold text-foreground mb-4">Performance du Diagnostic</h3>
+            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+              <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Performance du Diagnostic</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -447,38 +447,40 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="personas" className="space-y-6">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-foreground mb-2">
-                Personas Intelligents
-              </h2>
-              <p className="text-muted-foreground">
-                Profils détaillés de vos clientes avec insights comportementaux
-              </p>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
-              <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
-              <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
+            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
+                  Personas Intelligents
+                </h2>
+                <p className="text-muted-foreground">
+                  Profils détaillés de vos clientes avec insights comportementaux
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
+                <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
+                <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="analytics">
+          <TabsContent value="analytics" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <DiagnosticsAnalytics />
           </TabsContent>
 
-          <TabsContent value="business">
+          <TabsContent value="business" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <BusinessMetrics />
           </TabsContent>
 
-          <TabsContent value="funnel">
+          <TabsContent value="funnel" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <FunnelVisualization />
           </TabsContent>
 
-          <TabsContent value="marketing">
+          <TabsContent value="marketing" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <MarketingRecommendations />
           </TabsContent>
 
-          <TabsContent value="alerts">
+          <TabsContent value="alerts" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <AlertsSection />
           </TabsContent>
         </Tabs>
