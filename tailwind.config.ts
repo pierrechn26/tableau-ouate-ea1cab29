@@ -57,6 +57,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        persona: {
+          emma: "hsl(var(--persona-emma))",
+          "emma-foreground": "hsl(var(--persona-emma-foreground))",
+          sophie: "hsl(var(--persona-sophie))",
+          "sophie-foreground": "hsl(var(--persona-sophie-foreground))",
+          lea: "hsl(var(--persona-lea))",
+          "lea-foreground": "hsl(var(--persona-lea-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

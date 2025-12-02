@@ -51,6 +51,14 @@ All colors MUST be HSL.
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Persona colors */
+    --persona-emma: 205 85% 65%;
+    --persona-emma-foreground: 0 0% 100%;
+    --persona-sophie: 340 75% 70%;
+    --persona-sophie-foreground: 0 0% 100%;
+    --persona-lea: 155 65% 60%;
+    --persona-lea-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 98%;
 

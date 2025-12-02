@@ -182,8 +182,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Ask-It Dashboard
@@ -193,6 +193,13 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <DateRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                comparisonPeriod={comparisonPeriod}
+                onComparisonPeriodChange={setComparisonPeriod}
+                onApply={handleApplyDates}
+              />
               <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -246,28 +253,41 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
-          
-          <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            comparisonPeriod={comparisonPeriod}
-            onComparisonPeriodChange={setComparisonPeriod}
-            onApply={handleApplyDates}
-          />
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="personas">Personas</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="business">Business</TabsTrigger>
-            <TabsTrigger value="funnel">Funnel</TabsTrigger>
-            <TabsTrigger value="marketing">Marketing</TabsTrigger>
-            <TabsTrigger value="alerts">Alertes</TabsTrigger>
+          <TabsList className="inline-flex h-auto items-center justify-start gap-2 rounded-lg bg-muted/30 p-1.5">
+            <TabsTrigger value="overview">
+              <Sparkles className="w-4 h-4" />
+              Vue d'ensemble
+            </TabsTrigger>
+            <TabsTrigger value="personas">
+              <Users className="w-4 h-4" />
+              Personas
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="w-4 h-4" />
+              Diagnostic
+            </TabsTrigger>
+            <TabsTrigger value="business">
+              <DollarSign className="w-4 h-4" />
+              Business
+            </TabsTrigger>
+            <TabsTrigger value="funnel">
+              <Activity className="w-4 h-4" />
+              Funnel
+            </TabsTrigger>
+            <TabsTrigger value="marketing">
+              <TrendingUp className="w-4 h-4" />
+              Marketing IA
+            </TabsTrigger>
+            <TabsTrigger value="alerts">
+              <AlertCircle className="w-4 h-4" />
+              Insights
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -436,9 +456,9 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {personas.map((persona, index) => (
-                <PersonaCard key={persona.name} {...persona} index={index} />
-              ))}
+              <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
+              <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
+              <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
             </div>
           </TabsContent>
 
