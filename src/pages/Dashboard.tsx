@@ -180,15 +180,15 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-50">
+      {/* Header with stronger visual emphasis */}
+      <header className="border-b border-border/40 bg-gradient-to-r from-primary/20 via-primary/15 to-accent/15 backdrop-blur-sm sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold text-primary">
                 Ask-It Dashboard
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-primary/80 font-medium mt-1">
                 Marque : TALM — Data Premium
               </p>
             </div>

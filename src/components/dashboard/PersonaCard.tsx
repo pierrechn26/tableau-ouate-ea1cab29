@@ -46,7 +46,7 @@ export function PersonaCard({
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
       <Card className="overflow-hidden border-0 bg-card shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 h-full">
-        {/* Colored Header */}
+        {/* Colored Header with stronger background */}
         <div className={`${colorClass} ${foregroundClass} p-6 relative`}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -55,12 +55,40 @@ export function PersonaCard({
                 transition={{ type: "spring", stiffness: 300 }}
                 className="relative"
               >
-                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 p-1 shadow-lg backdrop-blur-sm">
-                  <img
-                    src={image}
-                    alt={name}
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                {/* Circular progress ring */}
+                <div className="relative w-20 h-20">
+                  <svg className="w-20 h-20 transform -rotate-90">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="36"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      className="opacity-20"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="36"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 36}`}
+                      strokeDashoffset={`${2 * Math.PI * 36 * (1 - prospectPercentage / 100)}`}
+                      className="transition-all duration-1000 ease-out"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-white/30 p-0.5 shadow-lg backdrop-blur-sm">
+                      <img
+                        src={image}
+                        alt={name}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
               <div>
@@ -70,9 +98,9 @@ export function PersonaCard({
               </div>
             </div>
             <Badge
-              className="bg-white/20 backdrop-blur-sm border-0 font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
+              className="bg-white/30 backdrop-blur-sm border-0 font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
             >
-              ICP {prospectPercentage}%
+              {prospectPercentage}%
             </Badge>
           </div>
         </div>
@@ -155,14 +183,14 @@ export function PersonaCard({
             </div>
           </div>
 
-          {/* AI Insights */}
+          {/* AI Insights with distinctive background */}
           <motion.div 
-            className="space-y-2 pt-3 border-t border-border/50"
+            className="space-y-2 pt-4 pb-3 px-4 -mx-6 -mb-6 mt-3 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: index * 0.1 + 0.3 }}
           >
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4 text-destructive" />
               <h4 className="text-xs font-bold text-destructive uppercase tracking-wider">
                 Insights IA
@@ -172,7 +200,7 @@ export function PersonaCard({
               {aiInsights.map((insight, i) => (
                 <motion.p
                   key={i}
-                  className="text-xs text-destructive/90 leading-relaxed pl-2 border-l-2 border-destructive/30"
+                  className="text-xs text-destructive/90 leading-relaxed pl-3 border-l-2 border-destructive/40"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
