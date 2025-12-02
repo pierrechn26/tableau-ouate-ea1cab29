@@ -9,12 +9,14 @@ interface PersonaCardProps {
   tagline: string;
   image: string;
   ageRange: string;
+  situation: string;
   prospectPercentage: number;
   psychology: string;
   problems: string[];
   keyNeeds: string[];
   behaviors: string[];
   topProducts: string[];
+  aiInsights: string[];
   index: number;
 }
 
@@ -23,12 +25,14 @@ export function PersonaCard({
   tagline,
   image,
   ageRange,
+  situation,
   prospectPercentage,
   psychology,
   problems,
   keyNeeds,
   behaviors,
   topProducts,
+  aiInsights,
   index,
 }: PersonaCardProps) {
   return (
@@ -47,7 +51,7 @@ export function PersonaCard({
                 transition={{ type: "spring", stiffness: 300 }}
                 className="relative"
               >
-                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20 p-1">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 p-1 shadow-lg">
                   <img
                     src={image}
                     alt={name}
@@ -58,14 +62,17 @@ export function PersonaCard({
               <div>
                 <h3 className="text-xl font-bold text-foreground">{name}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">{ageRange}</p>
-                <p className="text-xs font-medium text-primary mt-1 italic">
-                  {tagline}
-                </p>
+                <Badge 
+                  variant="secondary" 
+                  className="mt-1.5 bg-gradient-to-r from-primary/15 to-accent/15 text-primary border-primary/30 font-medium"
+                >
+                  {situation}
+                </Badge>
               </div>
             </div>
             <Badge
               variant="secondary"
-              className="bg-gradient-to-r from-primary/20 to-accent/20 text-foreground font-semibold px-3 py-1 whitespace-nowrap"
+              className="bg-gradient-to-r from-primary/25 to-accent/25 text-foreground font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
             >
               {prospectPercentage}% de vos prospects
             </Badge>
@@ -137,6 +144,34 @@ export function PersonaCard({
               ))}
             </div>
           </div>
+
+          {/* AI Insights */}
+          <motion.div 
+            className="space-y-2 pt-3 border-t border-border/50 bg-gradient-to-br from-primary/5 to-accent/5 -mx-6 -mb-6 px-6 py-4 rounded-b-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: index * 0.1 + 0.3 }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
+                Insights IA
+              </h4>
+            </div>
+            <div className="space-y-2">
+              {aiInsights.map((insight, i) => (
+                <motion.p
+                  key={i}
+                  className="text-xs text-foreground/90 leading-relaxed pl-2 border-l-2 border-primary/30"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
+                >
+                  {insight}
+                </motion.p>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </Card>
     </motion.div>
