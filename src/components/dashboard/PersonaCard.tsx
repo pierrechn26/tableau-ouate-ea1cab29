@@ -18,6 +18,7 @@ interface PersonaCardProps {
   topProducts: string[];
   aiInsights: string[];
   index: number;
+  colorTheme: "emma" | "sophie" | "lea";
 }
 
 export function PersonaCard({
@@ -34,16 +35,19 @@ export function PersonaCard({
   topProducts,
   aiInsights,
   index,
+  colorTheme,
 }: PersonaCardProps) {
+  const colorClass = `bg-persona-${colorTheme}`;
+  const foregroundClass = `text-persona-${colorTheme}-foreground`;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-card/80 to-secondary/40 backdrop-blur-sm shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 h-full">
-        <div className="p-6 space-y-5">
-          {/* Header */}
+      <Card className="overflow-hidden border-0 bg-card shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 h-full">
+        {/* Colored Header */}
+        <div className={`${colorClass} ${foregroundClass} p-6 relative`}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <motion.div
@@ -51,7 +55,7 @@ export function PersonaCard({
                 transition={{ type: "spring", stiffness: 300 }}
                 className="relative"
               >
-                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 p-1 shadow-lg">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 p-1 shadow-lg backdrop-blur-sm">
                   <img
                     src={image}
                     alt={name}
@@ -60,26 +64,23 @@ export function PersonaCard({
                 </div>
               </motion.div>
               <div>
-                <h3 className="text-xl font-bold text-foreground">{name}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{ageRange}</p>
-                <Badge 
-                  variant="secondary" 
-                  className="mt-1.5 bg-gradient-to-r from-primary/15 to-accent/15 text-primary border-primary/30 font-medium"
-                >
-                  {situation}
-                </Badge>
+                <h3 className="text-xl font-bold">{name}, {ageRange.split('-')[0]} ans</h3>
+                <p className="text-sm opacity-90 mt-0.5 italic">{tagline}</p>
+                <p className="text-xs opacity-80 mt-1">{situation}</p>
               </div>
             </div>
             <Badge
-              variant="secondary"
-              className="bg-gradient-to-r from-primary/25 to-accent/25 text-foreground font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
+              className="bg-white/20 backdrop-blur-sm border-0 font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
             >
-              {prospectPercentage}% de vos prospects
+              ICP {prospectPercentage}%
             </Badge>
           </div>
+        </div>
 
+        {/* Content */}
+        <div className="p-6 space-y-5">
           {/* Psychology */}
-          <div className="space-y-1.5 pt-2 border-t border-border/50">
+          <div className="space-y-1.5">
             <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
               Psychologie
             </h4>
@@ -88,13 +89,16 @@ export function PersonaCard({
 
           {/* Problems */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
-              Problématiques
-            </h4>
-            <ul className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-destructive" />
+              <h4 className="text-xs font-semibold text-destructive uppercase tracking-wider">
+                Problématiques clés
+              </h4>
+            </div>
+            <ul className="space-y-1.5">
               {problems.map((problem, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
-                  <AlertCircle className="w-3 h-3 text-destructive mt-0.5 flex-shrink-0" />
+                  <span className="text-destructive mt-0.5">•</span>
                   <span className="text-foreground/80 leading-relaxed">{problem}</span>
                 </li>
               ))}
@@ -103,13 +107,16 @@ export function PersonaCard({
 
           {/* Key Needs */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
-              Besoins clés
-            </h4>
-            <ul className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-primary" />
+              <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
+                Besoins essentiels
+              </h4>
+            </div>
+            <ul className="space-y-1.5">
               {keyNeeds.map((need, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
-                  <CheckCircle className="w-3 h-3 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-primary mt-0.5">•</span>
                   <span className="text-foreground/80 leading-relaxed">{need}</span>
                 </li>
               ))}
@@ -118,13 +125,16 @@ export function PersonaCard({
 
           {/* Behaviors */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
-              Comportements
-            </h4>
-            <ul className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-accent" />
+              <h4 className="text-xs font-semibold text-accent uppercase tracking-wider">
+                Comportements
+              </h4>
+            </div>
+            <ul className="space-y-1.5">
               {behaviors.map((behavior, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs">
-                  <TrendingUp className="w-3 h-3 text-accent mt-0.5 flex-shrink-0" />
+                  <span className="text-accent mt-0.5">•</span>
                   <span className="text-foreground/80 leading-relaxed">{behavior}</span>
                 </li>
               ))}
@@ -147,14 +157,14 @@ export function PersonaCard({
 
           {/* AI Insights */}
           <motion.div 
-            className="space-y-2 pt-3 border-t border-border/50 bg-gradient-to-br from-primary/5 to-accent/5 -mx-6 -mb-6 px-6 py-4 rounded-b-lg"
+            className="space-y-2 pt-3 border-t border-border/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: index * 0.1 + 0.3 }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
+              <TrendingUp className="w-4 h-4 text-destructive" />
+              <h4 className="text-xs font-bold text-destructive uppercase tracking-wider">
                 Insights IA
               </h4>
             </div>
@@ -162,7 +172,7 @@ export function PersonaCard({
               {aiInsights.map((insight, i) => (
                 <motion.p
                   key={i}
-                  className="text-xs text-foreground/90 leading-relaxed pl-2 border-l-2 border-primary/30"
+                  className="text-xs text-destructive/90 leading-relaxed pl-2 border-l-2 border-destructive/30"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
