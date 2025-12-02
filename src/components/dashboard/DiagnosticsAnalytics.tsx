@@ -30,9 +30,16 @@ const engagementData = [
 ];
 
 const personaDistribution = [
-  { name: "Emma", value: 42, color: "hsl(345, 65%, 68%)" },
-  { name: "Sophie", value: 35, color: "hsl(15, 85%, 75%)" },
-  { name: "Léa", value: 23, color: "hsl(30, 50%, 80%)" },
+  { name: "Emma", value: 42, color: "hsl(200, 70%, 60%)" },
+  { name: "Sophie", value: 35, color: "hsl(330, 70%, 65%)" },
+  { name: "Léa", value: 18, color: "hsl(140, 60%, 55%)" },
+  { name: "Autre", value: 5, color: "hsl(var(--muted))" },
+];
+
+const topFrictions = [
+  { theme: "Budget & Prix", abandonRate: 42, avgTime: 192, description: "Questions sur le budget génèrent le plus d'hésitation" },
+  { theme: "Ingrédients & Composition", abandonRate: 28, avgTime: 52, description: "Besoin de plus d'explications sur les actifs" },
+  { theme: "Texture & Sensorialité", abandonRate: 22, avgTime: 48, description: "Difficultés à choisir entre les textures proposées" },
 ];
 
 const optInData = [
@@ -92,7 +99,7 @@ export function DiagnosticsAnalytics() {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Question Performance */}
+        {/* Top Frictions by Theme */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,26 +107,29 @@ export function DiagnosticsAnalytics() {
         >
           <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Friction par Question
+              Principales Frictions par Thème
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={engagementData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="question" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="time" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} name="Temps (s)" />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="text-xs text-muted-foreground mt-2">
-              La Q5 (Budget) génère le plus de friction avec 192s en moyenne
-            </p>
+            <div className="space-y-4">
+              {topFrictions.map((friction, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{friction.theme}</span>
+                    <span className="text-sm font-bold text-destructive">{friction.abandonRate}% abandon</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-destructive to-destructive/60 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${friction.abandonRate}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{friction.description}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>Temps moyen: {friction.avgTime}s</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
         </motion.div>
 
