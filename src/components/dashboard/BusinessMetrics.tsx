@@ -35,7 +35,7 @@ export function BusinessMetrics() {
     <div className="space-y-8">
       {/* Key Business Metrics */}
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-4">
+        <h2 className="text-2xl font-bold text-foreground mb-6 font-heading">
           Business & Conversion
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -82,8 +82,8 @@ export function BusinessMetrics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <Card className="p-6 bg-background border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Impact du Diagnostic sur le CA
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -131,8 +131,8 @@ export function BusinessMetrics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <Card className="p-6 bg-background border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               CA par Persona
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -182,8 +182,8 @@ export function BusinessMetrics() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-          <h3 className="text-lg font-semibold text-foreground mb-4">
+        <Card className="p-6 bg-background border border-border shadow-sm">
+          <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
             Insights Business
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

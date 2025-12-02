@@ -115,10 +115,10 @@ export function AlertsSection() {
   };
 
   return (
-    <Card className="p-8 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
+    <Card className="p-8 bg-background border border-border shadow-sm">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2 font-heading">
             Insights & Alertes Intelligentes
           </h2>
           <p className="text-muted-foreground">

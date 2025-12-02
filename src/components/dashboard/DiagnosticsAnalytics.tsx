@@ -56,7 +56,7 @@ export function DiagnosticsAnalytics() {
     <div className="space-y-8">
       {/* Engagement Metrics */}
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-4">
+        <h2 className="text-2xl font-bold text-foreground mb-6 font-heading">
           Performance du Diagnostic
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -105,8 +105,8 @@ export function DiagnosticsAnalytics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <Card className="p-6 bg-background border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Principales Frictions par Thème
             </h3>
             <div className="space-y-4">
@@ -139,8 +139,8 @@ export function DiagnosticsAnalytics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <Card className="p-6 bg-background border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Répartition des Personas
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -191,8 +191,8 @@ export function DiagnosticsAnalytics() {
           transition={{ delay: 0.4 }}
           className="lg:col-span-2"
         >
-          <Card className="p-6 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <Card className="p-6 bg-background border border-border shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Évolution des Opt-in
             </h3>
             <ResponsiveContainer width="100%" height={300}>

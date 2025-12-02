@@ -49,7 +49,7 @@ export function FunnelVisualization() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground mb-2">
+        <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
           Funnel de Conversion
         </h2>
         <p className="text-muted-foreground">
@@ -57,7 +57,7 @@ export function FunnelVisualization() {
         </p>
       </div>
 
-      <Card className="p-8 border-0 bg-gradient-to-br from-card to-secondary/20 shadow-[var(--shadow-medium)]">
+      <Card className="p-8 bg-background border border-border shadow-sm">
         {/* Funnel Visualization */}
         <div className="relative flex flex-col items-center space-y-2 mb-8">
           {funnelSteps.map((step, index) => {
