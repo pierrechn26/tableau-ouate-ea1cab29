@@ -23,6 +23,7 @@ interface DateRangePickerProps {
   onDateRangeChange: (range: DateRange | undefined) => void;
   comparisonPeriod: string;
   onComparisonPeriodChange: (period: string) => void;
+  onApply?: () => void;
 }
 
 export function DateRangePicker({
@@ -30,6 +31,7 @@ export function DateRangePicker({
   onDateRangeChange,
   comparisonPeriod,
   onComparisonPeriodChange,
+  onApply,
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -135,6 +137,12 @@ export function DateRangePicker({
           <SelectItem value="none">Aucune comparaison</SelectItem>
         </SelectContent>
       </Select>
+
+      {onApply && (
+        <Button onClick={onApply} size="sm" className="ml-auto">
+          Actualiser
+        </Button>
+      )}
     </div>
   );
 }
