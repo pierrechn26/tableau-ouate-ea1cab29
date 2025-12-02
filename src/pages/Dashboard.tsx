@@ -46,6 +46,7 @@ const personas = [
     tagline: "Anxieuse mais proactive",
     image: personaEmma,
     ageRange: "26-32 ans",
+    situation: "Enceinte 1er trimestre",
     prospectPercentage: 42,
     psychology: "Cherche réassurance, lit beaucoup, craint le 'mal faire', veut se sentir préparée.",
     problems: [
@@ -68,6 +69,11 @@ const personas = [
       "Huile anti-vergetures bio",
       "Crème hydratante sans parfum",
       "Guide 1er trimestre"
+    ],
+    aiInsights: [
+      "78% des Emmas abandonnent si la composition n'est pas expliquée clairement",
+      "Les recommandations \"routine 1er trimestre\" convertissent +32% sur ce profil",
+      "Ce persona convertit 2,4x mieux lorsque la routine est présentée sous forme de pack complet",
     ]
   },
   {
@@ -75,6 +81,7 @@ const personas = [
     tagline: "Efficace et pressée",
     image: personaSophie,
     ageRange: "30-38 ans",
+    situation: "Jeune maman postpartum",
     prospectPercentage: 35,
     psychology: "Fatigue + besoin de retrouver confiance + simplicité. Forte charge mentale.",
     problems: [
@@ -96,6 +103,11 @@ const personas = [
       "Pack routine postpartum",
       "Sérum réparateur express",
       "Crème raffermissante"
+    ],
+    aiInsights: [
+      "Les contenus \"avant/après\" augmentent fortement le taux de conversion sur ce profil",
+      "Elle clique 3x plus sur les diagnostics courts que sur les longs",
+      "Les offres \"routine post-partum\" génèrent +47% de CA sur ce segment",
     ]
   },
   {
@@ -103,6 +115,7 @@ const personas = [
     tagline: "Nature et exigeante",
     image: personaLea,
     ageRange: "33-40 ans",
+    situation: "Maman de 2 enfants",
     prospectPercentage: 18,
     psychology: "Consommatrice exigeante, très attachée aux valeurs marque. Veut le meilleur mais déteste le bullshit.",
     problems: [
@@ -124,6 +137,11 @@ const personas = [
       "Gamme bio certifiée",
       "Huile végétale pure",
       "Pack transparence totale"
+    ],
+    aiInsights: [
+      "Les vidéos explicatives augmentent son intention d'achat de +47%",
+      "Elle passe 2,8x plus de temps sur les pages détaillant les certifications",
+      "Comparaison rapide entre gammes = facteur déclencheur d'achat principal",
     ]
   },
 ];
