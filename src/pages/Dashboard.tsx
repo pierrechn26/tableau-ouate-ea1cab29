@@ -252,44 +252,159 @@ export default function Dashboard() {
             <TabsTrigger value="alerts">Alertes</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard
-                title="CA généré via diagnostic"
-                value="127 450 €"
-                subtitle="Cette période"
-                icon={TrendingUp}
-                trend={{ value: 23, isPositive: true }}
-                comparison={{ value: "103 720 €", period: "vs période précédente" }}
-                index={0}
-              />
-              <MetricCard
-                title="Taux de conversion"
-                value="4.0%"
-                subtitle="Diagnostic → Achat"
-                icon={BarChart3}
-                trend={{ value: 12, isPositive: true }}
-                comparison={{ value: "3.57%", period: "vs période précédente" }}
-                index={1}
-              />
-              <MetricCard
-                title="AOV après diagnostic"
-                value="71.20 €"
-                subtitle="vs 52.30 € sans"
-                icon={TrendingUp}
-                trend={{ value: 36, isPositive: true }}
-                comparison={{ value: "52.35 €", period: "vs période précédente" }}
-                index={2}
-              />
-              <MetricCard
-                title="Diagnostics complétés"
-                value="6 234"
-                subtitle="Ce mois"
-                icon={Users}
-                trend={{ value: 8, isPositive: true }}
-                comparison={{ value: "5 772", period: "vs période précédente" }}
-                index={3}
-              />
+          <TabsContent value="overview" className="space-y-8">
+            {/* Key Metrics */}
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-4">Métriques clés</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  title="CA généré via diagnostic"
+                  value="127 450 €"
+                  subtitle="Cette période"
+                  icon={TrendingUp}
+                  trend={{ value: 23, isPositive: true }}
+                  comparison={{ value: "103 720 €", period: "vs période précédente" }}
+                  index={0}
+                />
+                <MetricCard
+                  title="Taux de conversion"
+                  value="4.0%"
+                  subtitle="Diagnostic → Achat"
+                  icon={BarChart3}
+                  trend={{ value: 12, isPositive: true }}
+                  comparison={{ value: "3.57%", period: "vs période précédente" }}
+                  index={1}
+                />
+                <MetricCard
+                  title="AOV après diagnostic"
+                  value="71.20 €"
+                  subtitle="vs 52.30 € sans"
+                  icon={TrendingUp}
+                  trend={{ value: 36, isPositive: true }}
+                  comparison={{ value: "52.35 €", period: "vs période précédente" }}
+                  index={2}
+                />
+                <MetricCard
+                  title="Diagnostics complétés"
+                  value="6 234"
+                  subtitle="Ce mois"
+                  icon={Users}
+                  trend={{ value: 8, isPositive: true }}
+                  comparison={{ value: "5 772", period: "vs période précédente" }}
+                  index={3}
+                />
+              </div>
+            </div>
+
+            {/* Personas Preview */}
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-4">Aperçu des Personas</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {personas.map((persona, index) => (
+                  <motion.div
+                    key={persona.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="bg-card rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                  >
+                    <div className="flex items-start gap-4 mb-4">
+                      <img
+                        src={persona.image}
+                        alt={persona.name}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground">{persona.name}</h4>
+                        <p className="text-sm text-muted-foreground">{persona.tagline}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{persona.ageRange}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Part des prospects</span>
+                        <span className="text-lg font-bold text-primary">{persona.prospectPercentage}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                          style={{ width: `${persona.prospectPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Diagnostic Performance */}
+            <div>
+              <h3 className="text-xl font-semibold text-foreground mb-4">Performance du Diagnostic</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                      +8%
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Taux de complétion</p>
+                  <p className="text-2xl font-bold text-foreground">78.5%</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                      +5%
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Taux opt-in email</p>
+                  <p className="text-2xl font-bold text-foreground">64.2%</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      ~
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Durée moyenne</p>
+                  <p className="text-2xl font-bold text-foreground">3:42</p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                      +12%
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">Taux de démarrage</p>
+                  <p className="text-2xl font-bold text-foreground">89.3%</p>
+                </motion.div>
+              </div>
             </div>
           </TabsContent>
 
