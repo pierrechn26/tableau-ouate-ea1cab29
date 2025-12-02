@@ -14,6 +14,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -239,91 +240,95 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 space-y-12">
-        {/* Key Metrics */}
-        <section id="overview">
-          <h2 className="text-3xl font-bold text-foreground mb-6">Vue d'ensemble</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              title="CA généré via diagnostic"
-              value="127 450 €"
-              subtitle="Cette période"
-              icon={TrendingUp}
-              trend={{ value: 23, isPositive: true }}
-              comparison={{ value: "103 720 €", period: "vs période précédente" }}
-              index={0}
-            />
-            <MetricCard
-              title="Taux de conversion"
-              value="4.0%"
-              subtitle="Diagnostic → Achat"
-              icon={BarChart3}
-              trend={{ value: 12, isPositive: true }}
-              comparison={{ value: "3.57%", period: "vs période précédente" }}
-              index={1}
-            />
-            <MetricCard
-              title="AOV après diagnostic"
-              value="71.20 €"
-              subtitle="vs 52.30 € sans"
-              icon={TrendingUp}
-              trend={{ value: 36, isPositive: true }}
-              comparison={{ value: "52.35 €", period: "vs période précédente" }}
-              index={2}
-            />
-            <MetricCard
-              title="Diagnostics complétés"
-              value="6 234"
-              subtitle="Ce mois"
-              icon={Users}
-              trend={{ value: 8, isPositive: true }}
-              comparison={{ value: "5 772", period: "vs période précédente" }}
-              index={3}
-            />
-          </div>
-        </section>
+      <main className="container mx-auto px-6 py-8">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto">
+            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+            <TabsTrigger value="personas">Personas</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="business">Business</TabsTrigger>
+            <TabsTrigger value="funnel">Funnel</TabsTrigger>
+            <TabsTrigger value="marketing">Marketing</TabsTrigger>
+            <TabsTrigger value="alerts">Alertes</TabsTrigger>
+          </TabsList>
 
-        {/* Personas Section */}
-        <section id="personas">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-foreground mb-2">
-              Personas Intelligents
-            </h2>
-            <p className="text-muted-foreground">
-              Profils détaillés de vos clientes avec insights comportementaux
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {personas.map((persona, index) => (
-              <PersonaCard key={persona.name} {...persona} index={index} />
-            ))}
-          </div>
-        </section>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="CA généré via diagnostic"
+                value="127 450 €"
+                subtitle="Cette période"
+                icon={TrendingUp}
+                trend={{ value: 23, isPositive: true }}
+                comparison={{ value: "103 720 €", period: "vs période précédente" }}
+                index={0}
+              />
+              <MetricCard
+                title="Taux de conversion"
+                value="4.0%"
+                subtitle="Diagnostic → Achat"
+                icon={BarChart3}
+                trend={{ value: 12, isPositive: true }}
+                comparison={{ value: "3.57%", period: "vs période précédente" }}
+                index={1}
+              />
+              <MetricCard
+                title="AOV après diagnostic"
+                value="71.20 €"
+                subtitle="vs 52.30 € sans"
+                icon={TrendingUp}
+                trend={{ value: 36, isPositive: true }}
+                comparison={{ value: "52.35 €", period: "vs période précédente" }}
+                index={2}
+              />
+              <MetricCard
+                title="Diagnostics complétés"
+                value="6 234"
+                subtitle="Ce mois"
+                icon={Users}
+                trend={{ value: 8, isPositive: true }}
+                comparison={{ value: "5 772", period: "vs période précédente" }}
+                index={3}
+              />
+            </div>
+          </TabsContent>
 
-        {/* Analytics Section */}
-        <section id="analytics">
-          <DiagnosticsAnalytics />
-        </section>
+          <TabsContent value="personas" className="space-y-6">
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Personas Intelligents
+              </h2>
+              <p className="text-muted-foreground">
+                Profils détaillés de vos clientes avec insights comportementaux
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {personas.map((persona, index) => (
+                <PersonaCard key={persona.name} {...persona} index={index} />
+              ))}
+            </div>
+          </TabsContent>
 
-        {/* Business Section */}
-        <section id="business">
-          <BusinessMetrics />
-        </section>
+          <TabsContent value="analytics">
+            <DiagnosticsAnalytics />
+          </TabsContent>
 
-        {/* Funnel Section */}
-        <section id="funnel">
-          <FunnelVisualization />
-        </section>
+          <TabsContent value="business">
+            <BusinessMetrics />
+          </TabsContent>
 
-        {/* Marketing Section */}
-        <section id="marketing">
-          <MarketingRecommendations />
-        </section>
+          <TabsContent value="funnel">
+            <FunnelVisualization />
+          </TabsContent>
 
-        {/* Alerts Section */}
-        <section id="alerts">
-          <AlertsSection />
-        </section>
+          <TabsContent value="marketing">
+            <MarketingRecommendations />
+          </TabsContent>
+
+          <TabsContent value="alerts">
+            <AlertsSection />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
