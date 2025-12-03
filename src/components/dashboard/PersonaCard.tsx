@@ -48,60 +48,32 @@ export function PersonaCard({
       <Card className="overflow-hidden border-0 bg-card shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 h-full">
         {/* Colored Header with stronger background */}
         <div className={`${colorClass} ${foregroundClass} p-6 relative`}>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <motion.div
-                whileHover={{ scale: 1.05, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="relative"
-              >
-                {/* Circular progress ring */}
-                <div className="relative w-20 h-20">
-                  <svg className="w-20 h-20 transform -rotate-90">
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      className="opacity-20"
-                    />
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="36"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={`${2 * Math.PI * 36}`}
-                      strokeDashoffset={`${2 * Math.PI * 36 * (1 - prospectPercentage / 100)}`}
-                      className="transition-all duration-1000 ease-out"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full overflow-hidden bg-white/30 p-0.5 shadow-lg backdrop-blur-sm">
-                      <img
-                        src={image}
-                        alt={name}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-              <div>
-                <h3 className="text-xl font-bold">{name}, {ageRange.split('-')[0]} ans</h3>
-                <p className="text-sm opacity-90 mt-0.5 italic">{tagline}</p>
-                <p className="text-xs opacity-80 mt-1">{situation}</p>
-              </div>
-            </div>
-            <Badge
-              className="bg-white/30 backdrop-blur-sm border-0 font-bold px-3 py-1.5 whitespace-nowrap shadow-sm"
+          <div className="flex items-center gap-4">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
             >
-              {prospectPercentage}%
-            </Badge>
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-white/30 p-0.5 shadow-lg backdrop-blur-sm">
+                <img
+                  src={image}
+                  alt={name}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
+            </motion.div>
+            <div>
+              <h3 className="text-xl font-bold">{name}, {ageRange.split('-')[0]} ans</h3>
+              <p className="text-sm opacity-90 mt-0.5 italic">{tagline}</p>
+              <p className="text-xs opacity-80 mt-1">{situation}</p>
+            </div>
+          </div>
+          
+          {/* Progress bar for prospect percentage */}
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Représente {prospectPercentage}% de vos prospects</span>
+            </div>
+            <Progress value={prospectPercentage} className="h-2 bg-white/20" />
           </div>
         </div>
 
