@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
@@ -348,21 +348,86 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="personas" className="space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
-              <div className="mb-6">
-                <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
-                  Personas Intelligents
-                </h2>
-                <p className="text-muted-foreground">
-                  Profils détaillés de vos clientes avec insights comportementaux
-                </p>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
-                <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
-                <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
-              </div>
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
+                Personas Intelligents
+              </h2>
+              <p className="text-muted-foreground">
+                Profils détaillés de vos clientes avec insights comportementaux
+              </p>
             </div>
+            
+            {/* Separate persona cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
+              <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
+              <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
+            </div>
+
+            {/* Locked Premium Personas Teaser */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-muted/50 to-muted/30 p-8"
+            >
+              {/* Blur overlay */}
+              <div className="absolute inset-0 backdrop-blur-sm bg-background/60 z-10 flex flex-col items-center justify-center">
+                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2 text-center">
+                  Passer au niveau supérieur pour découvrir vos autres personas intelligents
+                </h3>
+                <p className="text-muted-foreground text-center max-w-md mb-4">
+                  Débloquez une vue complète de tous vos profils clients pour une analyse encore plus profonde et précise
+                </p>
+                
+                {/* Progress bar showing remaining percentage */}
+                <div className="w-full max-w-sm space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Personas supplémentaires</span>
+                    <span className="font-semibold text-primary">5% de vos prospects</span>
+                  </div>
+                  <div className="h-3 bg-black/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-primary/60 to-accent/60 transition-all duration-500" 
+                      style={{ width: '5%' }}
+                    />
+                  </div>
+                </div>
+                
+                <Button className="mt-6" size="lg">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Découvrir l'offre Premium
+                </Button>
+              </div>
+
+              {/* Blurred background content (fake personas preview) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-30">
+                <div className="bg-card rounded-lg p-6 h-48">
+                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
+                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
+                  <div className="h-2 bg-muted rounded w-full mb-2" />
+                  <div className="h-2 bg-muted rounded w-4/5" />
+                </div>
+                <div className="bg-card rounded-lg p-6 h-48">
+                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
+                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
+                  <div className="h-2 bg-muted rounded w-full mb-2" />
+                  <div className="h-2 bg-muted rounded w-4/5" />
+                </div>
+                <div className="bg-card rounded-lg p-6 h-48">
+                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
+                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
+                  <div className="h-2 bg-muted rounded w-full mb-2" />
+                  <div className="h-2 bg-muted rounded w-4/5" />
+                </div>
+              </div>
+            </motion.div>
           </TabsContent>
 
           <TabsContent value="analytics" className="bg-card rounded-lg border border-border p-6 shadow-md">
