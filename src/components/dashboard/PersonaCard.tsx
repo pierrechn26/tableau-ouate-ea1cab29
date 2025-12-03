@@ -73,7 +73,7 @@ export function PersonaCard({
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Représente {prospectPercentage}% de vos prospects</span>
             </div>
-            <Progress value={prospectPercentage} className="h-2 bg-white/20" />
+            <Progress value={prospectPercentage} className="h-2.5 bg-black/20 backdrop-blur-sm" />
           </div>
         </div>
 
