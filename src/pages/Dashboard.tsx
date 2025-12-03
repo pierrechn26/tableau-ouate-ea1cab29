@@ -13,6 +13,7 @@ import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytics";
 import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
+import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
@@ -345,6 +346,9 @@ export default function Dashboard() {
                 </motion.div>
               </div>
             </div>
+
+            {/* Diagnostic Preview */}
+            <DiagnosticPreview />
           </TabsContent>
 
           <TabsContent value="personas" className="space-y-6">
