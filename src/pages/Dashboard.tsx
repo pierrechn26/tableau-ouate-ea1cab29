@@ -359,13 +359,13 @@ export default function Dashboard() {
             
             {/* Separate persona cards with shadow depth */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+              <div className="rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300 overflow-hidden">
                 <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
               </div>
-              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+              <div className="rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300 overflow-hidden">
                 <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
               </div>
-              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+              <div className="rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300 overflow-hidden">
                 <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
               </div>
             </div>
