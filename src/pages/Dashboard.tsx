@@ -292,7 +292,7 @@ export default function Dashboard() {
 
           <TabsContent value="overview" className="space-y-8">
             {/* Key Metrics */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+            <div className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
@@ -335,7 +335,7 @@ export default function Dashboard() {
             </div>
 
             {/* Personas Preview */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+            <div className="bg-gradient-to-br from-card via-card to-secondary/10 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {personas.map((persona, index) => (
@@ -344,7 +344,7 @@ export default function Dashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="bg-card rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
+                    className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md"
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <img
@@ -376,14 +376,14 @@ export default function Dashboard() {
             </div>
 
             {/* Diagnostic Performance */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-md">
+            <div className="bg-gradient-to-br from-card via-card to-accent/10 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Performance du Diagnostic</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                  className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Activity className="w-5 h-5 text-primary" />
@@ -399,7 +399,7 @@ export default function Dashboard() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.1 }}
-                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                  className="bg-gradient-to-br from-card via-card to-accent/5 rounded-xl p-6 border border-border/50 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Users className="w-5 h-5 text-primary" />
@@ -415,7 +415,7 @@ export default function Dashboard() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
-                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                  className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Sparkles className="w-5 h-5 text-primary" />
@@ -431,7 +431,7 @@ export default function Dashboard() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.3 }}
-                  className="bg-card rounded-xl p-6 border border-border/50 shadow-sm"
+                  className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <BarChart3 className="w-5 h-5 text-primary" />

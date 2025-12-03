@@ -82,7 +82,7 @@ export function BusinessMetrics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-6 bg-background border border-border shadow-sm">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-primary/10 border border-border/50 shadow-md">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Impact du Diagnostic sur le CA
             </h3>
@@ -131,7 +131,7 @@ export function BusinessMetrics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 bg-background border border-border shadow-sm">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               CA par Persona
             </h3>
@@ -182,7 +182,7 @@ export function BusinessMetrics() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        <Card className="p-6 bg-background border border-border shadow-sm">
+        <Card className="p-6 bg-gradient-to-br from-card via-card to-accent/10 border border-border/50 shadow-md">
           <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
             Insights Business
           </h3>

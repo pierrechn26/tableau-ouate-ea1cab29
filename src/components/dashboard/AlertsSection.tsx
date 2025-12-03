@@ -115,7 +115,7 @@ export function AlertsSection() {
   };
 
   return (
-    <Card className="p-8 bg-background border border-border shadow-sm">
+    <Card className="p-8 bg-gradient-to-br from-card via-card to-destructive/5 border border-border/50 shadow-md">
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2 font-heading">

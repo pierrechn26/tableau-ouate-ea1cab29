@@ -105,7 +105,7 @@ export function DiagnosticsAnalytics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="p-6 bg-background border border-border shadow-sm">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-destructive/5 border border-border/50 shadow-md">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Principales Frictions par Thème
             </h3>
@@ -139,7 +139,7 @@ export function DiagnosticsAnalytics() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 bg-background border border-border shadow-sm">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Répartition des Personas
             </h3>
@@ -191,7 +191,7 @@ export function DiagnosticsAnalytics() {
           transition={{ delay: 0.4 }}
           className="lg:col-span-2"
         >
-          <Card className="p-6 bg-background border border-border shadow-sm">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-accent/10 border border-border/50 shadow-md">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               Évolution des Opt-in
             </h3>
