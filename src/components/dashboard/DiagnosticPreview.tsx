@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Eye, Sparkles } from "lucide-react";
+import { ChevronRight, Eye, Sparkles, Heart, Target, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 
 interface DiagnosticOption {
   id: string;
@@ -11,55 +12,67 @@ interface DiagnosticOption {
   description?: string;
 }
 
-const diagnosticQuestion = {
-  title: "Où en êtes-vous dans votre maternité ?",
-  subtitle: "Cette question nous permet de personnaliser votre routine de soins",
-  options: [
-    {
-      id: "pregnant-1",
-      label: "Je suis enceinte (1er trimestre)",
-      description: "0-12 semaines"
-    },
-    {
-      id: "pregnant-2",
-      label: "Je suis enceinte (2ème trimestre)",
-      description: "13-26 semaines"
-    },
-    {
-      id: "pregnant-3",
-      label: "Je suis enceinte (3ème trimestre)",
-      description: "27-40 semaines"
-    },
-    {
-      id: "postpartum",
-      label: "Je suis jeune maman",
-      description: "Post-accouchement"
-    },
-    {
-      id: "trying",
-      label: "J'essaie de concevoir",
-      description: "Projet bébé"
-    }
-  ] as DiagnosticOption[]
-};
+const maternityOptions: DiagnosticOption[] = [
+  {
+    id: "pregnant-1",
+    label: "Je suis enceinte (1er trimestre)",
+    description: "0-12 semaines"
+  },
+  {
+    id: "pregnant-2",
+    label: "Je suis enceinte (2ème trimestre)",
+    description: "13-26 semaines"
+  },
+  {
+    id: "pregnant-3",
+    label: "Je suis enceinte (3ème trimestre)",
+    description: "27-40 semaines"
+  },
+  {
+    id: "postpartum",
+    label: "Je suis jeune maman",
+    description: "Post-accouchement"
+  },
+  {
+    id: "trying",
+    label: "J'essaie de concevoir",
+    description: "Projet bébé"
+  }
+];
+
+type DiagnosticStep = "intro" | "name" | "maternity" | "result";
 
 export function DiagnosticPreview() {
+  const [currentStep, setCurrentStep] = useState<DiagnosticStep>("intro");
+  const [firstName, setFirstName] = useState("");
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [showResult, setShowResult] = useState(false);
 
-  const handleSelect = (optionId: string) => {
-    setSelectedOption(optionId);
-  };
-
-  const handleContinue = () => {
-    if (selectedOption) {
-      setShowResult(true);
+  const getProgress = () => {
+    switch (currentStep) {
+      case "intro": return 0;
+      case "name": return 12;
+      case "maternity": return 25;
+      case "result": return 100;
+      default: return 0;
     }
   };
 
+  const getQuestionNumber = () => {
+    switch (currentStep) {
+      case "name": return "Question 1 sur 8";
+      case "maternity": return "Question 2 sur 8";
+      default: return "";
+    }
+  };
+
+  const handleStartDiagnostic = () => setCurrentStep("name");
+  const handleNameSubmit = () => firstName.trim() && setCurrentStep("maternity");
+  const handleMaternitySelect = (optionId: string) => setSelectedOption(optionId);
+  const handleMaternitySubmit = () => selectedOption && setCurrentStep("result");
   const handleReset = () => {
+    setCurrentStep("intro");
+    setFirstName("");
     setSelectedOption(null);
-    setShowResult(false);
   };
 
   return (
@@ -83,71 +96,180 @@ export function DiagnosticPreview() {
             </p>
           </div>
         </div>
-        {showResult && (
+        {currentStep !== "intro" && (
           <Button variant="outline" size="sm" onClick={handleReset}>
             Recommencer
           </Button>
         )}
       </div>
 
-      {/* Diagnostic Interface Preview */}
       <Card className="bg-white border-2 border-foreground/10 overflow-hidden">
-        {/* Header Bar */}
         <div className="bg-foreground px-6 py-4">
           <div className="flex items-center justify-between">
-            <span className="text-white font-semibold text-lg tracking-wide">
-              TALM
-            </span>
-            <span className="text-white/70 text-sm">
-              Diagnostic personnalisé
-            </span>
+            <span className="text-white font-semibold text-lg tracking-wide">TALM</span>
+            <span className="text-white/70 text-sm">Diagnostic personnalisé</span>
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="px-6 pt-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>Question 1 sur 8</span>
-            <span>12%</span>
+        {currentStep !== "intro" && currentStep !== "result" && (
+          <div className="px-6 pt-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <span>{getQuestionNumber()}</span>
+              <span>{getProgress()}%</span>
+            </div>
+            <Progress value={getProgress()} className="h-1 bg-muted" />
           </div>
-          <Progress value={12} className="h-1 bg-muted" />
-        </div>
+        )}
 
-        {/* Question Content */}
         <div className="p-6 md:p-8">
           <AnimatePresence mode="wait">
-            {!showResult ? (
+            {currentStep === "intro" && (
               <motion.div
-                key="question"
+                key="intro"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="text-center py-4"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", delay: 0.1 }}
+                  className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mx-auto mb-6"
+                >
+                  <Wand2 className="w-8 h-8 text-foreground" />
+                </motion.div>
+
+                <motion.h4
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="text-2xl md:text-3xl font-bold text-foreground mb-4 font-heading"
+                >
+                  Votre diagnostic 100% personnalisé
+                </motion.h4>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-muted-foreground mb-8 max-w-lg mx-auto"
+                >
+                  En quelques questions sur votre situation, vos besoins et vos préférences, 
+                  nous allons créer une routine de soins entièrement adaptée à vous.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto"
+                >
+                  <div className="flex flex-col items-center p-4 rounded-xl bg-foreground/[0.02] border border-border/50">
+                    <Target className="w-6 h-6 text-foreground mb-2" />
+                    <span className="text-sm font-medium text-foreground">Questions ciblées</span>
+                    <span className="text-xs text-muted-foreground">Adaptées à votre profil</span>
+                  </div>
+                  <div className="flex flex-col items-center p-4 rounded-xl bg-foreground/[0.02] border border-border/50">
+                    <Heart className="w-6 h-6 text-foreground mb-2" />
+                    <span className="text-sm font-medium text-foreground">Analyse complète</span>
+                    <span className="text-xs text-muted-foreground">De vos besoins uniques</span>
+                  </div>
+                  <div className="flex flex-col items-center p-4 rounded-xl bg-foreground/[0.02] border border-border/50">
+                    <Sparkles className="w-6 h-6 text-foreground mb-2" />
+                    <span className="text-sm font-medium text-foreground">Recommandations</span>
+                    <span className="text-xs text-muted-foreground">Produits sur-mesure</span>
+                  </div>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                  <Button
+                    onClick={handleStartDiagnostic}
+                    className="bg-foreground text-white hover:bg-foreground/90 px-8 py-6 text-base font-medium rounded-xl"
+                  >
+                    Je souhaite obtenir des recommandations personnalisées
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {currentStep === "name" && (
+              <motion.div
+                key="name"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
                 <div className="text-center mb-8">
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                  >
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
                     <h4 className="text-2xl md:text-3xl font-bold text-foreground mb-3 font-heading">
-                      {diagnosticQuestion.title}
+                      Super, on va essayer de vous accompagner au mieux !
                     </h4>
-                    <p className="text-muted-foreground text-sm md:text-base">
-                      {diagnosticQuestion.subtitle}
+                    <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
+                      Pour démarrer sur les meilleures bases et faire connaissance, comment vous appelez-vous ?
                     </p>
                   </motion.div>
                 </div>
 
-                {/* Options */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="max-w-sm mx-auto"
+                >
+                  <Input
+                    type="text"
+                    placeholder="Votre prénom"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="text-center text-lg py-6 border-2 border-border focus:border-foreground rounded-xl"
+                    onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
+                  />
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 flex justify-center">
+                  <Button
+                    onClick={handleNameSubmit}
+                    disabled={!firstName.trim()}
+                    className="bg-foreground text-white hover:bg-foreground/90 px-8 py-6 text-base font-medium rounded-xl"
+                  >
+                    Continuer
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {currentStep === "maternity" && (
+              <motion.div
+                key="maternity"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="text-center mb-8">
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
+                    <h4 className="text-2xl md:text-3xl font-bold text-foreground mb-3 font-heading">
+                      Ravie de faire votre connaissance {firstName} !
+                    </h4>
+                    <p className="text-muted-foreground text-sm md:text-base">
+                      Dites-moi en plus, où en êtes-vous dans votre maternité ?
+                    </p>
+                  </motion.div>
+                </div>
+
                 <div className="space-y-3 max-w-lg mx-auto">
-                  {diagnosticQuestion.options.map((option, index) => (
+                  {maternityOptions.map((option, index) => (
                     <motion.button
                       key={option.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.15 + index * 0.05 }}
-                      onClick={() => handleSelect(option.id)}
+                      onClick={() => handleMaternitySelect(option.id)}
                       className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                         selectedOption === option.id
                           ? "border-foreground bg-foreground/5"
@@ -156,28 +278,18 @@ export function DiagnosticPreview() {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-foreground">
-                            {option.label}
-                          </p>
+                          <p className="font-medium text-foreground">{option.label}</p>
                           {option.description && (
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              {option.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-0.5">{option.description}</p>
                           )}
                         </div>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            selectedOption === option.id
-                              ? "border-foreground bg-foreground"
-                              : "border-muted-foreground/40"
+                            selectedOption === option.id ? "border-foreground bg-foreground" : "border-muted-foreground/40"
                           }`}
                         >
                           {selectedOption === option.id && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-2 h-2 rounded-full bg-white"
-                            />
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
                       </div>
@@ -185,15 +297,9 @@ export function DiagnosticPreview() {
                   ))}
                 </div>
 
-                {/* Continue Button */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="mt-8 flex justify-center"
-                >
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 flex justify-center">
                   <Button
-                    onClick={handleContinue}
+                    onClick={handleMaternitySubmit}
                     disabled={!selectedOption}
                     className="bg-foreground text-white hover:bg-foreground/90 px-8 py-6 text-base font-medium rounded-xl"
                   >
@@ -202,7 +308,9 @@ export function DiagnosticPreview() {
                   </Button>
                 </motion.div>
               </motion.div>
-            ) : (
+            )}
+
+            {currentStep === "result" && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -219,19 +327,13 @@ export function DiagnosticPreview() {
                 >
                   <Sparkles className="w-8 h-8 text-foreground" />
                 </motion.div>
-                <h4 className="text-2xl font-bold text-foreground mb-3 font-heading">
-                  Aperçu terminé
-                </h4>
+                <h4 className="text-2xl font-bold text-foreground mb-3 font-heading">Aperçu terminé</h4>
                 <p className="text-muted-foreground max-w-md mx-auto mb-6">
                   Voici comment vos clients expérimentent votre diagnostic. 
-                  Les 7 questions suivantes sont adaptées en temps réel selon leurs réponses.
+                  Les questions suivantes sont adaptées en temps réel selon leurs réponses.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handleReset}
-                    className="border-foreground/20"
-                  >
+                  <Button variant="outline" onClick={handleReset} className="border-foreground/20">
                     Recommencer l'aperçu
                   </Button>
                   <Button className="bg-foreground text-white hover:bg-foreground/90">
@@ -243,7 +345,6 @@ export function DiagnosticPreview() {
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-muted/30 border-t border-border/50">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Propulsé par Ask-It</span>
