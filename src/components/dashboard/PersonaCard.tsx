@@ -78,7 +78,7 @@ export function PersonaCard({
         </div>
 
         {/* Content */}
-        <div className="p-6 pb-0 space-y-5 flex-1">
+        <div className="p-6 pb-0 space-y-5">
           {/* Psychology */}
           <div className="space-y-1.5">
             <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
@@ -157,9 +157,12 @@ export function PersonaCard({
 
         </div>
 
+        {/* Flex spacer to push Insights to bottom */}
+        <div className="flex-1 min-h-5" />
+        
         {/* AI Insights with distinctive background - outside main padding */}
         <motion.div 
-          className="space-y-2 pt-4 pb-6 px-6 mt-auto bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20 rounded-b-lg"
+          className="space-y-2 pt-4 pb-6 px-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20 rounded-b-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 + 0.3 }}
