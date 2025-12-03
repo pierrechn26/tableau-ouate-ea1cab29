@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Activity,
   DollarSign,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +28,7 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
+import askItLogo from "@/assets/ask-it-logo.png";
 import {
   Dialog,
   DialogContent,
@@ -184,13 +186,19 @@ export default function Dashboard() {
       <header className="border-b border-border bg-gradient-to-r from-primary via-secondary to-accent backdrop-blur-sm sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white font-heading">
-                Ask-It Dashboard
-              </h1>
-              <p className="text-sm text-white/90 font-medium mt-1">
-                Marque : TALM — Data Premium
-              </p>
+            <div className="flex items-center gap-4">
+              <img src={askItLogo} alt="Ask-It Logo" className="h-10 w-auto" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-white/90 font-medium">
+                    Dashboard TALM — Premium Data
+                  </p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
+                    <CheckCircle className="w-3 h-3" />
+                    Certifié
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <DateRangePicker
