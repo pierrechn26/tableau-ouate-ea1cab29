@@ -357,11 +357,17 @@ export default function Dashboard() {
               </p>
             </div>
             
-            {/* Separate persona cards */}
+            {/* Separate persona cards with shadow depth */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
-              <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
-              <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
+              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+                <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
+              </div>
+              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+                <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
+              </div>
+              <div className="bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
+                <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
+              </div>
             </div>
 
             {/* Locked Premium Personas Teaser */}
@@ -369,63 +375,69 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-muted/50 to-muted/30 p-8"
+              className="relative overflow-hidden rounded-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
             >
-              {/* Blur overlay */}
-              <div className="absolute inset-0 backdrop-blur-sm bg-background/60 z-10 flex flex-col items-center justify-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Lock className="w-8 h-8 text-primary" />
+              {/* Colorful blurred background simulating hidden data */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="grid grid-cols-3 gap-4 p-6 blur-md">
+                  {/* Simulated colorful persona cards */}
+                  <div className="bg-gradient-to-br from-persona-emma to-persona-emma/60 rounded-xl h-64 p-4">
+                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
+                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
+                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
+                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-3/4" />
+                  </div>
+                  <div className="bg-gradient-to-br from-persona-sophie to-persona-sophie/60 rounded-xl h-64 p-4">
+                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
+                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
+                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
+                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-3/4" />
+                  </div>
+                  <div className="bg-gradient-to-br from-persona-lea to-persona-lea/60 rounded-xl h-64 p-4">
+                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
+                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
+                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
+                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
+                    <div className="h-2 bg-white/20 rounded w-3/4" />
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 text-center">
+              </div>
+
+              {/* Overlay content with proper spacing */}
+              <div className="relative z-10 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center py-16 pb-24 px-8">
+                <div className="bg-primary/15 p-5 rounded-full mb-6 shadow-lg">
+                  <Lock className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3 text-center">
                   Passer au niveau supérieur pour découvrir vos autres personas intelligents
                 </h3>
-                <p className="text-muted-foreground text-center max-w-md mb-4">
+                <p className="text-muted-foreground text-center max-w-lg mb-6">
                   Débloquez une vue complète de tous vos profils clients pour une analyse encore plus profonde et précise
                 </p>
                 
                 {/* Progress bar showing remaining percentage */}
-                <div className="w-full max-w-sm space-y-2">
+                <div className="w-full max-w-sm space-y-2 mb-8">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Personas supplémentaires</span>
                     <span className="font-semibold text-primary">5% de vos prospects</span>
                   </div>
                   <div className="h-3 bg-black/10 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-primary/60 to-accent/60 transition-all duration-500" 
+                      className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" 
                       style={{ width: '5%' }}
                     />
                   </div>
                 </div>
                 
-                <Button className="mt-6" size="lg">
+                <Button className="shadow-lg hover:shadow-xl transition-shadow" size="lg">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Découvrir l'offre Premium
                 </Button>
-              </div>
-
-              {/* Blurred background content (fake personas preview) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-30">
-                <div className="bg-card rounded-lg p-6 h-48">
-                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
-                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
-                  <div className="h-2 bg-muted rounded w-full mb-2" />
-                  <div className="h-2 bg-muted rounded w-4/5" />
-                </div>
-                <div className="bg-card rounded-lg p-6 h-48">
-                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
-                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
-                  <div className="h-2 bg-muted rounded w-full mb-2" />
-                  <div className="h-2 bg-muted rounded w-4/5" />
-                </div>
-                <div className="bg-card rounded-lg p-6 h-48">
-                  <div className="w-12 h-12 bg-muted rounded-full mb-3" />
-                  <div className="h-4 bg-muted rounded w-2/3 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2 mb-4" />
-                  <div className="h-2 bg-muted rounded w-full mb-2" />
-                  <div className="h-2 bg-muted rounded w-4/5" />
-                </div>
               </div>
             </motion.div>
           </TabsContent>
