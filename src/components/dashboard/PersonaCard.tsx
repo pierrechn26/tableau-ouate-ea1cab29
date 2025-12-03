@@ -160,7 +160,7 @@ export function PersonaCard({
 
         {/* AI Insights with distinctive background */}
         <motion.div 
-          className="mt-auto min-h-[180px] space-y-2 pt-4 pb-6 px-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20 rounded-b-lg"
+          className="flex-1 mt-auto space-y-2 pt-4 pb-6 px-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20 rounded-b-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 + 0.3 }}
