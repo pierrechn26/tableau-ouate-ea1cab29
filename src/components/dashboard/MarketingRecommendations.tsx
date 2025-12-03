@@ -137,7 +137,7 @@ export function MarketingRecommendations() {
   }, {} as Record<string, Recommendation[]>);
 
   return (
-    <Card className="p-8 bg-background border border-border shadow-sm">
+    <Card className="p-8 bg-gradient-to-br from-card via-card to-primary/5 border border-border/50 shadow-md">
       <div className="space-y-6">
         {/* Header */}
         <div>
