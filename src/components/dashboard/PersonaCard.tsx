@@ -78,7 +78,7 @@ export function PersonaCard({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 pb-0 space-y-5">
           {/* Psychology */}
           <div className="space-y-1.5">
             <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
@@ -155,34 +155,35 @@ export function PersonaCard({
             </div>
           </div>
 
-          {/* AI Insights with distinctive background */}
-          <motion.div 
-            className="space-y-2 pt-4 pb-6 px-6 -mx-6 -mb-6 mt-3 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20 rounded-b-lg"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.1 + 0.3 }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-destructive" />
-              <h4 className="text-xs font-bold text-destructive uppercase tracking-wider">
-                Insights IA
-              </h4>
-            </div>
-            <div className="space-y-2">
-              {aiInsights.map((insight, i) => (
-                <motion.p
-                  key={i}
-                  className="text-xs text-destructive/90 leading-relaxed pl-3 border-l-2 border-destructive/40"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
-                >
-                  {insight}
-                </motion.p>
-              ))}
-            </div>
-          </motion.div>
         </div>
+
+        {/* AI Insights with distinctive background - outside main padding */}
+        <motion.div 
+          className="space-y-2 pt-4 pb-6 px-6 mt-5 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: index * 0.1 + 0.3 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-destructive" />
+            <h4 className="text-xs font-bold text-destructive uppercase tracking-wider">
+              Insights IA
+            </h4>
+          </div>
+          <div className="space-y-2">
+            {aiInsights.map((insight, i) => (
+              <motion.p
+                key={i}
+                className="text-xs text-destructive/90 leading-relaxed pl-3 border-l-2 border-destructive/40"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 + 0.4 + i * 0.1 }}
+              >
+                {insight}
+              </motion.p>
+            ))}
+          </div>
+        </motion.div>
       </Card>
     </motion.div>
   );
