@@ -186,13 +186,13 @@ export default function Dashboard() {
       <header className="border-b border-border bg-gradient-to-r from-primary via-secondary to-accent backdrop-blur-sm sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <img src={askItLogo} alt="Ask-It Logo" className="h-16 w-auto" />
-              <div>
-                <p className="text-xl text-white font-semibold font-heading">
+            <div className="flex flex-col">
+              <img src={askItLogo} alt="Ask-It Logo" className="h-12 w-auto" />
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-base text-white font-medium">
                   Dashboard TALM — Premium Data
                 </p>
-                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
                   <CheckCircle className="w-3 h-3" />
                   Certifié
                 </span>
