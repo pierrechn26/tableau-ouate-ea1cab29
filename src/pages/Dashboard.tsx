@@ -187,17 +187,15 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <img src={askItLogo} alt="Ask-It Logo" className="h-10 w-auto" />
+              <img src={askItLogo} alt="Ask-It Logo" className="h-16 w-auto" />
               <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-white/90 font-medium">
-                    Dashboard TALM — Premium Data
-                  </p>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
-                    <CheckCircle className="w-3 h-3" />
-                    Certifié
-                  </span>
-                </div>
+                <p className="text-xl text-white font-semibold font-heading">
+                  Dashboard TALM — Premium Data
+                </p>
+                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
+                  <CheckCircle className="w-3 h-3" />
+                  Certifié
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
