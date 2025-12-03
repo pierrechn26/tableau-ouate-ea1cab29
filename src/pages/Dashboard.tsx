@@ -358,7 +358,7 @@ export default function Dashboard() {
             </div>
             
             {/* Separate persona cards with shadow depth */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
               <div className="h-full bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
                 <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
               </div>
