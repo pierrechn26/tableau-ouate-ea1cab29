@@ -45,7 +45,7 @@ export function PersonaCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
-      <Card className="overflow-hidden border-0 bg-card shadow-none hover:shadow-none transition-all duration-300 h-full flex flex-col">
+      <Card className="overflow-hidden border-0 bg-card shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 h-full">
         {/* Colored Header with stronger background */}
         <div className={`${colorClass} ${foregroundClass} p-6 relative`}>
           <div className="flex items-center gap-4">
@@ -78,7 +78,7 @@ export function PersonaCard({
         </div>
 
         {/* Content */}
-        <div className="p-6 pb-0 space-y-5 flex-1">
+        <div className="p-6 pb-0 space-y-5">
           {/* Psychology */}
           <div className="space-y-1.5">
             <h4 className="text-xs font-semibold text-primary uppercase tracking-wider">
@@ -159,7 +159,7 @@ export function PersonaCard({
 
         {/* AI Insights with distinctive background - outside main padding */}
         <motion.div 
-          className="space-y-2 pt-4 pb-6 px-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20"
+          className="space-y-2 pt-4 pb-6 px-6 mt-5 bg-gradient-to-br from-destructive/10 to-destructive/5 border-t border-destructive/20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 + 0.3 }}
