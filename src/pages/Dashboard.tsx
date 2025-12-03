@@ -187,7 +187,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex flex-col">
-              <img src={askItLogo} alt="Ask-It Logo" className="h-12 w-auto" />
+              <img src={askItLogo} alt="Ask-It Logo" className="h-12 w-auto object-contain" />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
                   Dashboard TALM — Premium Data
