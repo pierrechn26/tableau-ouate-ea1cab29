@@ -96,9 +96,14 @@ export function BusinessMetrics() {
           transition={{ delay: 0.2 }}
         >
           <Card className="p-6 bg-gradient-to-br from-card via-card to-primary/10 border border-border/50 shadow-md">
-            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
-              Impact du Diagnostic sur le CA
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-foreground font-heading">
+                Impact du Diagnostic sur le CA
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                Données depuis le début de l'année
+              </span>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyRevenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -183,7 +188,7 @@ export function BusinessMetrics() {
               </LineChart>
             </ResponsiveContainer>
             <p className="text-xs text-muted-foreground mt-2">
-              Données depuis le début de l'année · Les lignes pointillées représentent les données partielles du mois en cours
+              Les lignes pointillées représentent les données partielles du mois en cours
             </p>
           </Card>
         </motion.div>
