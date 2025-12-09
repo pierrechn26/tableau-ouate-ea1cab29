@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { DateRange } from "react-day-picker";
-import { subDays } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText } from "lucide-react";
+import { subDays, format } from "date-fns";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -77,6 +79,18 @@ export default function Dashboard() {
     marketing: true,
     insights: true,
   });
+  const [isExporting, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  
+  // Refs for each section
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const personasRef = useRef<HTMLDivElement>(null);
+  const diagnosticsRef = useRef<HTMLDivElement>(null);
+  const businessRef = useRef<HTMLDivElement>(null);
+  const funnelRef = useRef<HTMLDivElement>(null);
+  const marketingRef = useRef<HTMLDivElement>(null);
+  const insightsRef = useRef<HTMLDivElement>(null);
+  
   const {
     toast
   } = useToast();
@@ -85,16 +99,160 @@ export default function Dashboard() {
     to: new Date()
   });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
-  const handleExport = () => {
+  
+  const sectionRefs: Record<string, React.RefObject<HTMLDivElement>> = {
+    overview: overviewRef,
+    personas: personasRef,
+    diagnostics: diagnosticsRef,
+    business: businessRef,
+    funnel: funnelRef,
+    marketing: marketingRef,
+    insights: insightsRef,
+  };
+  
+  const sectionNames: Record<string, string> = {
+    overview: "Vue d'ensemble",
+    personas: "Personas",
+    diagnostics: "Diagnostics",
+    business: "Business",
+    funnel: "Funnel",
+    marketing: "Marketing IA",
+    insights: "Insights",
+  };
+  
+  const handleExport = async () => {
     const selectedSections = Object.entries(exportSections)
       .filter(([key, value]) => value && key !== 'all')
       .map(([key]) => key);
     
+    if (selectedSections.length === 0) {
+      toast({
+        title: "Aucune section sélectionnée",
+        description: "Veuillez sélectionner au moins une section à exporter.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsExporting(true);
+    setExportOpen(false);
+    
     toast({
       title: "Export en cours",
-      description: `Génération du PDF avec ${exportSections.all ? 'tous les éléments' : selectedSections.length + ' section(s)'}...`
+      description: "Génération du PDF en cours, veuillez patienter..."
     });
-    setExportOpen(false);
+    
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      let isFirstPage = true;
+      
+      // Store original tab to restore later
+      const originalTab = activeTab;
+      
+      for (const section of selectedSections) {
+        // Switch to the section's tab to make it visible
+        setActiveTab(section === 'diagnostics' ? 'analytics' : section === 'insights' ? 'alerts' : section);
+        
+        // Wait for tab content to render
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const ref = sectionRefs[section];
+        if (ref?.current) {
+          const canvas = await html2canvas(ref.current, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = pageWidth - (margin * 2);
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          if (!isFirstPage) {
+            pdf.addPage();
+          }
+          
+          // Add section title
+          pdf.setFontSize(16);
+          pdf.setTextColor(0, 0, 0);
+          pdf.text(sectionNames[section], margin, margin + 5);
+          
+          // Add date range info
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 100, 100);
+          const dateText = dateRange?.from && dateRange?.to 
+            ? `Période: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
+            : 'Période: Non définie';
+          pdf.text(dateText, margin, margin + 12);
+          
+          // Calculate how many pages we need for this section
+          let yPosition = margin + 18;
+          let remainingHeight = imgHeight;
+          let sourceY = 0;
+          
+          while (remainingHeight > 0) {
+            const availableHeight = pageHeight - yPosition - margin;
+            const sliceHeight = Math.min(availableHeight, remainingHeight);
+            const sliceRatio = sliceHeight / imgHeight;
+            
+            // Create a temporary canvas for the slice
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = canvas.height * sliceRatio;
+            const sliceCtx = sliceCanvas.getContext('2d');
+            
+            if (sliceCtx) {
+              sliceCtx.drawImage(
+                canvas,
+                0, sourceY * (canvas.height / imgHeight),
+                canvas.width, sliceCanvas.height,
+                0, 0,
+                sliceCanvas.width, sliceCanvas.height
+              );
+              
+              const sliceData = sliceCanvas.toDataURL('image/png');
+              pdf.addImage(sliceData, 'PNG', margin, yPosition, imgWidth, sliceHeight);
+            }
+            
+            remainingHeight -= sliceHeight;
+            sourceY += sliceHeight;
+            
+            if (remainingHeight > 0) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+          }
+          
+          isFirstPage = false;
+        }
+      }
+      
+      // Restore original tab
+      setActiveTab(originalTab);
+      
+      // Generate filename with date
+      const fileName = `rapport-talm-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      pdf.save(fileName);
+      
+      toast({
+        title: "Export réussi",
+        description: `Le rapport "${fileName}" a été téléchargé.`
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Erreur d'export",
+        description: "Une erreur est survenue lors de la génération du PDF.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleToggleAll = (checked: boolean) => {
@@ -300,9 +458,18 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={handleExport} className="w-full">
-                    <Download className="w-4 h-4 mr-2" />
-                    Exporter le rapport
+                  <Button onClick={handleExport} className="w-full" disabled={isExporting}>
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Export en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Exporter le rapport
+                      </>
+                    )}
                   </Button>
                 </DialogContent>
               </Dialog>
@@ -313,7 +480,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="inline-flex h-auto items-center justify-start gap-2 rounded-lg bg-muted/30 p-1.5">
             <TabsTrigger value="overview">
               <Sparkles className="w-4 h-4" />
@@ -346,6 +513,7 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
+            <div ref={overviewRef} className="space-y-8">
             {/* Key Metrics */}
             <div className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
@@ -505,9 +673,11 @@ export default function Dashboard() {
 
             {/* Diagnostic Preview */}
             <DiagnosticPreview />
+            </div>
           </TabsContent>
 
           <TabsContent value="personas" className="space-y-6">
+            <div ref={personasRef} className="space-y-6">
             <div className="mb-6">
               <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
                 Personas Intelligents
@@ -600,26 +770,37 @@ export default function Dashboard() {
                 </Button>
               </div>
             </motion.div>
+            </div>
           </TabsContent>
 
           <TabsContent value="analytics" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <DiagnosticsAnalytics />
+            <div ref={diagnosticsRef}>
+              <DiagnosticsAnalytics />
+            </div>
           </TabsContent>
 
           <TabsContent value="business" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <BusinessMetrics />
+            <div ref={businessRef}>
+              <BusinessMetrics />
+            </div>
           </TabsContent>
 
           <TabsContent value="funnel" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <FunnelVisualization />
+            <div ref={funnelRef}>
+              <FunnelVisualization />
+            </div>
           </TabsContent>
 
           <TabsContent value="marketing" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <MarketingRecommendations />
+            <div ref={marketingRef}>
+              <MarketingRecommendations />
+            </div>
           </TabsContent>
 
           <TabsContent value="alerts" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <AlertsSection />
+            <div ref={insightsRef}>
+              <AlertsSection />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
