@@ -79,6 +79,20 @@ export function DateRangePicker({
         };
       },
     },
+    {
+      label: "90 derniers jours",
+      getValue: () => ({
+        from: subDays(new Date(), 89),
+        to: new Date(),
+      }),
+    },
+    {
+      label: "Cette année",
+      getValue: () => ({
+        from: new Date(new Date().getFullYear(), 0, 1),
+        to: new Date(),
+      }),
+    },
   ];
 
   const comparisonPresets = [
