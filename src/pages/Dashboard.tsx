@@ -29,7 +29,7 @@ const personas = [{
   image: personaEmma,
   ageRange: "26-32 ans",
   situation: "Enceinte 1er trimestre",
-  prospectPercentage: 42,
+  prospectPercentage: 25,
   psychology: "Cherche réassurance, lit beaucoup, craint le 'mal faire', veut se sentir préparée.",
   problems: ["Ne sait pas quels soins sont vraiment 'safe grossesse'", "Peur des vergetures → cherche prévention", "Sensible aux textures (nausées + odeurs)", "Redoute les achats inutiles"],
   keyNeeds: ["Guide clair par étape (trimester checklist)", "Produits certifiés, explications simples", "Recommandations personnalisées selon ses symptômes"],
@@ -42,7 +42,7 @@ const personas = [{
   image: personaSophie,
   ageRange: "30-38 ans",
   situation: "Jeune maman postpartum",
-  prospectPercentage: 35,
+  prospectPercentage: 22,
   psychology: "Fatigue + besoin de retrouver confiance + simplicité. Forte charge mentale.",
   problems: ["Pas le temps de lire → veut 'direct au but'", "Vergétures / cicatrices / relâchement de peau", "Manque d'énergie pour comparer les produits"],
   keyNeeds: ["Routine minimaliste en 2–3 produits max", "Explications rapides ('voici ce qu'il te faut')", "Recommandations selon symptômes (sécheresse, cicatrices, jambes lourdes)"],
@@ -428,12 +428,12 @@ export default function Dashboard() {
                 <div className="w-full max-w-sm space-y-2 mb-8">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Personas supplémentaires</span>
-                    <span className="font-semibold text-primary">5% de vos prospects</span>
+                    <span className="font-semibold text-primary">35% de vos prospects</span>
                   </div>
                   <div className="h-3 bg-black/10 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" 
-                      style={{ width: '5%' }}
+                      style={{ width: '35%' }}
                     />
                   </div>
                 </div>

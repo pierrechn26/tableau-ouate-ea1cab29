@@ -30,10 +30,10 @@ const engagementData = [
 ];
 
 const personaDistribution = [
-  { name: "Emma", value: 42, color: "hsl(200, 70%, 60%)" },
-  { name: "Sophie", value: 35, color: "hsl(330, 70%, 65%)" },
+  { name: "Emma", value: 25, color: "hsl(200, 70%, 60%)" },
+  { name: "Sophie", value: 22, color: "hsl(330, 70%, 65%)" },
   { name: "Léa", value: 18, color: "hsl(140, 60%, 55%)" },
-  { name: "Autre", value: 5, color: "hsl(var(--muted))" },
+  { name: "Autre", value: 35, color: "hsl(var(--muted))" },
 ];
 
 const topFrictions = [
