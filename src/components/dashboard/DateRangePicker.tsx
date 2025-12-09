@@ -368,7 +368,7 @@ export function DateRangePicker({
       </Popover>
 
       {onApply && (
-        <Button onClick={onApply} size="sm" className="ml-auto hover:bg-primary/80">
+        <Button onClick={onApply} size="sm" className="ml-auto hover:bg-primary/70 hover:brightness-110 transition-all">
           Actualiser
         </Button>
       )}
