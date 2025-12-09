@@ -19,7 +19,7 @@ import {
 
 const funnelSteps = [
   { label: "Visite du site", value: 45230, percentage: 100, icon: Globe },
-  { label: "Clic diagnostic", value: 12580, percentage: 27.8, icon: MousePointer },
+  { label: "Vues diagnostic", value: 12580, percentage: 27.8, icon: MousePointer },
   { label: "Diagnostic démarré", value: 9845, percentage: 21.8, icon: Play },
   { label: "Diagnostic complété", value: 6234, percentage: 13.8, icon: CheckCircle },
   { label: "Recommandation affichée", value: 6123, percentage: 13.5, icon: Package },
@@ -27,12 +27,11 @@ const funnelSteps = [
   { label: "Ajout panier", value: 2890, percentage: 6.4, icon: ShoppingCart },
   { label: "Checkout", value: 2234, percentage: 4.9, icon: CreditCard },
   { label: "Achat", value: 1789, percentage: 4.0, icon: Heart },
-  { label: "Satisfaction (NPS 8+)", value: 1523, percentage: 85.1, icon: Star },
 ];
 
 const frictions = [
   {
-    step: "Clic diagnostic",
+    step: "Vues diagnostic",
     issue: "CTA diagnostic peu visible sur la homepage",
     recommendation: "Repositionner le CTA en zone hero avec un design plus contrasté"
   },
@@ -85,23 +84,16 @@ export function FunnelVisualization() {
                   initial={{ opacity: 0, x: -30 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.07, duration: 0.4 }}
-                  className="flex items-center gap-4 md:gap-6"
+                  className="flex items-center gap-4 md:gap-8"
                 >
-                  {/* Step Number */}
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-muted-foreground">
-                      {index + 1}
-                    </span>
-                  </div>
-
                   {/* Funnel Bar */}
                   <div className="flex-1 flex justify-center">
                     <div
                       className="h-14 md:h-16 rounded-xl flex items-center justify-between px-4 md:px-6 transition-all duration-300 hover:scale-[1.01] cursor-default shadow-md"
                       style={{
                         width: `${widthPercent}%`,
-                        minWidth: '240px',
-                        background: `linear-gradient(135deg, hsl(var(--primary) / ${0.95 - index * 0.06}) 0%, hsl(var(--accent) / ${0.85 - index * 0.05}) 100%)`,
+                        minWidth: '280px',
+                        background: `linear-gradient(135deg, hsl(348 83% 47%) 0%, hsl(330 81% 60%) 100%)`,
                       }}
                     >
                       {/* Left: Icon + Label */}
@@ -119,20 +111,20 @@ export function FunnelVisualization() {
                         <div className="text-white font-bold text-base md:text-lg">
                           {step.percentage}%
                         </div>
-                        <div className="text-white/70 text-xs">
+                        <div className="text-white/80 text-xs">
                           {step.value.toLocaleString()}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Loss Indicator */}
-                  <div className="w-20 md:w-24 text-right flex-shrink-0">
+                  {/* Loss Indicator - More prominent */}
+                  <div className="w-28 md:w-36 flex-shrink-0">
                     {loss && (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <TrendingDown className="w-3 h-3 text-destructive" />
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs font-semibold text-destructive">
+                      <div className="flex items-center gap-2 p-2 md:p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+                        <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-destructive">
                             -{loss.percent}%
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -148,7 +140,7 @@ export function FunnelVisualization() {
           </div>
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-3 gap-4 md:gap-6 mt-10 pt-8 border-t border-border/30">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-10 pt-8 border-t border-border/30">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -180,6 +172,17 @@ export function FunnelVisualization() {
               <p className="text-2xl md:text-3xl font-bold text-green-600">+23%</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 Potentiel d'optimisation
+              </p>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/10"
+            >
+              <p className="text-2xl md:text-3xl font-bold text-blue-600">3:42</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                Temps moyen
               </p>
             </motion.div>
           </div>
