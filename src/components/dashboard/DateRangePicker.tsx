@@ -172,7 +172,7 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 min-w-[600px]" align="start" sideOffset={4}>
           <div className="flex">
             <div className="border-r border-border p-3 space-y-2">
               <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
@@ -241,7 +241,7 @@ export function DateRangePicker({
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
+          <PopoverContent className="w-auto p-0 min-w-[600px]" align="start" sideOffset={4}>
             <div className="flex">
               <div className="border-r border-border p-3 space-y-2">
                 <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
