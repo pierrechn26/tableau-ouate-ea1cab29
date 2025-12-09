@@ -503,6 +503,9 @@ export default function Dashboard() {
                         <h4 className="font-semibold text-foreground">{persona.name}</h4>
                         <p className="text-sm text-muted-foreground">{persona.tagline}</p>
                         <p className="text-xs text-muted-foreground mt-1">{persona.ageRange}</p>
+                        <p className="text-xs text-primary/80 font-medium mt-0.5">
+                          {persona.name === "Emma" ? "Enceinte" : persona.name === "Sophie" ? "Post-partum" : "Maman"}
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-2">
