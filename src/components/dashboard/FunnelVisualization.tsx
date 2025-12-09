@@ -89,10 +89,10 @@ export function FunnelVisualization() {
                   {/* Funnel Bar */}
                   <div className="flex-1 flex justify-center">
                     <div
-                      className="h-14 md:h-16 rounded-xl flex items-center justify-between px-4 md:px-6 transition-all duration-300 hover:scale-[1.01] cursor-default shadow-md"
+                      className="h-14 md:h-16 rounded-xl flex items-center justify-between px-3 md:px-5 transition-all duration-300 hover:scale-[1.01] cursor-default shadow-md"
                       style={{
                         width: `${widthPercent}%`,
-                        minWidth: '280px',
+                        minWidth: '180px',
                         background: `linear-gradient(135deg, hsl(348 83% 47%) 0%, hsl(330 81% 60%) 100%)`,
                       }}
                     >
