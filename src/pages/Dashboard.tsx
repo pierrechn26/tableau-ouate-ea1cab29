@@ -723,7 +723,7 @@ export default function Dashboard() {
 
           <TabsContent value="analytics" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <div ref={diagnosticsRef}>
-              <DiagnosticsAnalytics dateRange={dateRange} />
+              <DiagnosticsAnalytics />
             </div>
           </TabsContent>
 
