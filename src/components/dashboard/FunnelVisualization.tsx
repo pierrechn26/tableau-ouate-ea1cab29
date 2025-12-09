@@ -37,7 +37,7 @@ const frictions = [
   {
     step: "Optin E-mail & SMS",
     issue: "13% de perte entre diagnostic démarré et opt-in — l'obligation freine les utilisateurs",
-    recommendation: "Rendre l'opt-in optionnel ou le proposer après les résultats pour réduire la friction"
+    recommendation: "Rendre l'opt-in optionnel pour réduire la friction"
   },
   {
     step: "Ajout panier",
