@@ -45,6 +45,7 @@ export function BusinessMetrics() {
             subtitle="Ce mois"
             icon={DollarSign}
             trend={{ value: 23, isPositive: true }}
+            comparison={{ period: "vs période précédente", value: "103 617 €" }}
             index={0}
           />
           <MetricCard
@@ -53,6 +54,7 @@ export function BusinessMetrics() {
             subtitle="des ventes totales"
             icon={TrendingUp}
             trend={{ value: 8, isPositive: true }}
+            comparison={{ period: "vs période précédente", value: "61.3%" }}
             index={1}
           />
           <MetricCard
@@ -61,6 +63,7 @@ export function BusinessMetrics() {
             subtitle="vs 52.30 € sans"
             icon={ShoppingCart}
             trend={{ value: 36, isPositive: true }}
+            comparison={{ period: "vs période précédente", value: "52.35 €" }}
             index={2}
           />
           <MetricCard
@@ -69,6 +72,7 @@ export function BusinessMetrics() {
             subtitle="+42% vs sans diag"
             icon={Users}
             trend={{ value: 42, isPositive: true }}
+            comparison={{ period: "vs période précédente", value: "164.79 €" }}
             index={3}
           />
         </div>
