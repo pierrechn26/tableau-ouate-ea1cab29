@@ -218,13 +218,13 @@ export function DiagnosticsAnalytics() {
               </span>
             </div>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={optInData}>
+              <LineChart data={optInData} margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))" 
                   tickFormatter={(value) => value.toLocaleString('fr-FR')}
-                  label={{ value: 'Inscrits', angle: -90, position: 'insideLeft', dx: -15, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' } }}
+                  label={{ value: 'Inscrits', angle: -90, position: 'insideLeft', dx: -5, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' } }}
                 />
                 <Tooltip
                   contentStyle={{
