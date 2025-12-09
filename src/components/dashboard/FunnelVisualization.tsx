@@ -31,18 +31,18 @@ const funnelSteps = [
 const frictions = [
   {
     step: "Vues diagnostic",
-    issue: "CTA diagnostic peu visible sur la homepage",
-    recommendation: "Repositionner le CTA en zone hero avec un design plus contrasté"
+    issue: "Seulement 27,8% des visiteurs voient le diagnostic — le CTA est peu visible sur la homepage",
+    recommendation: "Repositionner le diagnostic en zone hero avec un design accrocheur et un message d'accroche personnalisé"
   },
   {
-    step: "Diagnostic complété",
-    issue: "42% d'abandon sur les questions budget/texture",
-    recommendation: "Simplifier ces questions ou les répartir avec du contenu intermédiaire"
+    step: "Optin E-mail & SMS",
+    issue: "13% de perte entre diagnostic démarré et opt-in — l'obligation freine les utilisateurs",
+    recommendation: "Rendre l'opt-in optionnel ou le proposer après les résultats pour réduire la friction"
   },
   {
     step: "Ajout panier",
-    issue: "Les pages produits manquent de preuves sociales",
-    recommendation: "Ajouter avis clients (4+ étoiles) et garantie satisfait ou remboursé"
+    issue: "21% de perte entre recommandation et ajout panier — manque de confiance à l'achat",
+    recommendation: "Intégrer des avis clients, badges de garantie et livraison gratuite sur les recommandations"
   }
 ];
 
@@ -224,9 +224,9 @@ export function FunnelVisualization() {
                 </div>
 
                 {/* Recommendation */}
-                <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
-                  <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="w-4 h-4 text-primary" />
+                <div className="flex gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200/60">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="w-4 h-4 text-emerald-600" />
                   </div>
                   <p className="text-sm text-foreground leading-relaxed">
                     {friction.recommendation}
