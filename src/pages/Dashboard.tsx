@@ -544,6 +544,8 @@ export default function Dashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">Taux de complétion</p>
                   <p className="text-2xl font-bold text-foreground">78.5%</p>
+                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
+                  <p className="text-sm font-semibold text-foreground">72.7%</p>
                 </motion.div>
 
                 <motion.div initial={{
@@ -564,6 +566,8 @@ export default function Dashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">Taux opt-in email</p>
                   <p className="text-2xl font-bold text-foreground">64.2%</p>
+                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
+                  <p className="text-sm font-semibold text-foreground">61.1%</p>
                 </motion.div>
 
                 <motion.div initial={{
@@ -606,6 +610,8 @@ export default function Dashboard() {
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">Taux de démarrage</p>
                   <p className="text-2xl font-bold text-foreground">89.3%</p>
+                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
+                  <p className="text-sm font-semibold text-foreground">79.7%</p>
                 </motion.div>
               </div>
             </div>
