@@ -30,9 +30,9 @@ const engagementData = [
 ];
 
 const personaDistribution = [
-  { name: "Emma", typology: "Anxieuse mais proactive", value: 25, color: "hsl(200, 70%, 60%)" },
-  { name: "Sophie", typology: "Efficace et pressée", value: 22, color: "hsl(330, 70%, 65%)" },
-  { name: "Léa", typology: "Nature et exigeante", value: 18, color: "hsl(140, 60%, 55%)" },
+  { name: "Emma", typology: "Enceinte 1er trimestre", value: 25, color: "hsl(200, 70%, 60%)" },
+  { name: "Sophie", typology: "Jeune maman postpartum", value: 22, color: "hsl(330, 70%, 65%)" },
+  { name: "Léa", typology: "Maman de 2 enfants", value: 18, color: "hsl(140, 60%, 55%)" },
   { name: "Autre", typology: "Profils en découverte", value: 35, color: "hsl(0, 0%, 60%)" },
 ];
 
