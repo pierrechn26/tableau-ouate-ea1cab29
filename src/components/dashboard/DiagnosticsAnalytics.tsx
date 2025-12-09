@@ -30,10 +30,10 @@ const engagementData = [
 ];
 
 const personaDistribution = [
-  { name: "Emma", value: 25, color: "hsl(200, 70%, 60%)" },
-  { name: "Sophie", value: 22, color: "hsl(330, 70%, 65%)" },
-  { name: "Léa", value: 18, color: "hsl(140, 60%, 55%)" },
-  { name: "Autre", value: 35, color: "hsl(0, 0%, 60%)" },
+  { name: "Emma", typology: "Future maman anxieuse", value: 25, color: "hsl(200, 70%, 60%)" },
+  { name: "Sophie", typology: "Jeune maman postpartum", value: 22, color: "hsl(330, 70%, 65%)" },
+  { name: "Léa", typology: "Consommatrice bio exigeante", value: 18, color: "hsl(140, 60%, 55%)" },
+  { name: "Autre", typology: "Profils en découverte", value: 35, color: "hsl(0, 0%, 60%)" },
 ];
 
 const topFrictions = [
@@ -174,16 +174,21 @@ export function DiagnosticsAnalytics() {
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex justify-center gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               {personaDistribution.map((persona) => (
-                <div key={persona.name} className="flex items-center gap-2">
+                <div key={persona.name} className="flex items-start gap-2">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
                     style={{ backgroundColor: persona.color }}
                   />
-                  <span className="text-sm text-muted-foreground">
-                    {persona.name}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">
+                      {persona.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {persona.typology}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
