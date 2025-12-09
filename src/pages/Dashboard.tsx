@@ -705,7 +705,7 @@ export default function Dashboard() {
                 
                 <Button className="shadow-lg hover:shadow-xl transition-shadow" size="lg">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Découvrir la plan Max
+                  Découvrir le plan Max
                 </Button>
               </div>
             </motion.div>
