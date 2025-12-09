@@ -154,6 +154,8 @@ export function BusinessMetrics() {
                   name="Avec diagnostic"
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
                   connectNulls={false}
+                  animationDuration={1500}
+                  animationBegin={0}
                 />
                 <Line
                   type="monotone"
@@ -163,6 +165,8 @@ export function BusinessMetrics() {
                   name="Sans diagnostic"
                   dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
                   connectNulls={false}
+                  animationDuration={1500}
+                  animationBegin={0}
                 />
                 {/* Lignes pointillées (Nov-Déc) */}
                 <Line
@@ -174,6 +178,8 @@ export function BusinessMetrics() {
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
                   connectNulls={false}
                   legendType="none"
+                  animationDuration={800}
+                  animationBegin={1400}
                 />
                 <Line
                   type="monotone"
@@ -184,6 +190,8 @@ export function BusinessMetrics() {
                   dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
                   connectNulls={false}
                   legendType="none"
+                  animationDuration={800}
+                  animationBegin={1400}
                 />
               </LineChart>
             </ResponsiveContainer>

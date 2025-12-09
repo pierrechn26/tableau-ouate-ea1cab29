@@ -289,6 +289,8 @@ export function DiagnosticsAnalytics() {
                   name="Email"
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
                   connectNulls={false}
+                  animationDuration={1500}
+                  animationBegin={0}
                 />
                 <Line
                   type="monotone"
@@ -298,6 +300,8 @@ export function DiagnosticsAnalytics() {
                   name="SMS"
                   dot={{ fill: "hsl(var(--accent))", r: 4 }}
                   connectNulls={false}
+                  animationDuration={1500}
+                  animationBegin={0}
                 />
                 {/* Lignes pointillées pour Nov-Déc (données incomplètes) */}
                 <Line
@@ -309,6 +313,8 @@ export function DiagnosticsAnalytics() {
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
                   connectNulls
                   legendType="none"
+                  animationDuration={800}
+                  animationBegin={1400}
                 />
                 <Line
                   type="monotone"
@@ -319,6 +325,8 @@ export function DiagnosticsAnalytics() {
                   dot={{ fill: "hsl(var(--accent))", r: 4 }}
                   connectNulls
                   legendType="none"
+                  animationDuration={800}
+                  animationBegin={1400}
                 />
               </LineChart>
             </ResponsiveContainer>
