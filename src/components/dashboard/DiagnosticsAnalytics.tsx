@@ -42,6 +42,28 @@ const topFrictions = [
   { theme: "Texture & Sensorialité", abandonRate: 22, avgTime: 48, description: "Difficultés à choisir entre les textures proposées" },
 ];
 
+// Données complètes (Jan-Nov)
+const optInDataComplete = [
+  { month: "Jan", email: 1234, sms: 892 },
+  { month: "Fév", email: 1456, sms: 1023 },
+  { month: "Mar", email: 1789, sms: 1234 },
+  { month: "Avr", email: 2012, sms: 1456 },
+  { month: "Mai", email: 2234, sms: 1567 },
+  { month: "Juin", email: 2456, sms: 1678 },
+  { month: "Juil", email: 2612, sms: 1789 },
+  { month: "Août", email: 2734, sms: 1856 },
+  { month: "Sept", email: 2891, sms: 1934 },
+  { month: "Oct", email: 3056, sms: 2012 },
+  { month: "Nov", email: 3189, sms: 2089 },
+];
+
+// Données pour le segment pointillé (Nov-Déc - mois en cours)
+const optInDataProjection = [
+  { month: "Nov", email: 3189, sms: 2089 },
+  { month: "Déc", email: 3320, sms: 2156 },
+];
+
+// Données complètes pour l'axe X
 const optInData = [
   { month: "Jan", email: 1234, sms: 892 },
   { month: "Fév", email: 1456, sms: 1023 },
@@ -49,6 +71,12 @@ const optInData = [
   { month: "Avr", email: 2012, sms: 1456 },
   { month: "Mai", email: 2234, sms: 1567 },
   { month: "Juin", email: 2456, sms: 1678 },
+  { month: "Juil", email: 2612, sms: 1789 },
+  { month: "Août", email: 2734, sms: 1856 },
+  { month: "Sept", email: 2891, sms: 1934 },
+  { month: "Oct", email: 3056, sms: 2012 },
+  { month: "Nov", email: 3189, sms: 2089 },
+  { month: "Déc", email: 3320, sms: 2156 },
 ];
 
 export function DiagnosticsAnalytics() {
@@ -208,7 +236,7 @@ export function DiagnosticsAnalytics() {
                 Évolution des Opt-in
               </h3>
               <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                Données des 6 derniers mois
+                Données depuis le début de l'année
               </span>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -222,23 +250,55 @@ export function DiagnosticsAnalytics() {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
+                  formatter={(value: number, name: string) => {
+                    const label = name === "email" || name === "Email" ? "Email" : "Email + SMS";
+                    return [value.toLocaleString(), label];
+                  }}
                 />
                 <Legend />
+                {/* Lignes continues pour les données complètes (Jan-Nov) */}
                 <Line
                   type="monotone"
                   dataKey="email"
+                  data={optInDataComplete}
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   name="Email"
-                  dot={{ fill: "hsl(var(--primary))" }}
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  legendType="none"
                 />
                 <Line
                   type="monotone"
                   dataKey="sms"
+                  data={optInDataComplete}
                   stroke="hsl(var(--accent))"
                   strokeWidth={2}
                   name="Email + SMS"
-                  dot={{ fill: "hsl(var(--accent))" }}
+                  dot={{ fill: "hsl(var(--accent))", r: 4 }}
+                  legendType="none"
+                />
+                {/* Lignes pointillées pour décembre (données incomplètes) */}
+                <Line
+                  type="monotone"
+                  dataKey="email"
+                  data={optInDataProjection}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="Email"
+                  dot={{ fill: "hsl(var(--primary))", r: 4, strokeDasharray: "0" }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="sms"
+                  data={optInDataProjection}
+                  stroke="hsl(var(--accent))"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="Email + SMS"
+                  dot={{ fill: "hsl(var(--accent))", r: 4, strokeDasharray: "0" }}
+                  connectNulls
                 />
               </LineChart>
             </ResponsiveContainer>
