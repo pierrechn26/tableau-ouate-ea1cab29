@@ -73,6 +73,7 @@ export default function Dashboard() {
     to: new Date()
   });
   const [comparisonPeriod, setComparisonPeriod] = useState("previous");
+  const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
   const handleExport = () => {
     toast({
       title: "Export en cours",
@@ -108,7 +109,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} comparisonPeriod={comparisonPeriod} onComparisonPeriodChange={setComparisonPeriod} onApply={handleApplyDates} />
+              <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} comparisonPeriod={comparisonPeriod} onComparisonPeriodChange={setComparisonPeriod} customComparisonRange={customComparisonRange} onCustomComparisonRangeChange={setCustomComparisonRange} onApply={handleApplyDates} />
               <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm">

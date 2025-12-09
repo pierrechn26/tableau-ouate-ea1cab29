@@ -23,6 +23,8 @@ interface DateRangePickerProps {
   onDateRangeChange: (range: DateRange | undefined) => void;
   comparisonPeriod: string;
   onComparisonPeriodChange: (period: string) => void;
+  customComparisonRange?: DateRange | undefined;
+  onCustomComparisonRangeChange?: (range: DateRange | undefined) => void;
   onApply?: () => void;
 }
 
@@ -31,9 +33,12 @@ export function DateRangePicker({
   onDateRangeChange,
   comparisonPeriod,
   onComparisonPeriodChange,
+  customComparisonRange,
+  onCustomComparisonRangeChange,
   onApply,
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
 
   const presets = [
     {
@@ -69,8 +74,13 @@ export function DateRangePicker({
     },
   ];
 
+  // Handle date range selection - reset selection when clicking a new start date
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    onDateRangeChange(range);
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3">
+    <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -118,7 +128,7 @@ export function DateRangePicker({
               mode="range"
               defaultMonth={dateRange?.from}
               selected={dateRange}
-              onSelect={onDateRangeChange}
+              onSelect={handleDateRangeSelect}
               numberOfMonths={2}
               className={cn("p-3 pointer-events-auto")}
             />
@@ -134,9 +144,67 @@ export function DateRangePicker({
           <SelectItem value="previous">Période précédente</SelectItem>
           <SelectItem value="previous-year">Année précédente</SelectItem>
           <SelectItem value="previous-month">Mois précédent</SelectItem>
+          <SelectItem value="custom">Période personnalisée</SelectItem>
           <SelectItem value="none">Aucune comparaison</SelectItem>
         </SelectContent>
       </Select>
+
+      {comparisonPeriod === "custom" && onCustomComparisonRangeChange && (
+        <Popover open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
+                !customComparisonRange && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {customComparisonRange?.from ? (
+                customComparisonRange.to ? (
+                  <>
+                    {format(customComparisonRange.from, "dd MMM yyyy")} -{" "}
+                    {format(customComparisonRange.to, "dd MMM yyyy")}
+                  </>
+                ) : (
+                  format(customComparisonRange.from, "dd MMM yyyy")
+                )
+              ) : (
+                <span>Période de comparaison</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <div className="flex">
+              <div className="border-r border-border p-3 space-y-2">
+                <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
+                {presets.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant="ghost"
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => {
+                      onCustomComparisonRangeChange(preset.getValue());
+                      setIsComparisonOpen(false);
+                    }}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={customComparisonRange?.from}
+                selected={customComparisonRange}
+                onSelect={onCustomComparisonRangeChange}
+                numberOfMonths={2}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
 
       {onApply && (
         <Button onClick={onApply} size="sm" className="ml-auto">
