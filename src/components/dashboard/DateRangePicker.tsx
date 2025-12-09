@@ -284,6 +284,7 @@ export function DateRangePicker({
               onSelect={handleDateRangeSelect}
               numberOfMonths={2}
               disabled={(date) => date > new Date()}
+              weekStartsOn={1}
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
@@ -359,6 +360,7 @@ export function DateRangePicker({
               onSelect={handleCustomComparisonSelect}
               numberOfMonths={2}
               disabled={(date) => date > new Date()}
+              weekStartsOn={1}
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
