@@ -25,12 +25,18 @@ const revenueByPersona = [
 const totalRevenue = revenueByPersona.reduce((sum, p) => sum + p.revenue, 0);
 
 const monthlyRevenue = [
-  { month: "Jan", withDiag: 87000, withoutDiag: 54000 },
-  { month: "Fév", withDiag: 92000, withoutDiag: 56000 },
-  { month: "Mar", withDiag: 98000, withoutDiag: 58000 },
-  { month: "Avr", withDiag: 105000, withoutDiag: 61000 },
-  { month: "Mai", withDiag: 112000, withoutDiag: 63000 },
-  { month: "Juin", withDiag: 127450, withoutDiag: 65000 },
+  { month: "Jan", withDiag: 87000, withoutDiag: 54000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Fév", withDiag: 92000, withoutDiag: 56000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Mar", withDiag: 98000, withoutDiag: 58000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Avr", withDiag: 105000, withoutDiag: 61000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Mai", withDiag: 112000, withoutDiag: 63000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Juin", withDiag: 118000, withoutDiag: 65000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Juil", withDiag: 121000, withoutDiag: 66000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Août", withDiag: 119000, withoutDiag: 64000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Sep", withDiag: 124000, withoutDiag: 68000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Oct", withDiag: 131000, withoutDiag: 71000, withDiagDashed: null, withoutDiagDashed: null },
+  { month: "Nov", withDiag: 127450, withoutDiag: 69000, withDiagDashed: 127450, withoutDiagDashed: 69000 },
+  { month: "Déc", withDiag: null, withoutDiag: null, withDiagDashed: 134000, withoutDiagDashed: 72000 },
 ];
 
 export function BusinessMetrics() {
@@ -99,35 +105,85 @@ export function BusinessMetrics() {
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload) return null;
+                    
+                    const filteredPayload = payload.filter((entry: any) => {
+                      if (label === "Nov") {
+                        return entry.dataKey === "withDiag" || entry.dataKey === "withoutDiag";
+                      }
+                      if (label === "Déc") {
+                        return entry.dataKey === "withDiagDashed" || entry.dataKey === "withoutDiagDashed";
+                      }
+                      return entry.dataKey === "withDiag" || entry.dataKey === "withoutDiag";
+                    });
+
+                    return (
+                      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-medium text-foreground mb-2">{label}</p>
+                        {filteredPayload.map((entry: any, index: number) => (
+                          <div key={index} className="flex items-center gap-2 text-sm">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-muted-foreground">
+                              {entry.dataKey === "withDiag" || entry.dataKey === "withDiagDashed" ? "Avec diagnostic" : "Sans diagnostic"}:
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {entry.value?.toLocaleString()} €
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
                   }}
-                  formatter={(value: number) => `${value.toLocaleString()} €`}
                 />
                 <Legend />
+                {/* Lignes continues (Jan-Nov) */}
                 <Line
                   type="monotone"
                   dataKey="withDiag"
                   stroke="hsl(var(--primary))"
                   strokeWidth={3}
                   name="Avec diagnostic"
-                  dot={{ fill: "hsl(var(--primary))", r: 5 }}
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="withoutDiag"
                   stroke="hsl(var(--muted-foreground))"
                   strokeWidth={2}
-                  strokeDasharray="5 5"
                   name="Sans diagnostic"
                   dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
+                  connectNulls={false}
+                />
+                {/* Lignes pointillées (Nov-Déc) */}
+                <Line
+                  type="monotone"
+                  dataKey="withDiagDashed"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                  connectNulls={false}
+                  legendType="none"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="withoutDiagDashed"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
+                  connectNulls={false}
+                  legendType="none"
                 />
               </LineChart>
             </ResponsiveContainer>
             <p className="text-xs text-muted-foreground mt-2">
-              Le diagnostic génère +96% de CA supplémentaire en moyenne
+              Données depuis le début de l'année · Les lignes pointillées représentent les données partielles du mois en cours
             </p>
           </Card>
         </motion.div>
