@@ -94,7 +94,7 @@ export default function Dashboard() {
     toast
   } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
+    from: subDays(new Date(), 6),
     to: new Date()
   });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
