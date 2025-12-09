@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subDays, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -10,19 +11,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 interface DateRangePickerProps {
   dateRange: DateRange | undefined;
   onDateRangeChange: (range: DateRange | undefined) => void;
-  comparisonPeriod: string;
-  onComparisonPeriodChange: (period: string) => void;
   customComparisonRange?: DateRange | undefined;
   onCustomComparisonRangeChange?: (range: DateRange | undefined) => void;
   onApply?: () => void;
@@ -31,8 +22,6 @@ interface DateRangePickerProps {
 export function DateRangePicker({
   dateRange,
   onDateRangeChange,
-  comparisonPeriod,
-  onComparisonPeriodChange,
   customComparisonRange,
   onCustomComparisonRangeChange,
   onApply,
@@ -87,6 +76,55 @@ export function DateRangePicker({
         return {
           from: startOfMonth(lastMonth),
           to: endOfMonth(lastMonth),
+        };
+      },
+    },
+  ];
+
+  const comparisonPresets = [
+    {
+      label: "Semaine dernière",
+      getValue: () => {
+        const lastWeek = subWeeks(new Date(), 1);
+        return {
+          from: startOfWeek(lastWeek, { locale: fr }),
+          to: endOfWeek(lastWeek, { locale: fr }),
+        };
+      },
+    },
+    {
+      label: "Mois dernier",
+      getValue: () => {
+        const lastMonth = subMonths(new Date(), 1);
+        return {
+          from: startOfMonth(lastMonth),
+          to: endOfMonth(lastMonth),
+        };
+      },
+    },
+    {
+      label: "Année dernière",
+      getValue: () => {
+        const lastYear = subYears(new Date(), 1);
+        return {
+          from: new Date(lastYear.getFullYear(), 0, 1),
+          to: new Date(lastYear.getFullYear(), 11, 31),
+        };
+      },
+    },
+    {
+      label: "Période précédente",
+      getValue: () => {
+        if (dateRange?.from && dateRange?.to) {
+          const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+          return {
+            from: subDays(dateRange.from, daysDiff + 1),
+            to: subDays(dateRange.from, 1),
+          };
+        }
+        return {
+          from: subDays(new Date(), 13),
+          to: subDays(new Date(), 7),
         };
       },
     },
@@ -205,77 +243,62 @@ export function DateRangePicker({
         </PopoverContent>
       </Popover>
 
-      <Select value={comparisonPeriod} onValueChange={onComparisonPeriodChange}>
-        <SelectTrigger className="w-[200px] bg-card border-border">
-          <SelectValue placeholder="Comparer avec..." />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="previous">Période précédente</SelectItem>
-          <SelectItem value="previous-year">Année précédente</SelectItem>
-          <SelectItem value="previous-month">Mois précédent</SelectItem>
-          <SelectItem value="custom">Période personnalisée</SelectItem>
-          <SelectItem value="none">Aucune comparaison</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {comparisonPeriod === "custom" && onCustomComparisonRangeChange && (
-        <Popover open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[280px] justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
-                !customComparisonRange && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-              <span className="truncate">
-                {customComparisonRange?.from ? (
-                  customComparisonRange.to ? (
-                    <>
-                      {format(customComparisonRange.from, "dd MMM yyyy")} -{" "}
-                      {format(customComparisonRange.to, "dd MMM yyyy")}
-                    </>
-                  ) : (
-                    <>{format(customComparisonRange.from, "dd MMM yyyy")} - ...</>
-                  )
+      <Popover open={isComparisonOpen} onOpenChange={setIsComparisonOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[280px] justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
+              !customComparisonRange && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {customComparisonRange?.from ? (
+                customComparisonRange.to ? (
+                  <>
+                    {format(customComparisonRange.from, "dd MMM yyyy")} -{" "}
+                    {format(customComparisonRange.to, "dd MMM yyyy")}
+                  </>
                 ) : (
-                  "Période de comparaison"
-                )}
-              </span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="flex">
-              <div className="border-r border-border p-3 space-y-2">
-                <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
-                {presets.map((preset) => (
-                  <Button
-                    key={preset.label}
-                    variant="ghost"
-                    className="w-full justify-start text-left font-normal"
-                    onClick={() => {
-                      onCustomComparisonRangeChange(preset.getValue());
-                      setIsComparisonOpen(false);
-                    }}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={customComparisonRange?.from}
-                selected={customComparisonRange}
-                onSelect={handleCustomComparisonSelect}
-                numberOfMonths={2}
-                className={cn("p-3 pointer-events-auto")}
-              />
+                  <>{format(customComparisonRange.from, "dd MMM yyyy")} - ...</>
+                )
+              ) : (
+                "Comparer avec..."
+              )}
+            </span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="flex">
+            <div className="border-r border-border p-3 space-y-2">
+              <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
+              {comparisonPresets.map((preset) => (
+                <Button
+                  key={preset.label}
+                  variant="ghost"
+                  className="w-full justify-start text-left font-normal"
+                  onClick={() => {
+                    onCustomComparisonRangeChange?.(preset.getValue());
+                    setIsComparisonOpen(false);
+                  }}
+                >
+                  {preset.label}
+                </Button>
+              ))}
             </div>
-          </PopoverContent>
-        </Popover>
-      )}
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={customComparisonRange?.from}
+              selected={customComparisonRange}
+              onSelect={handleCustomComparisonSelect}
+              numberOfMonths={2}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {onApply && (
         <Button onClick={onApply} size="sm" className="ml-auto">
