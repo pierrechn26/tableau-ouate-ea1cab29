@@ -88,7 +88,8 @@ export function DiagnosticsAnalytics() {
             title="Durée moyenne"
             value="4m 23s"
             icon={Clock}
-            comparison={{ value: "4m 45s", period: "vs période précédente" }}
+            trend={{ value: 10, isPositive: false }}
+            comparison={{ value: "3m 59s", period: "vs période précédente" }}
             index={3}
           />
           <MetricCard
