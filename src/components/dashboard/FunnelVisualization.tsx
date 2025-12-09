@@ -5,13 +5,12 @@ import {
   Globe, 
   MousePointer, 
   Play, 
+  Mail,
   CheckCircle, 
   Package, 
-  Eye,
   ShoppingCart, 
   CreditCard, 
   Heart,
-  Star,
   AlertTriangle,
   Lightbulb,
   TrendingDown
@@ -21,12 +20,12 @@ const funnelSteps = [
   { label: "Visite du site", value: 45230, percentage: 100, icon: Globe },
   { label: "Vues diagnostic", value: 12580, percentage: 27.8, icon: MousePointer },
   { label: "Diagnostic démarré", value: 9845, percentage: 21.8, icon: Play },
-  { label: "Diagnostic complété", value: 6234, percentage: 13.8, icon: CheckCircle },
-  { label: "Recommandation affichée", value: 6123, percentage: 13.5, icon: Package },
-  { label: "Page produit visitée", value: 4567, percentage: 10.1, icon: Eye },
-  { label: "Ajout panier", value: 2890, percentage: 6.4, icon: ShoppingCart },
-  { label: "Checkout", value: 2234, percentage: 4.9, icon: CreditCard },
-  { label: "Achat", value: 1789, percentage: 4.0, icon: Heart },
+  { label: "Optin E-mail & SMS", value: 8200, percentage: 18.1, icon: Mail },
+  { label: "Diagnostic complété", value: 7100, percentage: 15.7, icon: CheckCircle },
+  { label: "Recommandation affichée", value: 6850, percentage: 15.1, icon: Package },
+  { label: "Ajout panier", value: 5400, percentage: 11.9, icon: ShoppingCart },
+  { label: "Checkout", value: 4200, percentage: 9.3, icon: CreditCard },
+  { label: "Achat", value: 3754, percentage: 8.3, icon: Heart },
 ];
 
 const frictions = [
@@ -147,7 +146,7 @@ export function FunnelVisualization() {
               transition={{ delay: 0.9 }}
               className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/10 border border-primary/10"
             >
-              <p className="text-2xl md:text-3xl font-bold text-foreground">4.0%</p>
+              <p className="text-2xl md:text-3xl font-bold text-foreground">8.3%</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 Taux de conversion
               </p>
@@ -158,7 +157,7 @@ export function FunnelVisualization() {
               transition={{ delay: 1.0 }}
               className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/10"
             >
-              <p className="text-2xl md:text-3xl font-bold text-destructive">43 306</p>
+              <p className="text-2xl md:text-3xl font-bold text-destructive">41 476</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 Visiteurs perdus
               </p>
