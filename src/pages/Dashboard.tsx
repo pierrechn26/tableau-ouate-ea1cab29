@@ -77,11 +77,11 @@ export default function Dashboard() {
     business: true,
     funnel: true,
     marketing: true,
-    insights: true,
+    insights: true
   });
   const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  
+
   // Refs for each section
   const overviewRef = useRef<HTMLDivElement>(null);
   const personasRef = useRef<HTMLDivElement>(null);
@@ -90,7 +90,6 @@ export default function Dashboard() {
   const funnelRef = useRef<HTMLDivElement>(null);
   const marketingRef = useRef<HTMLDivElement>(null);
   const insightsRef = useRef<HTMLDivElement>(null);
-  
   const {
     toast
   } = useToast();
@@ -99,7 +98,6 @@ export default function Dashboard() {
     to: new Date()
   });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
-  
   const sectionRefs: Record<string, React.RefObject<HTMLDivElement>> = {
     overview: overviewRef,
     personas: personasRef,
@@ -107,9 +105,8 @@ export default function Dashboard() {
     business: businessRef,
     funnel: funnelRef,
     marketing: marketingRef,
-    insights: insightsRef,
+    insights: insightsRef
   };
-  
   const sectionNames: Record<string, string> = {
     overview: "Vue d'ensemble",
     personas: "Personas",
@@ -117,14 +114,10 @@ export default function Dashboard() {
     business: "Business",
     funnel: "Funnel",
     marketing: "Marketing IA",
-    insights: "Insights",
+    insights: "Insights"
   };
-  
   const handleExport = async () => {
-    const selectedSections = Object.entries(exportSections)
-      .filter(([key, value]) => value && key !== 'all')
-      .map(([key]) => key);
-    
+    const selectedSections = Object.entries(exportSections).filter(([key, value]) => value && key !== 'all').map(([key]) => key);
     if (selectedSections.length === 0) {
       toast({
         title: "Aucune section sélectionnée",
@@ -133,32 +126,27 @@ export default function Dashboard() {
       });
       return;
     }
-    
     setIsExporting(true);
     setExportOpen(false);
-    
     toast({
       title: "Export en cours",
       description: "Génération du PDF en cours, veuillez patienter..."
     });
-    
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
       let isFirstPage = true;
-      
+
       // Store original tab to restore later
       const originalTab = activeTab;
-      
       for (const section of selectedSections) {
         // Switch to the section's tab to make it visible
         setActiveTab(section === 'diagnostics' ? 'analytics' : section === 'insights' ? 'alerts' : section);
-        
+
         // Wait for tab content to render
         await new Promise(resolve => setTimeout(resolve, 500));
-        
         const ref = sectionRefs[section];
         if (ref?.current) {
           const canvas = await html2canvas(ref.current, {
@@ -166,79 +154,62 @@ export default function Dashboard() {
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
-            logging: false,
+            logging: false
           });
-          
           const imgData = canvas.toDataURL('image/png');
-          const imgWidth = pageWidth - (margin * 2);
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          
+          const imgWidth = pageWidth - margin * 2;
+          const imgHeight = canvas.height * imgWidth / canvas.width;
           if (!isFirstPage) {
             pdf.addPage();
           }
-          
+
           // Add section title
           pdf.setFontSize(16);
           pdf.setTextColor(0, 0, 0);
           pdf.text(sectionNames[section], margin, margin + 5);
-          
+
           // Add date range info
           pdf.setFontSize(10);
           pdf.setTextColor(100, 100, 100);
-          const dateText = dateRange?.from && dateRange?.to 
-            ? `Période: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`
-            : 'Période: Non définie';
+          const dateText = dateRange?.from && dateRange?.to ? `Période: ${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}` : 'Période: Non définie';
           pdf.text(dateText, margin, margin + 12);
-          
+
           // Calculate how many pages we need for this section
           let yPosition = margin + 18;
           let remainingHeight = imgHeight;
           let sourceY = 0;
-          
           while (remainingHeight > 0) {
             const availableHeight = pageHeight - yPosition - margin;
             const sliceHeight = Math.min(availableHeight, remainingHeight);
             const sliceRatio = sliceHeight / imgHeight;
-            
+
             // Create a temporary canvas for the slice
             const sliceCanvas = document.createElement('canvas');
             sliceCanvas.width = canvas.width;
             sliceCanvas.height = canvas.height * sliceRatio;
             const sliceCtx = sliceCanvas.getContext('2d');
-            
             if (sliceCtx) {
-              sliceCtx.drawImage(
-                canvas,
-                0, sourceY * (canvas.height / imgHeight),
-                canvas.width, sliceCanvas.height,
-                0, 0,
-                sliceCanvas.width, sliceCanvas.height
-              );
-              
+              sliceCtx.drawImage(canvas, 0, sourceY * (canvas.height / imgHeight), canvas.width, sliceCanvas.height, 0, 0, sliceCanvas.width, sliceCanvas.height);
               const sliceData = sliceCanvas.toDataURL('image/png');
               pdf.addImage(sliceData, 'PNG', margin, yPosition, imgWidth, sliceHeight);
             }
-            
             remainingHeight -= sliceHeight;
             sourceY += sliceHeight;
-            
             if (remainingHeight > 0) {
               pdf.addPage();
               yPosition = margin;
             }
           }
-          
           isFirstPage = false;
         }
       }
-      
+
       // Restore original tab
       setActiveTab(originalTab);
-      
+
       // Generate filename with date
       const fileName = `rapport-talm-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
       pdf.save(fileName);
-      
       toast({
         title: "Export réussi",
         description: `Le rapport "${fileName}" a été téléchargé.`
@@ -254,7 +225,6 @@ export default function Dashboard() {
       setIsExporting(false);
     }
   };
-
   const handleToggleAll = (checked: boolean) => {
     setExportSections({
       all: checked,
@@ -264,15 +234,15 @@ export default function Dashboard() {
       business: checked,
       funnel: checked,
       marketing: checked,
-      insights: checked,
+      insights: checked
     });
   };
-
   const handleToggleSection = (section: keyof typeof exportSections, checked: boolean) => {
-    const newSections = { ...exportSections, [section]: checked };
-    const allOthersChecked = Object.entries(newSections)
-      .filter(([key]) => key !== 'all')
-      .every(([, value]) => value);
+    const newSections = {
+      ...exportSections,
+      [section]: checked
+    };
+    const allOthersChecked = Object.entries(newSections).filter(([key]) => key !== 'all').every(([, value]) => value);
     newSections.all = allOthersChecked;
     setExportSections(newSections);
   };
@@ -362,11 +332,7 @@ export default function Dashboard() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="flex items-center space-x-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <Checkbox 
-                        id="export-all" 
-                        checked={exportSections.all}
-                        onCheckedChange={(checked) => handleToggleAll(checked as boolean)}
-                      />
+                      <Checkbox id="export-all" checked={exportSections.all} onCheckedChange={checked => handleToggleAll(checked as boolean)} />
                       <Label htmlFor="export-all" className="font-semibold cursor-pointer">
                         Exporter l'ensemble des éléments
                       </Label>
@@ -374,11 +340,7 @@ export default function Dashboard() {
                     
                     <div className="space-y-3 pl-2">
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-overview" 
-                          checked={exportSections.overview}
-                          onCheckedChange={(checked) => handleToggleSection('overview', checked as boolean)}
-                        />
+                        <Checkbox id="export-overview" checked={exportSections.overview} onCheckedChange={checked => handleToggleSection('overview', checked as boolean)} />
                         <Label htmlFor="export-overview" className="flex items-center gap-2 cursor-pointer">
                           <Sparkles className="w-4 h-4 text-muted-foreground" />
                           Vue d'ensemble
@@ -386,11 +348,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-personas" 
-                          checked={exportSections.personas}
-                          onCheckedChange={(checked) => handleToggleSection('personas', checked as boolean)}
-                        />
+                        <Checkbox id="export-personas" checked={exportSections.personas} onCheckedChange={checked => handleToggleSection('personas', checked as boolean)} />
                         <Label htmlFor="export-personas" className="flex items-center gap-2 cursor-pointer">
                           <Users className="w-4 h-4 text-muted-foreground" />
                           Personas
@@ -398,11 +356,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-diagnostics" 
-                          checked={exportSections.diagnostics}
-                          onCheckedChange={(checked) => handleToggleSection('diagnostics', checked as boolean)}
-                        />
+                        <Checkbox id="export-diagnostics" checked={exportSections.diagnostics} onCheckedChange={checked => handleToggleSection('diagnostics', checked as boolean)} />
                         <Label htmlFor="export-diagnostics" className="flex items-center gap-2 cursor-pointer">
                           <BarChart3 className="w-4 h-4 text-muted-foreground" />
                           Diagnostics
@@ -410,11 +364,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-business" 
-                          checked={exportSections.business}
-                          onCheckedChange={(checked) => handleToggleSection('business', checked as boolean)}
-                        />
+                        <Checkbox id="export-business" checked={exportSections.business} onCheckedChange={checked => handleToggleSection('business', checked as boolean)} />
                         <Label htmlFor="export-business" className="flex items-center gap-2 cursor-pointer">
                           <DollarSign className="w-4 h-4 text-muted-foreground" />
                           Business
@@ -422,11 +372,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-funnel" 
-                          checked={exportSections.funnel}
-                          onCheckedChange={(checked) => handleToggleSection('funnel', checked as boolean)}
-                        />
+                        <Checkbox id="export-funnel" checked={exportSections.funnel} onCheckedChange={checked => handleToggleSection('funnel', checked as boolean)} />
                         <Label htmlFor="export-funnel" className="flex items-center gap-2 cursor-pointer">
                           <Activity className="w-4 h-4 text-muted-foreground" />
                           Funnel
@@ -434,11 +380,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-marketing" 
-                          checked={exportSections.marketing}
-                          onCheckedChange={(checked) => handleToggleSection('marketing', checked as boolean)}
-                        />
+                        <Checkbox id="export-marketing" checked={exportSections.marketing} onCheckedChange={checked => handleToggleSection('marketing', checked as boolean)} />
                         <Label htmlFor="export-marketing" className="flex items-center gap-2 cursor-pointer">
                           <TrendingUp className="w-4 h-4 text-muted-foreground" />
                           Marketing IA
@@ -446,11 +388,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox 
-                          id="export-insights" 
-                          checked={exportSections.insights}
-                          onCheckedChange={(checked) => handleToggleSection('insights', checked as boolean)}
-                        />
+                        <Checkbox id="export-insights" checked={exportSections.insights} onCheckedChange={checked => handleToggleSection('insights', checked as boolean)} />
                         <Label htmlFor="export-insights" className="flex items-center gap-2 cursor-pointer">
                           <AlertCircle className="w-4 h-4 text-muted-foreground" />
                           Insights
@@ -459,17 +397,13 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <Button onClick={handleExport} className="w-full" disabled={isExporting}>
-                    {isExporting ? (
-                      <>
+                    {isExporting ? <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Export en cours...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Download className="w-4 h-4 mr-2" />
                         Exporter le rapport
-                      </>
-                    )}
+                      </>}
                   </Button>
                 </DialogContent>
               </Dialog>
@@ -519,33 +453,33 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard title="CA généré via diagnostic" value="127 450 €" subtitle="Cette période" icon={TrendingUp} trend={{
-                value: 23,
-                isPositive: true
-              }} comparison={{
-                value: "103 720 €",
-                period: "vs période précédente"
-              }} index={0} />
+                  value: 23,
+                  isPositive: true
+                }} comparison={{
+                  value: "103 720 €",
+                  period: "vs période précédente"
+                }} index={0} />
                 <MetricCard title="Taux de conversion" value="4.0%" subtitle="Diagnostic → Achat" icon={BarChart3} trend={{
-                value: 12,
-                isPositive: true
-              }} comparison={{
-                value: "3.57%",
-                period: "vs période précédente"
-              }} index={1} />
+                  value: 12,
+                  isPositive: true
+                }} comparison={{
+                  value: "3.57%",
+                  period: "vs période précédente"
+                }} index={1} />
                 <MetricCard title="AOV après diagnostic" value="71.20 €" subtitle="vs 52.30 € sans" icon={TrendingUp} trend={{
-                value: 36,
-                isPositive: true
-              }} comparison={{
-                value: "52.35 €",
-                period: "vs période précédente"
-              }} index={2} />
+                  value: 36,
+                  isPositive: true
+                }} comparison={{
+                  value: "52.35 €",
+                  period: "vs période précédente"
+                }} index={2} />
                 <MetricCard title="Diagnostics complétés" value="6 234" subtitle="Ce mois" icon={Users} trend={{
-                value: 8,
-                isPositive: true
-              }} comparison={{
-                value: "5 772",
-                period: "vs période précédente"
-              }} index={3} />
+                  value: 8,
+                  isPositive: true
+                }} comparison={{
+                  value: "5 772",
+                  period: "vs période précédente"
+                }} index={3} />
               </div>
             </div>
 
@@ -554,15 +488,15 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {personas.map((persona, index) => <motion.div key={persona.name} initial={{
-                opacity: 0,
-                y: 20
-              }} animate={{
-                opacity: 1,
-                y: 0
-              }} transition={{
-                duration: 0.5,
-                delay: index * 0.1
-              }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md">
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  opacity: 1,
+                  y: 0
+                }} transition={{
+                  duration: 0.5,
+                  delay: index * 0.1
+                }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md">
                     <div className="flex items-start gap-4 mb-4">
                       <img src={persona.image} alt={persona.name} className="w-16 h-16 rounded-full object-cover" />
                       <div className="flex-1">
@@ -578,8 +512,8 @@ export default function Dashboard() {
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{
-                      width: `${persona.prospectPercentage}%`
-                    }} />
+                        width: `${persona.prospectPercentage}%`
+                      }} />
                       </div>
                     </div>
                   </motion.div>)}
@@ -591,14 +525,14 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Performance du Diagnostic</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <motion.div initial={{
-                opacity: 0,
-                scale: 0.95
-              }} animate={{
-                opacity: 1,
-                scale: 1
-              }} transition={{
-                duration: 0.3
-              }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
+                  opacity: 0,
+                  scale: 0.95
+                }} animate={{
+                  opacity: 1,
+                  scale: 1
+                }} transition={{
+                  duration: 0.3
+                }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <Activity className="w-5 h-5 text-primary" />
                     <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
@@ -610,15 +544,15 @@ export default function Dashboard() {
                 </motion.div>
 
                 <motion.div initial={{
-                opacity: 0,
-                scale: 0.95
-              }} animate={{
-                opacity: 1,
-                scale: 1
-              }} transition={{
-                duration: 0.3,
-                delay: 0.1
-              }} className="bg-gradient-to-br from-card via-card to-accent/5 rounded-xl p-6 border border-border/50 shadow-sm">
+                  opacity: 0,
+                  scale: 0.95
+                }} animate={{
+                  opacity: 1,
+                  scale: 1
+                }} transition={{
+                  duration: 0.3,
+                  delay: 0.1
+                }} className="bg-gradient-to-br from-card via-card to-accent/5 rounded-xl p-6 border border-border/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <Users className="w-5 h-5 text-primary" />
                     <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
@@ -630,15 +564,15 @@ export default function Dashboard() {
                 </motion.div>
 
                 <motion.div initial={{
-                opacity: 0,
-                scale: 0.95
-              }} animate={{
-                opacity: 1,
-                scale: 1
-              }} transition={{
-                duration: 0.3,
-                delay: 0.2
-              }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 shadow-sm">
+                  opacity: 0,
+                  scale: 0.95
+                }} animate={{
+                  opacity: 1,
+                  scale: 1
+                }} transition={{
+                  duration: 0.3,
+                  delay: 0.2
+                }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <Sparkles className="w-5 h-5 text-primary" />
                     <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
@@ -650,15 +584,15 @@ export default function Dashboard() {
                 </motion.div>
 
                 <motion.div initial={{
-                opacity: 0,
-                scale: 0.95
-              }} animate={{
-                opacity: 1,
-                scale: 1
-              }} transition={{
-                duration: 0.3,
-                delay: 0.3
-              }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
+                  opacity: 0,
+                  scale: 0.95
+                }} animate={{
+                  opacity: 1,
+                  scale: 1
+                }} transition={{
+                  duration: 0.3,
+                  delay: 0.3
+                }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <BarChart3 className="w-5 h-5 text-primary" />
                     <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
@@ -701,12 +635,16 @@ export default function Dashboard() {
             </div>
 
             {/* Locked Premium Personas Teaser */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              className="relative overflow-hidden rounded-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
-            >
+            <motion.div initial={{
+              opacity: 0,
+              y: 20
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              delay: 0.4,
+              duration: 0.5
+            }} className="relative overflow-hidden rounded-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
               {/* Colorful blurred background simulating hidden data */}
               <div className="absolute inset-0 overflow-hidden">
                 <div className="grid grid-cols-3 gap-4 p-6 blur-md">
@@ -757,16 +695,15 @@ export default function Dashboard() {
                     <span className="font-semibold text-primary">35% de vos prospects</span>
                   </div>
                   <div className="h-3 bg-black/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" 
-                      style={{ width: '35%' }}
-                    />
+                    <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{
+                      width: '35%'
+                    }} />
                   </div>
                 </div>
                 
                 <Button className="shadow-lg hover:shadow-xl transition-shadow" size="lg">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Découvrir l'offre Premium
+                  Découvrir l'offre 'Max'
                 </Button>
               </div>
             </motion.div>
