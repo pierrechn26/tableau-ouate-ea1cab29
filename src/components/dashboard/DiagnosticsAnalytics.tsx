@@ -229,7 +229,7 @@ export function DiagnosticsAnalytics() {
                     borderRadius: "8px",
                   }}
                   formatter={(value: number, name: string) => {
-                    const label = name === "email" || name === "Email" ? "Email" : "Email + SMS";
+                    const label = name === "email" || name === "Email" || name === "emailDashed" ? "Email" : "SMS";
                     return [value.toLocaleString(), label];
                   }}
                 />
@@ -249,7 +249,7 @@ export function DiagnosticsAnalytics() {
                   dataKey="sms"
                   stroke="hsl(var(--accent))"
                   strokeWidth={2}
-                  name="Email + SMS"
+                  name="SMS"
                   dot={{ fill: "hsl(var(--accent))", r: 4 }}
                   connectNulls={false}
                 />
@@ -283,7 +283,7 @@ export function DiagnosticsAnalytics() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-primary">68.3%</p>
-                <p className="text-xs text-muted-foreground mt-1">Email + Phone</p>
+                <p className="text-xs text-muted-foreground mt-1">Taux opt-in SMS</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-accent">+23%</p>
