@@ -88,7 +88,7 @@ export function DiagnosticsAnalytics() {
             title="Durée moyenne"
             value="4m 23s"
             icon={Clock}
-            trend={{ value: 10, isPositive: false }}
+            trend={{ value: 10, isPositive: true }}
             comparison={{ value: "3m 59s", period: "vs période précédente" }}
             index={3}
           />
