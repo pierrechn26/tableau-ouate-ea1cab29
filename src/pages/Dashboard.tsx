@@ -703,7 +703,7 @@ export default function Dashboard() {
                 
                 <Button className="shadow-lg hover:shadow-xl transition-shadow" size="lg">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Découvrir l'offre 'Max'
+                  Découvrir l'offre Max
                 </Button>
               </div>
             </motion.div>
