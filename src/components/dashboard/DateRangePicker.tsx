@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { format, subDays, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { format, subDays, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -144,6 +144,35 @@ export function DateRangePicker({
     },
   ];
 
+  // Check if a preset matches the current date range
+  const isPresetActive = (presetRange: DateRange | undefined, currentRange: DateRange | undefined) => {
+    if (!presetRange?.from || !presetRange?.to || !currentRange?.from || !currentRange?.to) {
+      return false;
+    }
+    return isSameDay(presetRange.from, currentRange.from) && isSameDay(presetRange.to, currentRange.to);
+  };
+
+  // Get active preset label for main date range
+  const activeMainPreset = useMemo(() => {
+    for (const preset of presets) {
+      if (isPresetActive(preset.getValue(), dateRange)) {
+        return preset.label;
+      }
+    }
+    return null;
+  }, [dateRange]);
+
+  // Get active preset label for comparison range
+  const activeComparisonPreset = useMemo(() => {
+    if (!customComparisonRange) return "none";
+    for (const preset of comparisonPresets) {
+      if (isPresetActive(preset.getValue(), customComparisonRange)) {
+        return preset.label;
+      }
+    }
+    return null;
+  }, [customComparisonRange, dateRange]);
+
   // Handle date range selection
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     if (!range) {
@@ -234,7 +263,10 @@ export function DateRangePicker({
                 <Button
                   key={preset.label}
                   variant="ghost"
-                  className="w-full justify-start text-left font-normal"
+                  className={cn(
+                    "w-full justify-start text-left font-normal transition-colors",
+                    activeMainPreset === preset.label && "bg-primary/15 text-primary hover:bg-primary/20 font-medium"
+                  )}
                   onClick={() => {
                     onDateRangeChange(preset.getValue());
                     setIsOpen(false);
@@ -290,7 +322,10 @@ export function DateRangePicker({
               <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
               <Button
                 variant="ghost"
-                className="w-full justify-start text-left font-normal"
+                className={cn(
+                  "w-full justify-start text-left font-normal transition-colors",
+                  activeComparisonPreset === "none" && "bg-primary/15 text-primary hover:bg-primary/20 font-medium"
+                )}
                 onClick={() => {
                   onCustomComparisonRangeChange?.(undefined);
                   setIsComparisonOpen(false);
@@ -303,7 +338,10 @@ export function DateRangePicker({
                 <Button
                   key={preset.label}
                   variant="ghost"
-                  className="w-full justify-start text-left font-normal"
+                  className={cn(
+                    "w-full justify-start text-left font-normal transition-colors",
+                    activeComparisonPreset === preset.label && "bg-primary/15 text-primary hover:bg-primary/20 font-medium"
+                  )}
                   onClick={() => {
                     onCustomComparisonRangeChange?.(preset.getValue());
                     setIsComparisonOpen(false);
