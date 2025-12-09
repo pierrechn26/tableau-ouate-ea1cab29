@@ -315,7 +315,7 @@ export default function Dashboard() {
               </Dialog>
               <Dialog open={exportOpen} onOpenChange={setExportOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="hover:bg-primary/80">
+                  <Button size="sm" className="hover:bg-primary/70 hover:brightness-110 transition-all">
                     <Download className="w-4 h-4 mr-2" />
                     Export PDF
                   </Button>
