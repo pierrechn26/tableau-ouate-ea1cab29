@@ -75,7 +75,8 @@ export function FunnelVisualization() {
             {funnelSteps.map((step, index) => {
               const Icon = step.icon;
               const loss = getLoss(index);
-              const widthPercent = 100 - (index * 6);
+              // Largeur proportionnelle au pourcentage réel (minimum 30% pour lisibilité)
+              const widthPercent = Math.max(step.percentage, 30);
               
               return (
                 <motion.div
