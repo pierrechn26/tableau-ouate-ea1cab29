@@ -209,7 +209,7 @@ export function FunnelVisualization() {
                 className="p-5 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40 space-y-4 hover:shadow-lg hover:border-border/60 hover:from-muted/80 hover:to-muted/50 transition-all duration-300 cursor-default"
               >
                 {/* Step Badge */}
-                <Badge variant="secondary" className="text-xs font-semibold bg-background/80 text-foreground border border-border/50">
+                <Badge variant="secondary" className="text-xs font-semibold bg-background/80 text-foreground border border-border/50 hover:bg-background/80 hover:text-foreground">
                   {friction.step}
                 </Badge>
 
