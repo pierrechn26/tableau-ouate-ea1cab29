@@ -228,14 +228,13 @@ export function DateRangePicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <div className="flex">
-            <div className="border-r border-border p-2 space-y-1 min-w-fit">
-              <p className="text-xs font-medium text-foreground mb-2 px-2">Raccourcis</p>
+            <div className="border-r border-border p-3 space-y-2 w-40">
+              <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
               {presets.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-left font-normal text-xs h-8 px-2"
+                  className="w-full justify-start text-left font-normal"
                   onClick={() => {
                     onDateRangeChange(preset.getValue());
                     setIsOpen(false);
@@ -286,14 +285,13 @@ export function DateRangePicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <div className="flex">
-            <div className="border-r border-border p-2 space-y-1 min-w-fit">
-              <p className="text-xs font-medium text-foreground mb-2 px-2">Raccourcis</p>
+            <div className="border-r border-border p-3 space-y-2 w-40">
+              <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
               {comparisonPresets.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-left font-normal text-xs h-8 px-2"
+                  className="w-full justify-start text-left font-normal"
                   onClick={() => {
                     onCustomComparisonRangeChange?.(preset.getValue());
                     setIsComparisonOpen(false);
