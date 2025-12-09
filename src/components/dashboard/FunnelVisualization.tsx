@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Sparkles, Eye, MousePointer, Play, CheckCircle, Package, ShoppingCart, CreditCard, Heart, Star } from "lucide-react";
+import { AlertCircle, Sparkles, Eye, MousePointer, Play, CheckCircle, Package, ShoppingCart, CreditCard, Heart, Star, TrendingDown } from "lucide-react";
 
 interface FunnelStep {
   label: string;
@@ -46,85 +46,11 @@ const frictions = [
   }
 ];
 
-function FunnelShape({ steps }: { steps: FunnelStep[] }) {
-  const totalSteps = steps.length;
-  const baseWidth = 100;
-  const minWidth = 20;
+export function FunnelVisualization() {
+  const totalSteps = funnelSteps.length;
   
   return (
-    <div className="relative flex flex-col items-center py-8">
-      {steps.map((step, index) => {
-        const widthPercent = baseWidth - ((baseWidth - minWidth) * (index / (totalSteps - 1)));
-        const nextWidthPercent = index < totalSteps - 1 
-          ? baseWidth - ((baseWidth - minWidth) * ((index + 1) / (totalSteps - 1)))
-          : widthPercent * 0.8;
-        
-        // Calculate opacity for gradient effect (darker as we go down)
-        const opacity = 0.6 + (index / totalSteps) * 0.4;
-        
-        return (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.08, duration: 0.4 }}
-            className="relative w-full flex items-center justify-center"
-            style={{ marginBottom: index < totalSteps - 1 ? '-1px' : 0 }}
-          >
-            {/* Left label */}
-            <div className="absolute left-0 w-1/4 text-right pr-6 z-10">
-              <p className="text-sm font-medium text-foreground truncate">{step.label}</p>
-              <p className="text-2xl font-bold text-primary">{step.percentage.toFixed(1)}%</p>
-            </div>
-            
-            {/* Trapezoid shape */}
-            <div className="relative" style={{ width: '50%' }}>
-              <svg 
-                viewBox="0 0 200 50" 
-                className="w-full h-14"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  <linearGradient id={`funnelGradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={opacity} />
-                    <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity={opacity} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={opacity} />
-                  </linearGradient>
-                </defs>
-                <polygon 
-                  points={`${100 - widthPercent},0 ${100 + widthPercent},0 ${100 + nextWidthPercent},50 ${100 - nextWidthPercent},50`}
-                  fill={`url(#funnelGradient-${index})`}
-                  className="transition-all duration-300"
-                />
-              </svg>
-              
-              {/* Icon overlay */}
-              <div className="absolute inset-0 flex items-center justify-center text-white/90">
-                {step.icon}
-              </div>
-            </div>
-            
-            {/* Right label - Step number and loss */}
-            <div className="absolute right-0 w-1/4 pl-6 flex items-center gap-3 z-10">
-              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 border border-primary/30">
-                <span className="text-xs font-bold text-primary">{index + 1}</span>
-              </div>
-              {step.loss > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  <span className="text-destructive font-medium">-{step.loss.toLocaleString()}</span>
-                </span>
-              )}
-            </div>
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function FunnelVisualization() {
-  return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
           Funnel de Conversion
@@ -134,88 +60,195 @@ export function FunnelVisualization() {
         </p>
       </div>
 
-      <Card className="p-8 bg-card border border-border/50 shadow-md">
-        {/* Funnel Visualization */}
-        <FunnelShape steps={funnelSteps} />
+      <Card className="p-10 bg-card border border-border/50 shadow-md overflow-hidden">
+        {/* Funnel Container */}
+        <div className="relative max-w-4xl mx-auto">
+          {/* SVG Funnel Shape */}
+          <svg 
+            viewBox="0 0 400 500" 
+            className="w-full h-auto"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              <linearGradient id="funnelGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.7" />
+                <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.95" />
+              </linearGradient>
+              <filter id="funnelShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.15"/>
+              </filter>
+            </defs>
+            
+            {/* Main Funnel Shape */}
+            <motion.path
+              initial={{ opacity: 0, pathLength: 0 }}
+              animate={{ opacity: 1, pathLength: 1 }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              d="M50,20 L350,20 L280,480 L120,480 Z"
+              fill="url(#funnelGradient)"
+              filter="url(#funnelShadow)"
+              className="drop-shadow-lg"
+            />
+            
+            {/* Horizontal divider lines */}
+            {funnelSteps.map((_, index) => {
+              if (index === 0) return null;
+              const y = 20 + (index * 46);
+              const leftX = 50 + (index * 7);
+              const rightX = 350 - (index * 7);
+              return (
+                <motion.line
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.3 }}
+                  transition={{ delay: 0.5 + index * 0.05 }}
+                  x1={leftX}
+                  y1={y}
+                  x2={rightX}
+                  y2={y}
+                  stroke="white"
+                  strokeWidth="1"
+                />
+              );
+            })}
+            
+            {/* Step icons */}
+            {funnelSteps.map((step, index) => {
+              const y = 20 + (index * 46) + 23;
+              return (
+                <motion.g
+                  key={index}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 + index * 0.08 }}
+                >
+                  <circle cx="200" cy={y} r="14" fill="white" fillOpacity="0.25" />
+                </motion.g>
+              );
+            })}
+          </svg>
 
-        {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-6 mt-8 pt-6 border-t border-border/50">
-          {funnelSteps.slice(0, 5).map((step, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 + index * 0.05 }}
-              className="flex flex-col items-center gap-1"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-primary">
-                {step.icon}
-              </div>
-              <p className="text-xs text-muted-foreground text-center max-w-[80px] truncate">{step.label}</p>
-              <p className="text-sm font-bold text-primary">{step.percentage.toFixed(1)}%</p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-border/50">
-          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-primary/5 to-accent/5">
-            <p className="text-3xl font-bold text-foreground">4.0%</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Taux de conversion global
-            </p>
-          </div>
-          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-destructive/5 to-destructive/10">
-            <p className="text-3xl font-bold text-destructive">43 306</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Visiteurs perdus
-            </p>
-          </div>
-          <div className="text-center p-4 rounded-xl bg-gradient-to-br from-green-500/5 to-green-500/10">
-            <p className="text-3xl font-bold text-green-600">+23%</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Potentiel d'optimisation
-            </p>
-          </div>
-        </div>
-
-        {/* Frictions & Recommendations */}
-        <div className="space-y-4 pt-8 mt-8 border-t border-border/50">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-destructive" />
-            Frictions détectées & Recommandations IA
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {frictions.map((friction, index) => (
+          {/* Left Labels */}
+          <div className="absolute left-0 top-0 h-full flex flex-col justify-between py-6" style={{ width: '35%' }}>
+            {funnelSteps.map((step, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 + index * 0.1 }}
-                className="space-y-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + index * 0.08 }}
+                className="flex flex-col items-end pr-4 text-right"
               >
-                <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
-                  <div className="flex items-start gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-destructive text-sm">{friction.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{friction.description}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-primary text-sm">Recommandation</p>
-                      <p className="text-xs text-muted-foreground mt-1">{friction.recommendation}</p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-sm font-medium text-foreground leading-tight">{step.label}</p>
+                <p className="text-xl font-bold text-primary">{step.percentage.toFixed(1)}%</p>
               </motion.div>
             ))}
           </div>
+
+          {/* Right Labels */}
+          <div className="absolute right-0 top-0 h-full flex flex-col justify-between py-6" style={{ width: '35%' }}>
+            {funnelSteps.map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + index * 0.08 }}
+                className="flex items-center gap-3 pl-4"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 border-2 border-primary/30 text-primary">
+                  <span className="text-sm font-bold">{index + 1}</span>
+                </div>
+                {step.loss > 0 && (
+                  <div className="flex items-center gap-1 text-destructive">
+                    <TrendingDown className="w-3 h-3" />
+                    <span className="text-sm font-medium">-{step.loss.toLocaleString()}</span>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-6 mt-16 pt-8 border-t border-border/30">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2 }}
+            className="text-center p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/10 border border-primary/10"
+          >
+            <p className="text-4xl font-bold text-foreground">4.0%</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Taux de conversion global
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3 }}
+            className="text-center p-6 rounded-2xl bg-gradient-to-br from-destructive/5 to-destructive/10 border border-destructive/10"
+          >
+            <p className="text-4xl font-bold text-destructive">43 306</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Visiteurs perdus
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.4 }}
+            className="text-center p-6 rounded-2xl bg-gradient-to-br from-green-500/5 to-green-500/10 border border-green-500/10"
+          >
+            <p className="text-4xl font-bold text-green-600">+23%</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Potentiel d'optimisation
+            </p>
+          </motion.div>
+        </div>
+      </Card>
+
+      {/* Frictions & Recommendations - Separate Card */}
+      <Card className="p-8 bg-card border border-border/50 shadow-md">
+        <h3 className="text-xl font-semibold text-foreground flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+          </div>
+          Frictions détectées & Recommandations IA
+        </h3>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {frictions.map((friction, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.5 + index * 0.1 }}
+              className="space-y-3"
+            >
+              <div className="bg-destructive/5 border border-destructive/15 rounded-xl p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-destructive">{friction.title}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{friction.description}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-primary/5 border border-primary/15 rounded-xl p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-primary">Recommandation</p>
+                    <p className="text-sm text-muted-foreground mt-1">{friction.recommendation}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </Card>
     </div>
