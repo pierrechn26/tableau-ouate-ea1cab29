@@ -224,7 +224,7 @@ export function DiagnosticsAnalytics() {
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))" 
                   tickFormatter={(value) => value.toLocaleString('fr-FR')}
-                  label={{ value: 'Inscrits', angle: -90, position: 'insideLeft', dx: -5, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' } }}
+                  label={{ value: 'Inscrits', angle: -90, position: 'insideLeft', dx: -10, style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' } }}
                 />
                 <Tooltip
                   contentStyle={{
