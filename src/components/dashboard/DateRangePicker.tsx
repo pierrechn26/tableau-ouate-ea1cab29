@@ -288,6 +288,17 @@ export function DateRangePicker({
           <div className="flex">
             <div className="border-r border-border p-3 space-y-2 w-48">
               <p className="text-sm font-medium text-foreground mb-2">Raccourcis</p>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => {
+                  onCustomComparisonRangeChange?.(undefined);
+                  setIsComparisonOpen(false);
+                }}
+              >
+                Aucune
+              </Button>
+              <div className="border-t border-border my-2" />
               {comparisonPresets.map((preset) => (
                 <Button
                   key={preset.label}
