@@ -16,11 +16,13 @@ import { DollarSign, TrendingUp, ShoppingCart, Users } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 
 const revenueByPersona = [
-  { persona: "Emma", revenue: 54230, aov: 68.5, conversion: 3.8 },
-  { persona: "Sophie", revenue: 48670, aov: 71.2, conversion: 4.2 },
-  { persona: "Léa", revenue: 24550, aov: 76.8, conversion: 3.4 },
-  { persona: "Autres", revenue: 68450, aov: 58.3, conversion: 2.1, locked: true },
+  { persona: "Emma", typology: "Enceinte 1er trimestre", revenue: 54230, aov: 68.5, conversion: 3.8 },
+  { persona: "Sophie", typology: "Jeune maman postpartum", revenue: 48670, aov: 71.2, conversion: 4.2 },
+  { persona: "Léa", typology: "Maman de 2 enfants", revenue: 24550, aov: 76.8, conversion: 3.4 },
+  { persona: "Autres", typology: "Profils en découverte", revenue: 68450, aov: 58.3, conversion: 2.1, locked: true },
 ];
+
+const totalRevenue = revenueByPersona.reduce((sum, p) => sum + p.revenue, 0);
 
 const monthlyRevenue = [
   { month: "Jan", withDiag: 87000, withoutDiag: 54000 },
@@ -151,7 +153,10 @@ export function BusinessMetrics() {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                   }}
-                  formatter={(value: number) => `${value.toLocaleString()} €`}
+                  formatter={(value: number) => [
+                    `${value.toLocaleString()} € (${((value / totalRevenue) * 100).toFixed(1)}% du CA total)`,
+                    "CA"
+                  ]}
                 />
                 <Legend />
                 <Bar
@@ -168,6 +173,9 @@ export function BusinessMetrics() {
                   <p className="text-sm font-semibold text-foreground flex items-center justify-center gap-1">
                     {persona.persona}
                     {persona.locked && <span className="text-xs">🔒</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {persona.typology}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     AOV: {persona.aov}€
