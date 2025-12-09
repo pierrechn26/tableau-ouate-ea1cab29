@@ -65,6 +65,7 @@ export function DiagnosticsAnalytics() {
             value="12 580"
             icon={Eye}
             trend={{ value: 15, isPositive: true }}
+            comparison={{ value: "10 939", period: "vs période précédente" }}
             index={0}
           />
           <MetricCard
@@ -72,6 +73,7 @@ export function DiagnosticsAnalytics() {
             value="78.2%"
             icon={PlayCircle}
             trend={{ value: 8, isPositive: true }}
+            comparison={{ value: "72.4%", period: "vs période précédente" }}
             index={1}
           />
           <MetricCard
@@ -79,12 +81,14 @@ export function DiagnosticsAnalytics() {
             value="63.3%"
             icon={CheckCircle}
             trend={{ value: -4, isPositive: false }}
+            comparison={{ value: "65.9%", period: "vs période précédente" }}
             index={2}
           />
           <MetricCard
             title="Durée moyenne"
             value="4m 23s"
             icon={Clock}
+            comparison={{ value: "4m 45s", period: "vs période précédente" }}
             index={3}
           />
           <MetricCard
@@ -92,6 +96,7 @@ export function DiagnosticsAnalytics() {
             value="89.2%"
             icon={Mail}
             trend={{ value: 12, isPositive: true }}
+            comparison={{ value: "79.6%", period: "vs période précédente" }}
             index={4}
           />
         </div>
