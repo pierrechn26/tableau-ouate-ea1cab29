@@ -47,7 +47,7 @@ const personas = [{
   situation: "Jeune maman postpartum",
   prospectPercentage: 22,
   psychology: "Fatigue + besoin de retrouver confiance + simplicité. Forte charge mentale.",
-  problems: ["Pas le temps de lire → veut 'direct au but'", "Vergétures / cicatrices / relâchement de peau", "Manque d'énergie pour comparer les produits"],
+  problems: ["Pas le temps de lire → veut des informations directes et claires", "Vergétures / cicatrices / relâchement de peau", "Manque d'énergie pour comparer les produits"],
   keyNeeds: ["Routine minimaliste en 2–3 produits max", "Explications rapides ('voici ce qu'il te faut')", "Recommandations selon symptômes (sécheresse, cicatrices, jambes lourdes)"],
   behaviors: ["Très mobile-first (87% achètent sur smartphone)", "Achète souvent via recommandations personnalisées", "Convertit 2,4× mieux avec des packs complets"],
   topProducts: ["Pack routine postpartum", "Sérum réparateur express", "Crème raffermissante"],
