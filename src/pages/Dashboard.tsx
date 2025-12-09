@@ -575,12 +575,14 @@ export default function Dashboard() {
                 }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <Sparkles className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      ~
+                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                      +10%
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-1">Durée moyenne</p>
                   <p className="text-2xl font-bold text-foreground">3:42</p>
+                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
+                  <p className="text-sm font-semibold text-foreground">3:23</p>
                 </motion.div>
 
                 <motion.div initial={{
