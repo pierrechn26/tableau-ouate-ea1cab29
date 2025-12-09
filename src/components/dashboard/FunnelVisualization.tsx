@@ -206,29 +206,29 @@ export function FunnelVisualization() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 + index * 0.1 }}
-                className="p-5 rounded-xl bg-muted/30 border border-border/50 space-y-4"
+                className="p-5 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40 space-y-4 hover:shadow-lg hover:border-border/60 hover:from-muted/80 hover:to-muted/50 transition-all duration-300 cursor-default"
               >
                 {/* Step Badge */}
-                <Badge variant="outline" className="text-xs font-medium">
+                <Badge variant="secondary" className="text-xs font-semibold bg-background/80 text-foreground border border-border/50">
                   {friction.step}
                 </Badge>
 
                 {/* Friction */}
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                <div className="flex gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/10">
+                  <div className="w-8 h-8 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-destructive" />
                   </div>
-                  <p className="text-sm text-foreground leading-relaxed">
+                  <p className="text-sm text-foreground font-medium leading-relaxed">
                     {friction.issue}
                   </p>
                 </div>
 
                 {/* Recommendation */}
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="w-3.5 h-3.5 text-primary" />
+                <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-foreground leading-relaxed">
                     {friction.recommendation}
                   </p>
                 </div>
