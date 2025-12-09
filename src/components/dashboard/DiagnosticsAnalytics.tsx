@@ -229,8 +229,54 @@ export function DiagnosticsAnalytics() {
                     borderRadius: "8px",
                   }}
                   formatter={(value: number, name: string) => {
-                    const label = name === "email" || name === "Email" || name === "emailDashed" ? "Email" : "SMS";
+                    const label = name === "email" || name === "emailDashed" ? "Email" : "SMS";
                     return [value.toLocaleString(), label];
+                  }}
+                  filterNull={true}
+                  itemSorter={(item) => {
+                    // Priorité aux données principales, filtrer les doublons de Nov
+                    if (item.dataKey === "emailDashed" || item.dataKey === "smsDashed") {
+                      return 1;
+                    }
+                    return 0;
+                  }}
+                  payload={undefined}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload) return null;
+                    
+                    // Filtrer pour éviter les doublons sur Novembre
+                    const filteredPayload = payload.filter((entry: any) => {
+                      if (label === "Nov") {
+                        // Pour Nov, n'afficher que email et sms (pas les dashed)
+                        return entry.dataKey === "email" || entry.dataKey === "sms";
+                      }
+                      // Pour Déc, n'afficher que les dashed
+                      if (label === "Déc") {
+                        return entry.dataKey === "emailDashed" || entry.dataKey === "smsDashed";
+                      }
+                      // Pour les autres mois, n'afficher que email et sms
+                      return entry.dataKey === "email" || entry.dataKey === "sms";
+                    });
+
+                    return (
+                      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-medium text-foreground mb-2">{label}</p>
+                        {filteredPayload.map((entry: any, index: number) => (
+                          <div key={index} className="flex items-center gap-2 text-sm">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-muted-foreground">
+                              {entry.dataKey === "email" || entry.dataKey === "emailDashed" ? "Email" : "SMS"}:
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {entry.value?.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
                   }}
                 />
                 <Legend />
