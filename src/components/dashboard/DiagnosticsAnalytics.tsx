@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import {
@@ -17,6 +18,13 @@ import {
 } from "recharts";
 import { Eye, PlayCircle, CheckCircle, Mail, Clock } from "lucide-react";
 import { MetricCard } from "./MetricCard";
+import { DateRange } from "react-day-picker";
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, differenceInDays } from "date-fns";
+import { fr } from "date-fns/locale";
+
+interface DiagnosticsAnalyticsProps {
+  dateRange?: DateRange;
+}
 
 const engagementData = [
   { question: "Q1: Trimestre", time: 12, completion: 98 },
@@ -42,16 +50,53 @@ const topFrictions = [
   { theme: "Texture & Sensorialité", abandonRate: 22, avgTime: 48, description: "Difficultés à choisir entre les textures proposées" },
 ];
 
-const optInData = [
-  { month: "Jan", email: 1234, sms: 892 },
-  { month: "Fév", email: 1456, sms: 1023 },
-  { month: "Mar", email: 1789, sms: 1234 },
-  { month: "Avr", email: 2012, sms: 1456 },
-  { month: "Mai", email: 2234, sms: 1567 },
-  { month: "Juin", email: 2456, sms: 1678 },
-];
+// Generate dynamic opt-in data based on date range
+function generateOptInData(dateRange?: DateRange) {
+  if (!dateRange?.from || !dateRange?.to) {
+    // Default data if no range
+    return [
+      { label: "Jan", email: 1234, sms: 892 },
+      { label: "Fév", email: 1456, sms: 1023 },
+      { label: "Mar", email: 1789, sms: 1234 },
+      { label: "Avr", email: 2012, sms: 1456 },
+      { label: "Mai", email: 2234, sms: 1567 },
+      { label: "Juin", email: 2456, sms: 1678 },
+    ];
+  }
 
-export function DiagnosticsAnalytics() {
+  const days = differenceInDays(dateRange.to, dateRange.from);
+  
+  // Determine granularity based on date range
+  if (days <= 14) {
+    // Daily granularity for up to 2 weeks
+    const dates = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+    return dates.map((date, index) => ({
+      label: format(date, "dd MMM", { locale: fr }),
+      email: Math.floor(150 + Math.random() * 100 + index * 8),
+      sms: Math.floor(100 + Math.random() * 80 + index * 5),
+    }));
+  } else if (days <= 90) {
+    // Weekly granularity for up to 3 months
+    const weeks = eachWeekOfInterval({ start: dateRange.from, end: dateRange.to }, { locale: fr });
+    return weeks.map((week, index) => ({
+      label: `Sem. ${format(week, "dd/MM", { locale: fr })}`,
+      email: Math.floor(800 + Math.random() * 400 + index * 80),
+      sms: Math.floor(500 + Math.random() * 300 + index * 50),
+    }));
+  } else {
+    // Monthly granularity for longer periods
+    const months = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to });
+    return months.map((month, index) => ({
+      label: format(month, "MMM yyyy", { locale: fr }),
+      email: Math.floor(1200 + Math.random() * 600 + index * 150),
+      sms: Math.floor(800 + Math.random() * 400 + index * 100),
+    }));
+  }
+}
+
+export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
+  const optInData = useMemo(() => generateOptInData(dateRange), [dateRange]);
+  
   return (
     <div className="space-y-8">
       {/* Engagement Metrics */}
@@ -209,7 +254,7 @@ export function DiagnosticsAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={optInData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip
                   contentStyle={{
