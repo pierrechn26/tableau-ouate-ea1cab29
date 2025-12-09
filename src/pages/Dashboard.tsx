@@ -276,43 +276,6 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} customComparisonRange={customComparisonRange} onCustomComparisonRangeChange={setCustomComparisonRange} onApply={handleApplyDates} />
-              <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Support
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Contactez le support Ask-It</DialogTitle>
-                    <DialogDescription>
-                      Notre équipe vous répondra dans les 24h
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleSupportSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">Nom</Label>
-                      <Input id="name" placeholder="Votre nom" required />
-                    </div>
-                    <div>
-                      <Label htmlFor="company">Entreprise</Label>
-                      <Input id="company" placeholder="TALM" required />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="vous@talm.com" required />
-                    </div>
-                    <div>
-                      <Label htmlFor="message">Message</Label>
-                      <Textarea id="message" placeholder="Décrivez votre demande..." rows={4} required />
-                    </div>
-                    <Button type="submit" className="w-full">
-                      Envoyer
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
               <Dialog open={exportOpen} onOpenChange={setExportOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="hover:bg-primary/70 hover:brightness-110 transition-all">
@@ -405,6 +368,43 @@ export default function Dashboard() {
                         Exporter le rapport
                       </>}
                   </Button>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Support
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Contactez le support Ask-It</DialogTitle>
+                    <DialogDescription>
+                      Notre équipe vous répondra dans les 24h
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSupportSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Nom</Label>
+                      <Input id="name" placeholder="Votre nom" required />
+                    </div>
+                    <div>
+                      <Label htmlFor="company">Entreprise</Label>
+                      <Input id="company" placeholder="TALM" required />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" placeholder="vous@talm.com" required />
+                    </div>
+                    <div>
+                      <Label htmlFor="message">Message</Label>
+                      <Textarea id="message" placeholder="Décrivez votre demande..." rows={4} required />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      Envoyer
+                    </Button>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
