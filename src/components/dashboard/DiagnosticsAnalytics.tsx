@@ -221,7 +221,11 @@ export function DiagnosticsAnalytics() {
               <LineChart data={optInData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))" 
+                  tickFormatter={(value) => value.toLocaleString('fr-FR')}
+                  label={{ value: 'Inscrits', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--muted-foreground))' } }}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
