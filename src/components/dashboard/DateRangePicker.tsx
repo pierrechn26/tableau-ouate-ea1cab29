@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -39,6 +39,24 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  
+  // Track if we should reset on next click (when range is complete)
+  const shouldResetMain = useRef(false);
+  const shouldResetComparison = useRef(false);
+
+  // When main range becomes complete, mark for reset on next click
+  useEffect(() => {
+    if (dateRange?.from && dateRange?.to) {
+      shouldResetMain.current = true;
+    }
+  }, [dateRange]);
+
+  // When comparison range becomes complete, mark for reset on next click
+  useEffect(() => {
+    if (customComparisonRange?.from && customComparisonRange?.to) {
+      shouldResetComparison.current = true;
+    }
+  }, [customComparisonRange]);
 
   const presets = [
     {
@@ -74,33 +92,57 @@ export function DateRangePicker({
     },
   ];
 
-  // Handle date range selection - reset when a full range exists and user clicks a new date
+  // Handle date range selection
   const handleDateRangeSelect = (range: DateRange | undefined) => {
-    // If we already have a complete range (both from and to), and user clicks a new date,
-    // start fresh with just the new date as 'from'
-    if (dateRange?.from && dateRange?.to && range?.from) {
-      // Check if the new selection is different from current range
-      const isNewSelection = range.from.getTime() !== dateRange.from.getTime() && 
-                            range.from.getTime() !== dateRange.to.getTime();
-      if (isNewSelection && !range.to) {
-        // User clicked a new date, start fresh selection
-        onDateRangeChange({ from: range.from, to: undefined });
+    if (!range) {
+      onDateRangeChange(undefined);
+      return;
+    }
+
+    // If range was complete and user clicks, start fresh with clicked date
+    if (shouldResetMain.current && range.from) {
+      // Find which date was just clicked by comparing with previous range
+      // react-day-picker returns the new range, we need to find the clicked date
+      if (dateRange?.from && dateRange?.to) {
+        // If the range.to changed, user clicked a new end date after the current range
+        // If the range.from changed, user clicked a new start date
+        // We want to reset to just the clicked date
+        
+        // The clicked date is typically the one that's different
+        const clickedDate = range.to && range.to.getTime() !== dateRange.to?.getTime() 
+          ? range.to 
+          : range.from;
+        
+        shouldResetMain.current = false;
+        onDateRangeChange({ from: clickedDate, to: undefined });
         return;
       }
     }
+
+    shouldResetMain.current = false;
     onDateRangeChange(range);
   };
 
   // Handle custom comparison date range selection
   const handleCustomComparisonSelect = (range: DateRange | undefined) => {
-    if (customComparisonRange?.from && customComparisonRange?.to && range?.from) {
-      const isNewSelection = range.from.getTime() !== customComparisonRange.from.getTime() && 
-                            range.from.getTime() !== customComparisonRange.to.getTime();
-      if (isNewSelection && !range.to) {
-        onCustomComparisonRangeChange?.({ from: range.from, to: undefined });
+    if (!range) {
+      onCustomComparisonRangeChange?.(undefined);
+      return;
+    }
+
+    if (shouldResetComparison.current && range.from) {
+      if (customComparisonRange?.from && customComparisonRange?.to) {
+        const clickedDate = range.to && range.to.getTime() !== customComparisonRange.to?.getTime() 
+          ? range.to 
+          : range.from;
+        
+        shouldResetComparison.current = false;
+        onCustomComparisonRangeChange?.({ from: clickedDate, to: undefined });
         return;
       }
     }
+
+    shouldResetComparison.current = false;
     onCustomComparisonRangeChange?.(range);
   };
 
