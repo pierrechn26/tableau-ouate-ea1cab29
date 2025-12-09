@@ -42,41 +42,19 @@ const topFrictions = [
   { theme: "Texture & Sensorialité", abandonRate: 22, avgTime: 48, description: "Difficultés à choisir entre les textures proposées" },
 ];
 
-// Données complètes (Jan-Nov)
-const optInDataComplete = [
-  { month: "Jan", email: 1234, sms: 892 },
-  { month: "Fév", email: 1456, sms: 1023 },
-  { month: "Mar", email: 1789, sms: 1234 },
-  { month: "Avr", email: 2012, sms: 1456 },
-  { month: "Mai", email: 2234, sms: 1567 },
-  { month: "Juin", email: 2456, sms: 1678 },
-  { month: "Juil", email: 2612, sms: 1789 },
-  { month: "Août", email: 2734, sms: 1856 },
-  { month: "Sept", email: 2891, sms: 1934 },
-  { month: "Oct", email: 3056, sms: 2012 },
-  { month: "Nov", email: 3189, sms: 2089 },
-];
-
-// Données pour le segment pointillé (Nov-Déc - mois en cours)
-const optInDataProjection = [
-  { month: "Nov", email: 3189, sms: 2089 },
-  { month: "Déc", email: 3320, sms: 2156 },
-];
-
-// Données complètes pour l'axe X
 const optInData = [
-  { month: "Jan", email: 1234, sms: 892 },
-  { month: "Fév", email: 1456, sms: 1023 },
-  { month: "Mar", email: 1789, sms: 1234 },
-  { month: "Avr", email: 2012, sms: 1456 },
-  { month: "Mai", email: 2234, sms: 1567 },
-  { month: "Juin", email: 2456, sms: 1678 },
-  { month: "Juil", email: 2612, sms: 1789 },
-  { month: "Août", email: 2734, sms: 1856 },
-  { month: "Sept", email: 2891, sms: 1934 },
-  { month: "Oct", email: 3056, sms: 2012 },
-  { month: "Nov", email: 3189, sms: 2089 },
-  { month: "Déc", email: 3320, sms: 2156 },
+  { month: "Jan", email: 1234, sms: 892, emailDashed: null, smsDashed: null },
+  { month: "Fév", email: 1456, sms: 1023, emailDashed: null, smsDashed: null },
+  { month: "Mar", email: 1789, sms: 1234, emailDashed: null, smsDashed: null },
+  { month: "Avr", email: 2012, sms: 1456, emailDashed: null, smsDashed: null },
+  { month: "Mai", email: 2234, sms: 1567, emailDashed: null, smsDashed: null },
+  { month: "Juin", email: 2456, sms: 1678, emailDashed: null, smsDashed: null },
+  { month: "Juil", email: 2612, sms: 1789, emailDashed: null, smsDashed: null },
+  { month: "Août", email: 2734, sms: 1856, emailDashed: null, smsDashed: null },
+  { month: "Sept", email: 2891, sms: 1934, emailDashed: null, smsDashed: null },
+  { month: "Oct", email: 3056, sms: 2012, emailDashed: null, smsDashed: null },
+  { month: "Nov", email: 3189, sms: 2089, emailDashed: 3189, smsDashed: 2089 },
+  { month: "Déc", email: null, sms: null, emailDashed: 3320, smsDashed: 2156 },
 ];
 
 export function DiagnosticsAnalytics() {
@@ -260,45 +238,41 @@ export function DiagnosticsAnalytics() {
                 <Line
                   type="monotone"
                   dataKey="email"
-                  data={optInDataComplete}
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   name="Email"
                   dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  legendType="none"
+                  connectNulls={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="sms"
-                  data={optInDataComplete}
                   stroke="hsl(var(--accent))"
                   strokeWidth={2}
                   name="Email + SMS"
                   dot={{ fill: "hsl(var(--accent))", r: 4 }}
-                  legendType="none"
+                  connectNulls={false}
                 />
-                {/* Lignes pointillées pour décembre (données incomplètes) */}
+                {/* Lignes pointillées pour Nov-Déc (données incomplètes) */}
                 <Line
                   type="monotone"
-                  dataKey="email"
-                  data={optInDataProjection}
+                  dataKey="emailDashed"
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  name="Email"
-                  dot={{ fill: "hsl(var(--primary))", r: 4, strokeDasharray: "0" }}
+                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
                   connectNulls
+                  legendType="none"
                 />
                 <Line
                   type="monotone"
-                  dataKey="sms"
-                  data={optInDataProjection}
+                  dataKey="smsDashed"
                   stroke="hsl(var(--accent))"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  name="Email + SMS"
-                  dot={{ fill: "hsl(var(--accent))", r: 4, strokeDasharray: "0" }}
+                  dot={{ fill: "hsl(var(--accent))", r: 4 }}
                   connectNulls
+                  legendType="none"
                 />
               </LineChart>
             </ResponsiveContainer>
