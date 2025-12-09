@@ -19,6 +19,7 @@ const revenueByPersona = [
   { persona: "Emma", revenue: 54230, aov: 68.5, conversion: 3.8 },
   { persona: "Sophie", revenue: 48670, aov: 71.2, conversion: 4.2 },
   { persona: "Léa", revenue: 24550, aov: 76.8, conversion: 3.4 },
+  { persona: "Autres", revenue: 68450, aov: 58.3, conversion: 2.1, locked: true },
 ];
 
 const monthlyRevenue = [
@@ -161,11 +162,12 @@ export function BusinessMetrics() {
                 />
               </BarChart>
             </ResponsiveContainer>
-            <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border/50">
+            <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
               {revenueByPersona.map((persona) => (
-                <div key={persona.persona} className="text-center">
-                  <p className="text-sm font-semibold text-foreground">
+                <div key={persona.persona} className={`text-center ${persona.locked ? 'opacity-60' : ''}`}>
+                  <p className="text-sm font-semibold text-foreground flex items-center justify-center gap-1">
                     {persona.persona}
+                    {persona.locked && <span className="text-xs">🔒</span>}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     AOV: {persona.aov}€
@@ -203,7 +205,7 @@ export function BusinessMetrics() {
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Upsells réussis</p>
               <p className="text-3xl font-bold text-foreground">34%</p>
-              <p className="text-xs text-green-600">+12pts vs sans diag</p>
+              <p className="text-xs text-green-600">panier moyen plus élevé</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Routine complète</p>
