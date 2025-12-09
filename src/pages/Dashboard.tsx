@@ -459,11 +459,11 @@ export default function Dashboard() {
                   value: "103 720 €",
                   period: "vs période précédente"
                 }} index={0} />
-                <MetricCard title="Taux de conversion" value="4.0%" subtitle="Diagnostic → Achat" icon={BarChart3} trend={{
-                  value: 12,
+                <MetricCard title="Taux de conversion" value="8.3%" subtitle="Diagnostic → Achat" icon={BarChart3} trend={{
+                  value: 18,
                   isPositive: true
                 }} comparison={{
-                  value: "3.57%",
+                  value: "7.03%",
                   period: "vs période précédente"
                 }} index={1} />
                 <MetricCard title="AOV après diagnostic" value="71.20 €" subtitle="vs 52.30 € sans" icon={TrendingUp} trend={{
@@ -473,11 +473,11 @@ export default function Dashboard() {
                   value: "52.35 €",
                   period: "vs période précédente"
                 }} index={2} />
-                <MetricCard title="Diagnostics complétés" value="6 234" subtitle="Ce mois" icon={Users} trend={{
-                  value: 8,
+                <MetricCard title="Diagnostics complétés" value="7 100" subtitle="Ce mois" icon={Users} trend={{
+                  value: 14,
                   isPositive: true
                 }} comparison={{
-                  value: "5 772",
+                  value: "6 228",
                   period: "vs période précédente"
                 }} index={3} />
               </div>
