@@ -74,9 +74,34 @@ export function DateRangePicker({
     },
   ];
 
-  // Handle date range selection - reset selection when clicking a new start date
+  // Handle date range selection - reset when a full range exists and user clicks a new date
   const handleDateRangeSelect = (range: DateRange | undefined) => {
+    // If we already have a complete range (both from and to), and user clicks a new date,
+    // start fresh with just the new date as 'from'
+    if (dateRange?.from && dateRange?.to && range?.from) {
+      // Check if the new selection is different from current range
+      const isNewSelection = range.from.getTime() !== dateRange.from.getTime() && 
+                            range.from.getTime() !== dateRange.to.getTime();
+      if (isNewSelection && !range.to) {
+        // User clicked a new date, start fresh selection
+        onDateRangeChange({ from: range.from, to: undefined });
+        return;
+      }
+    }
     onDateRangeChange(range);
+  };
+
+  // Handle custom comparison date range selection
+  const handleCustomComparisonSelect = (range: DateRange | undefined) => {
+    if (customComparisonRange?.from && customComparisonRange?.to && range?.from) {
+      const isNewSelection = range.from.getTime() !== customComparisonRange.from.getTime() && 
+                            range.from.getTime() !== customComparisonRange.to.getTime();
+      if (isNewSelection && !range.to) {
+        onCustomComparisonRangeChange?.({ from: range.from, to: undefined });
+        return;
+      }
+    }
+    onCustomComparisonRangeChange?.(range);
   };
 
   return (
@@ -197,7 +222,7 @@ export function DateRangePicker({
                 mode="range"
                 defaultMonth={customComparisonRange?.from}
                 selected={customComparisonRange}
-                onSelect={onCustomComparisonRangeChange}
+                onSelect={handleCustomComparisonSelect}
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
               />
