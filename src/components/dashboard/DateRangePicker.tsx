@@ -251,6 +251,7 @@ export function DateRangePicker({
               selected={dateRange}
               onSelect={handleDateRangeSelect}
               numberOfMonths={2}
+              disabled={(date) => date > new Date()}
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
@@ -308,6 +309,7 @@ export function DateRangePicker({
               selected={customComparisonRange}
               onSelect={handleCustomComparisonSelect}
               numberOfMonths={2}
+              disabled={(date) => date > new Date()}
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
