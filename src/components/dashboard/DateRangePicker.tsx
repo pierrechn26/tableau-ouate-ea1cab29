@@ -153,23 +153,25 @@ export function DateRangePicker({
           <Button
             variant="outline"
             className={cn(
-              "justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
+              "w-[280px] justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
               !dateRange && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
-                <>
-                  {format(dateRange.from, "dd MMM yyyy")} -{" "}
-                  {format(dateRange.to, "dd MMM yyyy")}
-                </>
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "dd MMM yyyy")} -{" "}
+                    {format(dateRange.to, "dd MMM yyyy")}
+                  </>
+                ) : (
+                  <>{format(dateRange.from, "dd MMM yyyy")} - ...</>
+                )
               ) : (
-                format(dateRange.from, "dd MMM yyyy")
-              )
-            ) : (
-              <span>Sélectionner une période</span>
-            )}
+                "Sélectionner une période"
+              )}
+            </span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -222,23 +224,25 @@ export function DateRangePicker({
             <Button
               variant="outline"
               className={cn(
-                "justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
+                "w-[280px] justify-start text-left font-normal bg-card border-border hover:bg-secondary/50",
                 !customComparisonRange && "text-muted-foreground"
               )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {customComparisonRange?.from ? (
-                customComparisonRange.to ? (
-                  <>
-                    {format(customComparisonRange.from, "dd MMM yyyy")} -{" "}
-                    {format(customComparisonRange.to, "dd MMM yyyy")}
-                  </>
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {customComparisonRange?.from ? (
+                  customComparisonRange.to ? (
+                    <>
+                      {format(customComparisonRange.from, "dd MMM yyyy")} -{" "}
+                      {format(customComparisonRange.to, "dd MMM yyyy")}
+                    </>
+                  ) : (
+                    <>{format(customComparisonRange.from, "dd MMM yyyy")} - ...</>
+                  )
                 ) : (
-                  format(customComparisonRange.from, "dd MMM yyyy")
-                )
-              ) : (
-                <span>Période de comparaison</span>
-              )}
+                  "Période de comparaison"
+                )}
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
