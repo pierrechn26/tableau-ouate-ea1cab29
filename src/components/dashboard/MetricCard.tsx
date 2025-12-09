@@ -57,11 +57,9 @@ export function MetricCard({
             )}
             {comparison && (
               <div className="mt-3 pt-3 border-t border-border/30">
-                <p className="text-xs text-muted-foreground">
-                  {comparison.period}:{" "}
-                  <span className="font-semibold text-foreground">
-                    {comparison.value}
-                  </span>
+                <p className="text-xs text-muted-foreground">{comparison.period}</p>
+                <p className="text-sm font-semibold text-foreground mt-0.5">
+                  {comparison.value}
                 </p>
               </div>
             )}
