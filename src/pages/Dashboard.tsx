@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 const personas = [{
   name: "Emma",
@@ -65,6 +66,17 @@ const personas = [{
 }];
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSections, setExportSections] = useState({
+    all: true,
+    overview: true,
+    personas: true,
+    diagnostics: true,
+    business: true,
+    funnel: true,
+    marketing: true,
+    insights: true,
+  });
   const {
     toast
   } = useToast();
@@ -74,10 +86,37 @@ export default function Dashboard() {
   });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
   const handleExport = () => {
+    const selectedSections = Object.entries(exportSections)
+      .filter(([key, value]) => value && key !== 'all')
+      .map(([key]) => key);
+    
     toast({
       title: "Export en cours",
-      description: "Votre rapport PDF sera prêt dans quelques instants..."
+      description: `Génération du PDF avec ${exportSections.all ? 'tous les éléments' : selectedSections.length + ' section(s)'}...`
     });
+    setExportOpen(false);
+  };
+
+  const handleToggleAll = (checked: boolean) => {
+    setExportSections({
+      all: checked,
+      overview: checked,
+      personas: checked,
+      diagnostics: checked,
+      business: checked,
+      funnel: checked,
+      marketing: checked,
+      insights: checked,
+    });
+  };
+
+  const handleToggleSection = (section: keyof typeof exportSections, checked: boolean) => {
+    const newSections = { ...exportSections, [section]: checked };
+    const allOthersChecked = Object.entries(newSections)
+      .filter(([key]) => key !== 'all')
+      .every(([, value]) => value);
+    newSections.all = allOthersChecked;
+    setExportSections(newSections);
   };
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,10 +185,127 @@ export default function Dashboard() {
                   </form>
                 </DialogContent>
               </Dialog>
-              <Button onClick={handleExport} size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export PDF
-              </Button>
+              <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Exporter le rapport PDF
+                    </DialogTitle>
+                    <DialogDescription>
+                      Sélectionnez les sections à inclure dans votre rapport
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="flex items-center space-x-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <Checkbox 
+                        id="export-all" 
+                        checked={exportSections.all}
+                        onCheckedChange={(checked) => handleToggleAll(checked as boolean)}
+                      />
+                      <Label htmlFor="export-all" className="font-semibold cursor-pointer">
+                        Exporter l'ensemble des éléments
+                      </Label>
+                    </div>
+                    
+                    <div className="space-y-3 pl-2">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-overview" 
+                          checked={exportSections.overview}
+                          onCheckedChange={(checked) => handleToggleSection('overview', checked as boolean)}
+                        />
+                        <Label htmlFor="export-overview" className="flex items-center gap-2 cursor-pointer">
+                          <Sparkles className="w-4 h-4 text-muted-foreground" />
+                          Vue d'ensemble
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-personas" 
+                          checked={exportSections.personas}
+                          onCheckedChange={(checked) => handleToggleSection('personas', checked as boolean)}
+                        />
+                        <Label htmlFor="export-personas" className="flex items-center gap-2 cursor-pointer">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          Personas
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-diagnostics" 
+                          checked={exportSections.diagnostics}
+                          onCheckedChange={(checked) => handleToggleSection('diagnostics', checked as boolean)}
+                        />
+                        <Label htmlFor="export-diagnostics" className="flex items-center gap-2 cursor-pointer">
+                          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                          Diagnostics
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-business" 
+                          checked={exportSections.business}
+                          onCheckedChange={(checked) => handleToggleSection('business', checked as boolean)}
+                        />
+                        <Label htmlFor="export-business" className="flex items-center gap-2 cursor-pointer">
+                          <DollarSign className="w-4 h-4 text-muted-foreground" />
+                          Business
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-funnel" 
+                          checked={exportSections.funnel}
+                          onCheckedChange={(checked) => handleToggleSection('funnel', checked as boolean)}
+                        />
+                        <Label htmlFor="export-funnel" className="flex items-center gap-2 cursor-pointer">
+                          <Activity className="w-4 h-4 text-muted-foreground" />
+                          Funnel
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-marketing" 
+                          checked={exportSections.marketing}
+                          onCheckedChange={(checked) => handleToggleSection('marketing', checked as boolean)}
+                        />
+                        <Label htmlFor="export-marketing" className="flex items-center gap-2 cursor-pointer">
+                          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                          Marketing IA
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <Checkbox 
+                          id="export-insights" 
+                          checked={exportSections.insights}
+                          onCheckedChange={(checked) => handleToggleSection('insights', checked as boolean)}
+                        />
+                        <Label htmlFor="export-insights" className="flex items-center gap-2 cursor-pointer">
+                          <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                          Insights
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+                  <Button onClick={handleExport} className="w-full">
+                    <Download className="w-4 h-4 mr-2" />
+                    Exporter le rapport
+                  </Button>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
