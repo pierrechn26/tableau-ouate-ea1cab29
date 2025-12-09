@@ -39,22 +39,24 @@ export function MetricCard({
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-foreground">{value}</p>
-              {subtitle && (
+            {subtitle && (
                 <p className="text-xs text-muted-foreground">{subtitle}</p>
               )}
             </div>
-            {trend && (
-              <div
-                className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
-                  trend.isPositive
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                <span>{trend.isPositive ? "↑" : "↓"}</span>
-                <span>{Math.abs(trend.value)}%</span>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {trend && (
+                <div
+                  className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+                    trend.isPositive
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  <span>{trend.isPositive ? "↑" : "↓"}</span>
+                  <span>{Math.abs(trend.value)}%</span>
+                </div>
+              )}
+            </div>
             {comparison && (
               <div className="mt-3 pt-3 border-t border-border/30">
                 <p className="text-xs text-muted-foreground">{comparison.period}</p>
