@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
-  Bell,
   Check,
+  Lightbulb,
+  TrendingUp,
 } from "lucide-react";
 
 interface Alert {
@@ -38,6 +38,15 @@ const initialAlerts: Alert[] = [
     priority: "high",
   },
   {
+    id: "tendance-1",
+    type: "insight",
+    title: "Tendance post-accouchement",
+    description:
+      "+18% de clientes mentionnent des cicatrices post-césarienne",
+    action: "Ajuster recommandations pour inclure soins cicatrices spécifiques",
+    priority: "high",
+  },
+  {
     id: "temps-1",
     type: "info",
     title: "Temps de réponse élevé",
@@ -56,15 +65,6 @@ const initialAlerts: Alert[] = [
     priority: "medium",
   },
   {
-    id: "tendance-1",
-    type: "insight",
-    title: "Tendance post-accouchement",
-    description:
-      "+18% de clientes mentionnent des cicatrices post-césarienne",
-    action: "Ajuster recommandations pour inclure soins cicatrices spécifiques",
-    priority: "high",
-  },
-  {
     id: "bundle-1",
     type: "success",
     title: "Performance bundles",
@@ -75,6 +75,8 @@ const initialAlerts: Alert[] = [
   },
 ];
 
+const priorityOrder = { high: 0, medium: 1, low: 2 };
+
 const ALERTS_STORAGE_KEY = "alerts-dismissed-state";
 
 export function AlertsSection() {
@@ -83,18 +85,19 @@ export function AlertsSection() {
     if (saved) {
       try {
         const dismissedIds = JSON.parse(saved) as string[];
-        return initialAlerts.filter((alert) => !dismissedIds.includes(alert.id));
+        return initialAlerts
+          .filter((alert) => !dismissedIds.includes(alert.id))
+          .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
       } catch {
-        return initialAlerts;
+        return [...initialAlerts].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
       }
     }
-    return initialAlerts;
+    return [...initialAlerts].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   });
 
   const dismissAlert = (id: string) => {
     setAlerts((prev) => {
       const newAlerts = prev.filter((alert) => alert.id !== id);
-      // Save dismissed IDs to localStorage
       const dismissedIds = initialAlerts
         .filter((alert) => !newAlerts.find((a) => a.id === alert.id))
         .map((alert) => alert.id);
@@ -108,20 +111,24 @@ export function AlertsSection() {
   const getAlertStyles = (priority: Alert["priority"]) => {
     switch (priority) {
       case "high":
-        return {
-          border: "border-l-4 border-l-destructive border-t border-r border-b border-destructive/20",
-          bg: "bg-destructive/5",
-        };
+        return "border-l-4 border-l-destructive bg-destructive/5";
       case "medium":
-        return {
-          border: "border-l-4 border-l-amber-400 border-t border-r border-b border-amber-200",
-          bg: "bg-amber-50",
-        };
+        return "border-l-4 border-l-amber-400 bg-amber-50/50";
       case "low":
-        return {
-          border: "border-l-4 border-l-green-400 border-t border-r border-b border-green-200",
-          bg: "bg-green-50",
-        };
+        return "border-l-4 border-l-green-500 bg-green-50/50";
+    }
+  };
+
+  const getIcon = (type: Alert["type"]) => {
+    switch (type) {
+      case "warning":
+        return <AlertTriangle className="w-5 h-5 text-destructive" />;
+      case "info":
+        return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+      case "insight":
+        return <Lightbulb className="w-5 h-5 text-primary" />;
+      case "success":
+        return <TrendingUp className="w-5 h-5 text-green-600" />;
     }
   };
 
@@ -129,19 +136,19 @@ export function AlertsSection() {
     switch (priority) {
       case "high":
         return (
-          <Badge className="bg-destructive text-white border-0 font-medium">
+          <Badge className="bg-destructive text-white border-0 text-xs">
             Haute
           </Badge>
         );
       case "medium":
         return (
-          <Badge className="bg-amber-100 text-amber-800 border border-amber-300 font-medium">
+          <Badge className="bg-amber-100 text-amber-800 border-0 text-xs">
             Moyenne
           </Badge>
         );
       case "low":
         return (
-          <Badge className="bg-green-100 text-green-800 border border-green-300 font-medium">
+          <Badge className="bg-green-100 text-green-700 border-0 text-xs">
             Info
           </Badge>
         );
@@ -161,7 +168,7 @@ export function AlertsSection() {
           </p>
         </div>
         {highPriorityCount > 0 && (
-          <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full border border-destructive/20">
+          <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
             <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
             <span className="font-semibold text-sm">
               {highPriorityCount} alerte{highPriorityCount > 1 ? "s" : ""} haute priorité
@@ -170,85 +177,67 @@ export function AlertsSection() {
         )}
       </div>
 
-      {/* Alerts Card */}
-      <Card className="p-6 bg-card border border-border/50 shadow-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <Bell className="w-5 h-5 text-destructive" />
-          <h3 className="text-lg font-semibold text-foreground">Alertes actives</h3>
-        </div>
-
-        <div className="space-y-4">
-          <AnimatePresence mode="popLayout">
-            {alerts.map((alert) => {
-              const { border, bg } = getAlertStyles(alert.priority);
-              return (
-                <motion.div
-                  key={alert.id}
-                  layout
-                  initial={{ opacity: 1, x: 0 }}
-                  exit={{ 
-                    opacity: 0, 
-                    x: 300,
-                    transition: { duration: 0.3, ease: "easeInOut" }
-                  }}
-                  transition={{ duration: 0.2 }}
-                  className={`p-4 rounded-lg ${border} ${bg}`}
-                >
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground mb-1">
-                          {alert.title}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {alert.description}
-                        </p>
-                      </div>
-                    </div>
-                    {getPriorityBadge(alert.priority)}
-                  </div>
-
-                  {/* Action recommandée */}
-                  <div className="ml-8 bg-background/80 rounded-md p-3 border border-border/50">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                      Action recommandée
-                    </p>
-                    <p className="text-sm text-foreground">
-                      {alert.action}
-                    </p>
-                  </div>
-
-                  {/* Mark as read button */}
-                  <div className="flex justify-end mt-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => dismissAlert(alert.id)}
-                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 gap-2"
-                    >
-                      <Check className="w-4 h-4" />
-                      Marquer comme lu
-                    </Button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-
-          {alerts.length === 0 && (
+      {/* Alerts List */}
+      <div className="space-y-3">
+        <AnimatePresence mode="popLayout">
+          {alerts.map((alert) => (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 text-muted-foreground"
+              key={alert.id}
+              layout
+              initial={{ opacity: 1, x: 0 }}
+              exit={{ 
+                opacity: 0, 
+                x: 300,
+                transition: { duration: 0.3, ease: "easeInOut" }
+              }}
+              transition={{ duration: 0.2 }}
+              className={`rounded-lg p-5 ${getAlertStyles(alert.priority)}`}
             >
-              <Check className="w-12 h-12 mx-auto mb-4 text-green-500" />
-              <p className="font-medium">Toutes les alertes ont été traitées !</p>
-              <p className="text-sm mt-1">Revenez plus tard pour de nouvelles recommandations.</p>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="mt-0.5">{getIcon(alert.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h4 className="font-semibold text-foreground">
+                        {alert.title}
+                      </h4>
+                      {getPriorityBadge(alert.priority)}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {alert.description}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-foreground/70">Action →</span>
+                      <span className="text-foreground">{alert.action}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => dismissAlert(alert.id)}
+                  className="text-muted-foreground hover:text-green-600 hover:bg-green-50 gap-1.5 flex-shrink-0"
+                >
+                  <Check className="w-4 h-4" />
+                  <span className="hidden sm:inline">Marquer comme lu</span>
+                </Button>
+              </div>
             </motion.div>
-          )}
-        </div>
-      </Card>
+          ))}
+        </AnimatePresence>
+
+        {alerts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16 text-muted-foreground bg-muted/30 rounded-xl"
+          >
+            <Check className="w-12 h-12 mx-auto mb-4 text-green-500" />
+            <p className="font-medium text-foreground">Toutes les alertes ont été traitées !</p>
+            <p className="text-sm mt-1">Revenez plus tard pour de nouvelles recommandations.</p>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
