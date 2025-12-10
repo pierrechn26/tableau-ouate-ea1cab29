@@ -374,105 +374,96 @@ export function MarketingRecommendations() {
               className="h-full bg-gradient-to-r from-primary via-accent to-secondary rounded-full"
             />
           </div>
+          {progress === 100 && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm font-medium text-primary mt-3 flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Bravo ! Vous avez complété toutes les recommandations marketing de la semaine 🎉
+            </motion.p>
+          )}
         </div>
 
-        {progress === 100 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col items-center justify-center py-12 text-center"
-          >
-            <div className="p-4 rounded-full bg-gradient-to-br from-primary to-accent mb-4">
-              <Sparkles className="w-10 h-10 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-primary font-heading mb-2">
-              Bravo ! 🎉
-            </h3>
-            <p className="text-lg text-foreground font-medium">
-              Vous avez complété toutes les recommandations marketing de la semaine
-            </p>
-          </motion.div>
-        ) : (
-          <div className="space-y-3">
-            {items.map((action) => (
-              <Collapsible
-                key={action.id}
-                open={expandedItems.includes(action.id)}
-                onOpenChange={() => toggleExpanded(action.id)}
+        <div className="space-y-3">
+          {items.map((action) => (
+            <Collapsible
+              key={action.id}
+              open={expandedItems.includes(action.id)}
+              onOpenChange={() => toggleExpanded(action.id)}
+            >
+              <div
+                className={`rounded-xl border-2 transition-all duration-200 ${
+                  action.completed
+                    ? "bg-primary/10 border-primary/40"
+                    : "bg-background border-border hover:border-primary/40 hover:shadow-md"
+                }`}
               >
-                <div
-                  className={`rounded-xl border-2 transition-all duration-200 ${
-                    action.completed
-                      ? "bg-primary/10 border-primary/40"
-                      : "bg-background border-border hover:border-primary/40 hover:shadow-md"
-                  }`}
-                >
-                  <CollapsibleTrigger asChild>
-                    <div className="flex items-center gap-3 p-4 cursor-pointer">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={action.completed}
-                          onCheckedChange={() => toggleItem(action.id)}
-                          className="h-5 w-5"
-                        />
-                      </div>
-                      <span
-                        className={`flex-1 text-sm font-medium ${
-                          action.completed
-                            ? "text-muted-foreground line-through"
-                            : "text-foreground"
-                        }`}
-                      >
-                        {action.title}
-                      </span>
-                      <div className="flex items-center gap-2 text-primary">
-                        <span className="text-xs font-medium">Voir le détail</span>
-                        {expandedItems.includes(action.id) ? (
-                          <ChevronDown className="w-5 h-5" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5" />
-                        )}
-                      </div>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-3 p-4 cursor-pointer">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={action.completed}
+                        onCheckedChange={() => toggleItem(action.id)}
+                        className="h-5 w-5"
+                      />
                     </div>
-                  </CollapsibleTrigger>
+                    <span
+                      className={`flex-1 text-sm font-medium ${
+                        action.completed
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {action.title}
+                    </span>
+                    <div className="flex items-center gap-2 text-primary">
+                      <span className="text-xs font-medium">Voir le détail</span>
+                      {expandedItems.includes(action.id) ? (
+                        <ChevronDown className="w-5 h-5" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5" />
+                      )}
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
 
-                  <CollapsibleContent>
-                    <AnimatePresence>
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="px-4 pb-4 pt-0"
-                      >
-                        <div className="pl-8 space-y-4 border-t border-border/50 pt-4 mt-1">
-                          {action.details.map((detail, idx) => (
-                            <div key={idx} className="space-y-2">
-                              <h5 className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-2">
-                                <Zap className="w-3 h-3" />
-                                {detail.section}
-                              </h5>
-                              <ul className="space-y-2">
-                                {detail.items.map((item, itemIdx) => (
-                                  <li
-                                    key={itemIdx}
-                                    className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
-                                  >
-                                    {item}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    </AnimatePresence>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            ))}
-          </div>
-        )}
+                <CollapsibleContent>
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="px-4 pb-4 pt-0"
+                    >
+                      <div className="pl-8 space-y-4 border-t border-border/50 pt-4 mt-1">
+                        {action.details.map((detail, idx) => (
+                          <div key={idx} className="space-y-2">
+                            <h5 className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-2">
+                              <Zap className="w-3 h-3" />
+                              {detail.section}
+                            </h5>
+                            <ul className="space-y-2">
+                              {detail.items.map((item, itemIdx) => (
+                                <li
+                                  key={itemIdx}
+                                  className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
+                                >
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          ))}
+        </div>
       </Card>
 
       {/* Section 2: Recommandations complètes */}
