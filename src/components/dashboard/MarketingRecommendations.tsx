@@ -18,7 +18,7 @@ import {
   Percent,
   ShoppingCart,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -277,6 +277,38 @@ const recommendationCategories: RecommendationCategory[] = [
   },
 ];
 
+// Hook for animated counter
+function useAnimatedCounter(value: number, duration: number = 400) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const previousValue = useRef(value);
+
+  useEffect(() => {
+    const startValue = previousValue.current;
+    const endValue = value;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentValue = startValue + (endValue - startValue) * easeOutQuart;
+      
+      setDisplayValue(Math.round(currentValue));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+    previousValue.current = value;
+  }, [value, duration]);
+
+  return displayValue;
+}
+
 export function MarketingRecommendations() {
   const [items, setItems] = useState(checklistActions);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -297,6 +329,7 @@ export function MarketingRecommendations() {
 
   const completedCount = items.filter((item) => item.completed).length;
   const progress = (completedCount / items.length) * 100;
+  const animatedProgress = useAnimatedCounter(Math.round(progress), 500);
 
   return (
     <div className="space-y-8">
@@ -327,7 +360,7 @@ export function MarketingRecommendations() {
             </div>
           </div>
           <div className="text-right">
-            <span className="text-3xl font-bold text-primary">{Math.round(progress)}%</span>
+            <span className="text-3xl font-bold text-primary">{animatedProgress}%</span>
           </div>
         </div>
 
