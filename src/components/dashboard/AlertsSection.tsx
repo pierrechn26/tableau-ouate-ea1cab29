@@ -7,6 +7,7 @@ import {
   Check,
   Lightbulb,
   TrendingUp,
+  Undo2,
 } from "lucide-react";
 
 interface Alert {
@@ -95,7 +96,13 @@ export function AlertsSection() {
     return [...initialAlerts].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   });
 
+  const [lastDismissed, setLastDismissed] = useState<Alert | null>(null);
+
   const dismissAlert = (id: string) => {
+    const alertToDismiss = alerts.find((a) => a.id === id);
+    if (alertToDismiss) {
+      setLastDismissed(alertToDismiss);
+    }
     setAlerts((prev) => {
       const newAlerts = prev.filter((alert) => alert.id !== id);
       const dismissedIds = initialAlerts
@@ -104,6 +111,20 @@ export function AlertsSection() {
       localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(dismissedIds));
       return newAlerts;
     });
+  };
+
+  const undoLastDismiss = () => {
+    if (!lastDismissed) return;
+    setAlerts((prev) => {
+      const newAlerts = [...prev, lastDismissed]
+        .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+      const dismissedIds = initialAlerts
+        .filter((alert) => !newAlerts.find((a) => a.id === alert.id))
+        .map((alert) => alert.id);
+      localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(dismissedIds));
+      return newAlerts;
+    });
+    setLastDismissed(null);
   };
 
   const highPriorityCount = alerts.filter((a) => a.priority === "high").length;
@@ -167,14 +188,27 @@ export function AlertsSection() {
             Système intelligent de détection et recommandations
           </p>
         </div>
-        {highPriorityCount > 0 && (
-          <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-            <span className="font-semibold text-sm">
-              {highPriorityCount} alerte{highPriorityCount > 1 ? "s" : ""} haute priorité
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {lastDismissed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={undoLastDismiss}
+              className="text-muted-foreground hover:text-primary gap-1.5"
+            >
+              <Undo2 className="w-4 h-4" />
+              Annuler
+            </Button>
+          )}
+          {highPriorityCount > 0 && (
+            <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+              <span className="font-semibold text-sm">
+                {highPriorityCount} alerte{highPriorityCount > 1 ? "s" : ""} haute priorité
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Alerts List */}
