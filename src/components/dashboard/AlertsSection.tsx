@@ -96,12 +96,12 @@ export function AlertsSection() {
     return [...initialAlerts].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   });
 
-  const [lastDismissed, setLastDismissed] = useState<Alert | null>(null);
+  const [dismissedHistory, setDismissedHistory] = useState<Alert[]>([]);
 
   const dismissAlert = (id: string) => {
     const alertToDismiss = alerts.find((a) => a.id === id);
     if (alertToDismiss) {
-      setLastDismissed(alertToDismiss);
+      setDismissedHistory((prev) => [...prev, alertToDismiss]);
     }
     setAlerts((prev) => {
       const newAlerts = prev.filter((alert) => alert.id !== id);
@@ -114,7 +114,9 @@ export function AlertsSection() {
   };
 
   const undoLastDismiss = () => {
-    if (!lastDismissed) return;
+    if (dismissedHistory.length === 0) return;
+    const lastDismissed = dismissedHistory[dismissedHistory.length - 1];
+    setDismissedHistory((prev) => prev.slice(0, -1));
     setAlerts((prev) => {
       const newAlerts = [...prev, lastDismissed]
         .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
@@ -124,7 +126,6 @@ export function AlertsSection() {
       localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(dismissedIds));
       return newAlerts;
     });
-    setLastDismissed(null);
   };
 
   const highPriorityCount = alerts.filter((a) => a.priority === "high").length;
@@ -189,7 +190,7 @@ export function AlertsSection() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {lastDismissed && (
+          {dismissedHistory.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
@@ -197,7 +198,7 @@ export function AlertsSection() {
               className="text-muted-foreground hover:text-primary gap-1.5"
             >
               <Undo2 className="w-4 h-4" />
-              Annuler
+              Annuler ({dismissedHistory.length})
             </Button>
           )}
           {highPriorityCount > 0 && (
