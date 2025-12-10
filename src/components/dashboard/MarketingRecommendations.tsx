@@ -309,16 +309,39 @@ function useAnimatedCounter(value: number, duration: number = 400) {
   return displayValue;
 }
 
+const CHECKLIST_STORAGE_KEY = "marketing-checklist-state";
+
 export function MarketingRecommendations() {
-  const [items, setItems] = useState(checklistActions);
+  const [items, setItems] = useState<ChecklistAction[]>(() => {
+    const saved = localStorage.getItem(CHECKLIST_STORAGE_KEY);
+    if (saved) {
+      try {
+        const savedState = JSON.parse(saved) as Record<string, boolean>;
+        return checklistActions.map((action) => ({
+          ...action,
+          completed: savedState[action.id] ?? action.completed,
+        }));
+      } catch {
+        return checklistActions;
+      }
+    }
+    return checklistActions;
+  });
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const toggleItem = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) =>
+    setItems((prev) => {
+      const newItems = prev.map((item) =>
         item.id === id ? { ...item, completed: !item.completed } : item
-      )
-    );
+      );
+      // Save to localStorage
+      const stateToSave = newItems.reduce((acc, item) => {
+        acc[item.id] = item.completed;
+        return acc;
+      }, {} as Record<string, boolean>);
+      localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(stateToSave));
+      return newItems;
+    });
   };
 
   const toggleExpanded = (id: string) => {
