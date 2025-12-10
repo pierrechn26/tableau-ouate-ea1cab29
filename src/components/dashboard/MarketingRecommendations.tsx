@@ -8,6 +8,15 @@ import {
   Sparkles,
   ChevronDown,
   ChevronRight,
+  Lightbulb,
+  Target,
+  Video,
+  Zap,
+  Users,
+  TrendingUp,
+  Tag,
+  Percent,
+  ShoppingCart,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -302,14 +311,46 @@ export function MarketingRecommendations() {
       </div>
 
       {/* Section 1: Checklist hebdomadaire */}
-      <Card className="p-6 bg-gradient-to-br from-card via-card to-primary/5 border border-border/50 shadow-md">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Sparkles className="w-5 h-5 text-primary" />
+      <Card className="p-6 bg-gradient-to-br from-primary/5 via-card to-accent/5 border-2 border-primary/20 shadow-lg">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-accent shadow-md">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground font-heading">
+                Checklist hebdomadaire
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {completedCount}/{items.length} actions complétées
+              </p>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-foreground">
-            Checklist hebdomadaire
-          </h3>
+          <div className="text-right">
+            <span className="text-3xl font-bold text-primary">{Math.round(progress)}%</span>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="h-3 bg-muted rounded-full overflow-hidden border border-border">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="h-full bg-gradient-to-r from-primary via-accent to-secondary rounded-full"
+            />
+          </div>
+          {progress === 100 && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm font-medium text-primary mt-3 flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Bravo ! Vous avez complété toutes les recommandations marketing de la semaine 🎉
+            </motion.p>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -320,36 +361,40 @@ export function MarketingRecommendations() {
               onOpenChange={() => toggleExpanded(action.id)}
             >
               <div
-                className={`rounded-xl border transition-all duration-200 ${
+                className={`rounded-xl border-2 transition-all duration-200 ${
                   action.completed
-                    ? "bg-primary/5 border-primary/30"
-                    : "bg-background border-border/50 hover:border-primary/30"
+                    ? "bg-primary/10 border-primary/40"
+                    : "bg-background border-border hover:border-primary/40 hover:shadow-md"
                 }`}
               >
-                <div className="flex items-center gap-3 p-4">
-                  <Checkbox
-                    checked={action.completed}
-                    onCheckedChange={() => toggleItem(action.id)}
-                  />
-                  <span
-                    className={`flex-1 text-sm font-medium ${
-                      action.completed
-                        ? "text-muted-foreground line-through"
-                        : "text-foreground"
-                    }`}
-                  >
-                    {action.title}
-                  </span>
-                  <CollapsibleTrigger asChild>
-                    <button className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center gap-3 p-4 cursor-pointer">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={action.completed}
+                        onCheckedChange={() => toggleItem(action.id)}
+                        className="h-5 w-5"
+                      />
+                    </div>
+                    <span
+                      className={`flex-1 text-sm font-medium ${
+                        action.completed
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {action.title}
+                    </span>
+                    <div className="flex items-center gap-2 text-primary">
+                      <span className="text-xs font-medium">Voir le détail</span>
                       {expandedItems.includes(action.id) ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <ChevronDown className="w-5 h-5" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <ChevronRight className="w-5 h-5" />
                       )}
-                    </button>
-                  </CollapsibleTrigger>
-                </div>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
 
                 <CollapsibleContent>
                   <AnimatePresence>
@@ -359,17 +404,18 @@ export function MarketingRecommendations() {
                       exit={{ opacity: 0, height: 0 }}
                       className="px-4 pb-4 pt-0"
                     >
-                      <div className="pl-8 space-y-4">
+                      <div className="pl-8 space-y-4 border-t border-border/50 pt-4 mt-1">
                         {action.details.map((detail, idx) => (
                           <div key={idx} className="space-y-2">
-                            <h5 className="text-xs font-semibold text-primary uppercase tracking-wide">
+                            <h5 className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-2">
+                              <Zap className="w-3 h-3" />
                               {detail.section}
                             </h5>
-                            <ul className="space-y-1.5">
+                            <ul className="space-y-2">
                               {detail.items.map((item, itemIdx) => (
                                 <li
                                   key={itemIdx}
-                                  className="text-xs text-muted-foreground pl-3 border-l-2 border-primary/30"
+                                  className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
                                 >
                                   {item}
                                 </li>
@@ -385,86 +431,91 @@ export function MarketingRecommendations() {
             </Collapsible>
           ))}
         </div>
-
-        {/* Progress */}
-        <div className="mt-6 p-4 rounded-xl bg-muted/30">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-primary">Progression</span>
-            <span className="text-sm font-bold text-primary">
-              {Math.round(progress)}%
-            </span>
-          </div>
-          <div className="h-2 bg-background rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
-            />
-          </div>
-          {progress === 100 && (
-            <motion.p
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-xs font-medium text-primary mt-2 flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3" />
-              Bravo ! Vous avez complété toutes les recommandations marketing de la semaine 🎉
-            </motion.p>
-          )}
-        </div>
       </Card>
 
       {/* Section 2: Recommandations complètes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {recommendationCategories.map((category, index) => {
-          const Icon = category.icon;
-          const isFullWidth = category.id === "bundles";
-          
-          return (
-            <motion.div
-              key={category.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={isFullWidth ? "lg:col-span-2" : ""}
-            >
-              <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border border-border/50 shadow-md">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className={`p-2.5 rounded-xl ${category.bgColor}`}>
-                    <Icon className={`w-5 h-5 ${category.color}`} />
-                  </div>
-                  <h3 className={`text-lg font-semibold ${category.color}`}>
-                    {category.title}
-                  </h3>
-                </div>
-
-                <div className={`space-y-5 ${isFullWidth ? "grid grid-cols-1 md:grid-cols-3 gap-6 space-y-0" : ""}`}>
-                  {category.sections.map((section, sectionIdx) => (
-                    <div
-                      key={sectionIdx}
-                      className="p-4 rounded-xl bg-muted/30 border border-border/30"
-                    >
-                      <h4 className="text-sm font-semibold text-foreground mb-3">
-                        {section.title}
-                      </h4>
-                      <ul className="space-y-2">
-                        {section.items.map((item, itemIdx) => (
-                          <li
-                            key={itemIdx}
-                            className="text-xs text-muted-foreground pl-3 border-l-2 border-primary/30 leading-relaxed"
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
+      <div>
+        <h3 className="text-xl font-bold text-foreground font-heading mb-4">
+          Recommandations complètes
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {recommendationCategories.map((category, index) => {
+            const Icon = category.icon;
+            const isFullWidth = category.id === "bundles";
+            
+            const getSectionIcon = (title: string) => {
+              if (title.includes("Hook")) return Lightbulb;
+              if (title.includes("Concept") || title.includes("vidéo")) return Video;
+              if (title.includes("Angle")) return Target;
+              if (title.includes("Flow")) return TrendingUp;
+              if (title.includes("Ligne") || title.includes("objet")) return Mail;
+              if (title.includes("Segmentation")) return Users;
+              if (title.includes("Bundle")) return Gift;
+              if (title.includes("Prix")) return Tag;
+              if (title.includes("Upsell")) return ShoppingCart;
+              return Zap;
+            };
+            
+            const getSectionColor = (categoryId: string, sectionIdx: number) => {
+              const colors = {
+                ads: ["bg-primary/10 border-primary/30", "bg-accent/10 border-accent/30", "bg-secondary/10 border-secondary/30"],
+                email: ["bg-secondary/10 border-secondary/30", "bg-primary/10 border-primary/30", "bg-accent/10 border-accent/30"],
+                bundles: ["bg-accent/10 border-accent/30", "bg-secondary/10 border-secondary/30", "bg-primary/10 border-primary/30"],
+              };
+              return colors[categoryId as keyof typeof colors]?.[sectionIdx] || "bg-muted/30 border-border/30";
+            };
+            
+            return (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={isFullWidth ? "lg:col-span-2" : ""}
+              >
+                <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className={`p-3 rounded-xl ${category.bgColor} shadow-sm`}>
+                      <Icon className={`w-6 h-6 ${category.color}`} />
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-          );
-        })}
+                    <h3 className={`text-lg font-bold ${category.color}`}>
+                      {category.title}
+                    </h3>
+                  </div>
+
+                  <div className={`space-y-4 ${isFullWidth ? "grid grid-cols-1 md:grid-cols-3 gap-5 space-y-0" : ""}`}>
+                    {category.sections.map((section, sectionIdx) => {
+                      const SectionIcon = getSectionIcon(section.title);
+                      const sectionColor = getSectionColor(category.id, sectionIdx);
+                      
+                      return (
+                        <div
+                          key={sectionIdx}
+                          className={`p-4 rounded-xl border-2 ${sectionColor} transition-all duration-200 hover:shadow-md`}
+                        >
+                          <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                            <SectionIcon className="w-4 h-4 text-primary" />
+                            {section.title}
+                          </h4>
+                          <ul className="space-y-2.5">
+                            {section.items.map((item, itemIdx) => (
+                              <li
+                                key={itemIdx}
+                                className="text-xs text-foreground bg-background/80 rounded-lg p-3 border border-border/50 leading-relaxed shadow-sm"
+                              >
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
