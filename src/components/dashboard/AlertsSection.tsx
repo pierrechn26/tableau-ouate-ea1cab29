@@ -1,92 +1,126 @@
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
-  TrendingDown,
-  TrendingUp,
-  Clock,
-  Lightbulb,
+  Bell,
+  Check,
 } from "lucide-react";
 
 interface Alert {
+  id: string;
   type: "warning" | "info" | "success" | "insight";
   title: string;
   description: string;
+  action: string;
   priority: "high" | "medium" | "low";
 }
 
-const alerts: Alert[] = [
+const initialAlerts: Alert[] = [
   {
+    id: "friction-1",
     type: "warning",
-    title: "Friction majeure détectée",
+    title: "Friction détectée",
     description:
-      "Le bloc de décision 'Préoccupations principales' génère 42% d'abandon. Temps moyen : 3min12s vs 45s attendu.",
+      "Le bloc \"Composition détaillée\" génère le plus de friction avec un temps moyen de 48s",
+    action: "Simplifier les explications et ajouter des icônes visuelles",
     priority: "high",
   },
   {
+    id: "conversion-1",
     type: "warning",
-    title: "Baisse de conversion persona Sophie",
+    title: "Baisse de conversion",
     description:
-      "Le persona Sophie (jeune maman postpartum) affiche une baisse de conversion de -14% cette semaine vs semaine précédente.",
+      "Le persona Sophie est en baisse de conversion de -14% cette semaine",
+    action: "Tester proposition bundle \"Routine postpartum express\" en A/B test",
     priority: "high",
   },
   {
+    id: "temps-1",
     type: "info",
-    title: "Temps anormal sur thème 'Texture préférée'",
+    title: "Temps de réponse élevé",
     description:
-      "Le temps moyen sur cette question est en hausse de +38%. Possible incompréhension ou trop d'options.",
+      "Temps moyen sur le bloc \"Besoins spécifiques\" en hausse de +23%",
+    action: "Vérifier la clarté des questions et envisager de diviser en 2 blocs",
     priority: "medium",
   },
   {
+    id: "besoin-1",
     type: "insight",
-    title: "Nouveau besoin émergent : maux de dos",
+    title: "Besoin émergent identifié",
     description:
-      "32% des répondantes mentionnent spontanément 'douleurs dorsales' dans les commentaires libres. Opportunité produit ?",
+      "32% des répondantes mentionnent des maux de dos liés à la grossesse",
+    action: "Créer contenu éducatif + évaluer ajout produit massage/détente",
     priority: "medium",
   },
   {
+    id: "tendance-1",
     type: "insight",
-    title: "Cicatrices post-accouchement en hausse",
+    title: "Tendance post-accouchement",
     description:
-      "+18% de clientes mentionnent des préoccupations liées aux cicatrices. Ajuster les recommandations pour Sophie et Léa.",
-    priority: "medium",
+      "+18% de clientes mentionnent des cicatrices post-césarienne",
+    action: "Ajuster recommandations pour inclure soins cicatrices spécifiques",
+    priority: "high",
   },
   {
+    id: "bundle-1",
     type: "success",
-    title: "Performance exceptionnelle sur recommandations bundles",
+    title: "Performance bundles",
     description:
-      "Les recommandations de packs complets génèrent +47% de conversion vs produits individuels cette semaine.",
+      "Les recommandations de packs complets génèrent +47% de conversion vs produits individuels",
+    action: "Étendre la stratégie bundle aux autres personas",
     priority: "low",
   },
 ];
 
+const ALERTS_STORAGE_KEY = "alerts-dismissed-state";
+
 export function AlertsSection() {
-  const getAlertStyles = (type: Alert["type"]) => {
-    switch (type) {
-      case "warning":
+  const [alerts, setAlerts] = useState<Alert[]>(() => {
+    const saved = localStorage.getItem(ALERTS_STORAGE_KEY);
+    if (saved) {
+      try {
+        const dismissedIds = JSON.parse(saved) as string[];
+        return initialAlerts.filter((alert) => !dismissedIds.includes(alert.id));
+      } catch {
+        return initialAlerts;
+      }
+    }
+    return initialAlerts;
+  });
+
+  const dismissAlert = (id: string) => {
+    setAlerts((prev) => {
+      const newAlerts = prev.filter((alert) => alert.id !== id);
+      // Save dismissed IDs to localStorage
+      const dismissedIds = initialAlerts
+        .filter((alert) => !newAlerts.find((a) => a.id === alert.id))
+        .map((alert) => alert.id);
+      localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(dismissedIds));
+      return newAlerts;
+    });
+  };
+
+  const highPriorityCount = alerts.filter((a) => a.priority === "high").length;
+
+  const getAlertStyles = (priority: Alert["priority"]) => {
+    switch (priority) {
+      case "high":
         return {
-          bg: "bg-destructive/5 border-destructive/30",
-          icon: AlertTriangle,
-          iconColor: "text-destructive",
+          border: "border-l-4 border-l-destructive border-t border-r border-b border-destructive/20",
+          bg: "bg-destructive/5",
         };
-      case "info":
+      case "medium":
         return {
-          bg: "bg-blue-500/5 border-blue-500/30",
-          icon: Clock,
-          iconColor: "text-blue-500",
+          border: "border-l-4 border-l-amber-400 border-t border-r border-b border-amber-200",
+          bg: "bg-amber-50",
         };
-      case "success":
+      case "low":
         return {
-          bg: "bg-green-500/5 border-green-500/30",
-          icon: TrendingUp,
-          iconColor: "text-green-500",
-        };
-      case "insight":
-        return {
-          bg: "bg-primary/5 border-primary/30",
-          icon: Lightbulb,
-          iconColor: "text-primary",
+          border: "border-l-4 border-l-green-400 border-t border-r border-b border-green-200",
+          bg: "bg-green-50",
         };
     }
   };
@@ -95,19 +129,19 @@ export function AlertsSection() {
     switch (priority) {
       case "high":
         return (
-          <Badge className="bg-destructive/20 text-destructive border-destructive/30">
-            Priorité haute
+          <Badge className="bg-destructive text-white border-0 font-medium">
+            Haute
           </Badge>
         );
       case "medium":
         return (
-          <Badge className="bg-accent/20 text-accent-foreground border-accent/30">
-            Priorité moyenne
+          <Badge className="bg-amber-100 text-amber-800 border border-amber-300 font-medium">
+            Moyenne
           </Badge>
         );
       case "low":
         return (
-          <Badge className="bg-muted text-muted-foreground border-border">
+          <Badge className="bg-green-100 text-green-800 border border-green-300 font-medium">
             Info
           </Badge>
         );
@@ -115,51 +149,106 @@ export function AlertsSection() {
   };
 
   return (
-    <Card className="p-8 bg-gradient-to-br from-card via-card to-destructive/5 border border-border/50 shadow-md">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2 font-heading">
-            Insights & Alertes Intelligentes
+          <h2 className="text-2xl font-bold text-foreground mb-1 font-heading">
+            Insights & Alertes
           </h2>
           <p className="text-muted-foreground">
-            Détection automatique des opportunités et points d'attention
+            Système intelligent de détection et recommandations
           </p>
         </div>
+        {highPriorityCount > 0 && (
+          <div className="flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full border border-destructive/20">
+            <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+            <span className="font-semibold text-sm">
+              {highPriorityCount} alerte{highPriorityCount > 1 ? "s" : ""} haute priorité
+            </span>
+          </div>
+        )}
+      </div>
 
-        <div className="grid gap-4">
-          {alerts.map((alert, index) => {
-            const { bg, icon: Icon, iconColor } = getAlertStyles(alert.type);
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.08 }}
-                className={`p-4 rounded-xl border ${bg} hover:shadow-[var(--shadow-soft)] transition-all duration-300`}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`p-2 rounded-lg bg-background/80 ${iconColor}`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-foreground text-sm">
-                        {alert.title}
-                      </h3>
-                      {getPriorityBadge(alert.priority)}
+      {/* Alerts Card */}
+      <Card className="p-6 bg-card border border-border/50 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <Bell className="w-5 h-5 text-destructive" />
+          <h3 className="text-lg font-semibold text-foreground">Alertes actives</h3>
+        </div>
+
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {alerts.map((alert) => {
+              const { border, bg } = getAlertStyles(alert.priority);
+              return (
+                <motion.div
+                  key={alert.id}
+                  layout
+                  initial={{ opacity: 1, x: 0 }}
+                  exit={{ 
+                    opacity: 0, 
+                    x: 300,
+                    transition: { duration: 0.3, ease: "easeInOut" }
+                  }}
+                  transition={{ duration: 0.2 }}
+                  className={`p-4 rounded-lg ${border} ${bg}`}
+                >
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground mb-1">
+                          {alert.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {alert.description}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {alert.description}
+                    {getPriorityBadge(alert.priority)}
+                  </div>
+
+                  {/* Action recommandée */}
+                  <div className="ml-8 bg-background/80 rounded-md p-3 border border-border/50">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                      Action recommandée
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {alert.action}
                     </p>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+
+                  {/* Mark as read button */}
+                  <div className="flex justify-end mt-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => dismissAlert(alert.id)}
+                      className="text-muted-foreground hover:text-primary hover:bg-primary/10 gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      Marquer comme lu
+                    </Button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {alerts.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12 text-muted-foreground"
+            >
+              <Check className="w-12 h-12 mx-auto mb-4 text-green-500" />
+              <p className="font-medium">Toutes les alertes ont été traitées !</p>
+              <p className="text-sm mt-1">Revenez plus tard pour de nouvelles recommandations.</p>
+            </motion.div>
+          )}
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
