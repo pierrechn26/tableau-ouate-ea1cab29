@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText, Loader2 } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText, Loader2, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -16,6 +16,7 @@ import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytic
 import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
+import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
@@ -444,6 +445,10 @@ export default function Dashboard() {
               <AlertCircle className="w-4 h-4" />
               Insights
             </TabsTrigger>
+            <TabsTrigger value="responses">
+              <ClipboardList className="w-4 h-4" />
+              Réponses
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
@@ -749,6 +754,10 @@ export default function Dashboard() {
             <div ref={insightsRef}>
               <AlertsSection />
             </div>
+          </TabsContent>
+
+          <TabsContent value="responses">
+            <ResponsesSection />
           </TabsContent>
         </Tabs>
       </main>
