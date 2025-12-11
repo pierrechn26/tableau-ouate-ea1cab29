@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, FileJson, FileSpreadsheet, Search, Filter, ChevronDown, Clock, Route, Tag, Star } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, Search, Filter, Clock, Route, Tag, Star, User, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -36,29 +30,41 @@ import { useToast } from "@/hooks/use-toast";
 
 // Types
 interface DiagnosticResponse {
+  // Identification & tracking
   session_id: string;
   date: string;
   heure: string;
   statut: "démarré" | "abandonné" | "terminé";
   source: string;
-  score_persona: string;
-  persona_confiance: number;
-  optin_email: boolean;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  type_optin: "email" | "sms" | "email_sms" | "aucun";
+  // Personas & IA
+  persona_detecte: string;
+  score_persona: number;
+  score_confiance_ia: number;
+  // Business & Conversion
   offre_recommandee: string;
   conversion: boolean;
-  panier_final: number | null;
-  // New columns
-  chemin_questions: string[];
-  abandon_etape: string | null;
-  duree_diagnostic: number | null;
-  tags_comportementaux: string[];
-  score_engagement: number;
-  produits_consultes_avant: string[];
-  produits_consultes_apres: string[];
+  panier: number | null;
   achat_final: boolean;
   produit_achete: string | null;
-  // Dynamic questions
-  [key: string]: string | number | boolean | null | undefined | string[];
+  // Comportement & dynamique
+  chemin_questions: string[];
+  abandon_etape: string | null;
+  duree: number | null;
+  tags_comportementaux: string[];
+  engagement: "faible" | "moyen" | "élevé";
+  produits_avant: string[];
+  produits_apres: string[];
+  // Talm specific
+  type_peau: string | null;
+  moment_grossesse: string | null;
+  concernes_principaux: string | null;
+  objectif: string | null;
+  routine_actuelle: string | null;
 }
 
 // Mock data enrichi
@@ -69,24 +75,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "14:32",
     statut: "terminé",
     source: "ads",
-    score_persona: "Emma",
-    persona_confiance: 92,
-    optin_email: true,
+    prenom: "Marie",
+    nom: "Dupont",
+    email: "marie.dupont@email.com",
+    telephone: "06 12 34 56 78",
+    type_optin: "email_sms",
+    persona_detecte: "Emma",
+    score_persona: 92,
+    score_confiance_ia: 94,
     offre_recommandee: "Pack 1er trimestre",
     conversion: true,
-    panier_final: 89,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Routine actuelle"],
-    abandon_etape: null,
-    duree_diagnostic: 187,
-    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse"],
-    score_engagement: 5,
-    produits_consultes_avant: ["Huile vergetures", "Crème hydratante"],
-    produits_consultes_apres: ["Pack 1er trimestre", "Sérum visage"],
+    panier: 89,
     achat_final: true,
     produit_achete: "Pack 1er trimestre",
-    q_01_type_peau: "Sèche",
-    q_02_moment_grossesse: "1er trimestre",
-    q_04_objectif: "Réduire vergetures",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Routine actuelle"],
+    abandon_etape: null,
+    duree: 187,
+    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse"],
+    engagement: "élevé",
+    produits_avant: ["Huile vergetures", "Crème hydratante"],
+    produits_apres: ["Pack 1er trimestre", "Sérum visage"],
+    type_peau: "Sèche",
+    moment_grossesse: "1er trimestre",
+    concernes_principaux: "Vergetures",
+    objectif: "Prévenir",
+    routine_actuelle: "Basique",
   },
   {
     session_id: "B11XZ09",
@@ -94,23 +107,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "16:15",
     statut: "abandonné",
     source: "direct",
-    score_persona: "Léa",
-    persona_confiance: 67,
-    optin_email: false,
+    prenom: "Sophie",
+    nom: "Martin",
+    email: "sophie.m@gmail.com",
+    telephone: "",
+    type_optin: "aucun",
+    persona_detecte: "Léa",
+    score_persona: 67,
+    score_confiance_ia: 58,
     offre_recommandee: "—",
     conversion: false,
-    panier_final: null,
-    chemin_questions: ["Type de peau", "Concernes principaux"],
-    abandon_etape: "Concernes principaux",
-    duree_diagnostic: 45,
-    tags_comportementaux: ["indécision", "budget limité"],
-    score_engagement: 2,
-    produits_consultes_avant: ["Baume corps"],
-    produits_consultes_apres: [],
+    panier: null,
     achat_final: false,
     produit_achete: null,
-    q_01_type_peau: "Mixte",
-    q_03_concernes_principaux: "Rougeurs",
+    chemin_questions: ["Type de peau", "Concernes principaux"],
+    abandon_etape: "Concernes principaux",
+    duree: 45,
+    tags_comportementaux: ["indécision", "budget limité"],
+    engagement: "faible",
+    produits_avant: ["Baume corps"],
+    produits_apres: [],
+    type_peau: "Mixte",
+    moment_grossesse: null,
+    concernes_principaux: "Rougeurs",
+    objectif: null,
+    routine_actuelle: null,
   },
   {
     session_id: "C77QP10",
@@ -118,24 +139,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "09:45",
     statut: "terminé",
     source: "email",
-    score_persona: "Sophie",
-    persona_confiance: 81,
-    optin_email: true,
+    prenom: "Claire",
+    nom: "Bernard",
+    email: "claire.bernard@outlook.fr",
+    telephone: "07 98 76 54 32",
+    type_optin: "email",
+    persona_detecte: "Sophie",
+    score_persona: 81,
+    score_confiance_ia: 85,
     offre_recommandee: "Pack postpartum",
     conversion: true,
-    panier_final: 129,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Routine actuelle", "Préoccupations", "Budget"],
-    abandon_etape: null,
-    duree_diagnostic: 234,
-    tags_comportementaux: ["sensibilité post-partum", "besoin d'accompagnement"],
-    score_engagement: 4,
-    produits_consultes_avant: ["Crème cicatrices", "Huile massage"],
-    produits_consultes_apres: ["Pack postpartum", "Gel raffermissant"],
+    panier: 129,
     achat_final: true,
     produit_achete: "Pack postpartum + Gel raffermissant",
-    q_01_type_peau: "Normale",
-    q_02_moment_grossesse: "Post-partum",
-    q_05_routine_actuelle: "Aucune",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Routine actuelle", "Préoccupations", "Budget"],
+    abandon_etape: null,
+    duree: 234,
+    tags_comportementaux: ["sensibilité post-partum", "besoin d'accompagnement"],
+    engagement: "élevé",
+    produits_avant: ["Crème cicatrices", "Huile massage"],
+    produits_apres: ["Pack postpartum", "Gel raffermissant"],
+    type_peau: "Normale",
+    moment_grossesse: "Post-partum",
+    concernes_principaux: "Cicatrices",
+    objectif: "Réparer",
+    routine_actuelle: "Aucune",
   },
   {
     session_id: "D45KL78",
@@ -143,24 +171,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "11:22",
     statut: "terminé",
     source: "ads",
-    score_persona: "Emma",
-    persona_confiance: 88,
-    optin_email: true,
+    prenom: "Émilie",
+    nom: "Petit",
+    email: "emilie.petit@yahoo.fr",
+    telephone: "06 45 67 89 01",
+    type_optin: "sms",
+    persona_detecte: "Emma",
+    score_persona: 88,
+    score_confiance_ia: 91,
     offre_recommandee: "Huile anti-vergetures",
     conversion: true,
-    panier_final: 45,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Fréquence utilisation"],
-    abandon_etape: null,
-    duree_diagnostic: 156,
-    tags_comportementaux: ["décisive", "sensibilité grossesse"],
-    score_engagement: 4,
-    produits_consultes_avant: [],
-    produits_consultes_apres: ["Huile anti-vergetures"],
+    panier: 45,
     achat_final: true,
     produit_achete: "Huile anti-vergetures",
-    q_01_type_peau: "Sensible",
-    q_02_moment_grossesse: "2ème trimestre",
-    q_04_objectif: "Hydrater la peau",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Fréquence utilisation"],
+    abandon_etape: null,
+    duree: 156,
+    tags_comportementaux: ["décisive", "sensibilité grossesse"],
+    engagement: "élevé",
+    produits_avant: [],
+    produits_apres: ["Huile anti-vergetures"],
+    type_peau: "Sensible",
+    moment_grossesse: "2ème trimestre",
+    concernes_principaux: "Démangeaisons",
+    objectif: "Hydrater",
+    routine_actuelle: "Complète",
   },
   {
     session_id: "E92MN33",
@@ -168,22 +203,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "18:03",
     statut: "démarré",
     source: "social",
-    score_persona: "Sophie",
-    persona_confiance: 54,
-    optin_email: false,
+    prenom: "Laura",
+    nom: "Moreau",
+    email: "",
+    telephone: "",
+    type_optin: "aucun",
+    persona_detecte: "Sophie",
+    score_persona: 54,
+    score_confiance_ia: 42,
     offre_recommandee: "—",
     conversion: false,
-    panier_final: null,
-    chemin_questions: ["Type de peau"],
-    abandon_etape: "Type de peau",
-    duree_diagnostic: 12,
-    tags_comportementaux: ["curiosité", "indécision"],
-    score_engagement: 1,
-    produits_consultes_avant: ["Sérum vitamine C"],
-    produits_consultes_apres: [],
+    panier: null,
     achat_final: false,
     produit_achete: null,
-    q_01_type_peau: "Grasse",
+    chemin_questions: ["Type de peau"],
+    abandon_etape: "Type de peau",
+    duree: 12,
+    tags_comportementaux: ["curiosité", "indécision"],
+    engagement: "faible",
+    produits_avant: ["Sérum vitamine C"],
+    produits_apres: [],
+    type_peau: "Grasse",
+    moment_grossesse: null,
+    concernes_principaux: null,
+    objectif: null,
+    routine_actuelle: null,
   },
   {
     session_id: "F88PQ21",
@@ -191,25 +235,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "20:41",
     statut: "terminé",
     source: "direct",
-    score_persona: "Léa",
-    persona_confiance: 79,
-    optin_email: true,
+    prenom: "Julie",
+    nom: "Lefebvre",
+    email: "julie.lefebvre@email.com",
+    telephone: "06 78 90 12 34",
+    type_optin: "email",
+    persona_detecte: "Léa",
+    score_persona: 79,
+    score_confiance_ia: 82,
     offre_recommandee: "Gamme bio certifiée",
     conversion: false,
-    panier_final: null,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux", "Routine actuelle", "Préférences ingrédients"],
-    abandon_etape: null,
-    duree_diagnostic: 298,
-    tags_comportementaux: ["exigeante bio", "recherche qualité"],
-    score_engagement: 3,
-    produits_consultes_avant: ["Gamme bio certifiée", "Huile argan bio"],
-    produits_consultes_apres: ["Gamme bio certifiée"],
+    panier: null,
     achat_final: false,
     produit_achete: null,
-    q_01_type_peau: "Mixte",
-    q_02_moment_grossesse: "Post-partum",
-    q_03_concernes_principaux: "Cicatrices",
-    q_05_routine_actuelle: "Basique",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux", "Routine actuelle", "Préférences ingrédients"],
+    abandon_etape: null,
+    duree: 298,
+    tags_comportementaux: ["exigeante bio", "recherche qualité"],
+    engagement: "moyen",
+    produits_avant: ["Gamme bio certifiée", "Huile argan bio"],
+    produits_apres: ["Gamme bio certifiée"],
+    type_peau: "Mixte",
+    moment_grossesse: "Post-partum",
+    concernes_principaux: "Cicatrices",
+    objectif: "Réparer",
+    routine_actuelle: "Basique",
   },
   {
     session_id: "G12RT55",
@@ -217,24 +267,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "10:18",
     statut: "terminé",
     source: "ads",
-    score_persona: "Emma",
-    persona_confiance: 95,
-    optin_email: true,
+    prenom: "Camille",
+    nom: "Roux",
+    email: "camille.roux@gmail.com",
+    telephone: "07 12 34 56 78",
+    type_optin: "email_sms",
+    persona_detecte: "Emma",
+    score_persona: 95,
+    score_confiance_ia: 97,
     offre_recommandee: "Pack complet grossesse",
     conversion: true,
-    panier_final: 189,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Allergies", "Routine actuelle"],
-    abandon_etape: null,
-    duree_diagnostic: 312,
-    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse", "prête à investir"],
-    score_engagement: 5,
-    produits_consultes_avant: ["Huile vergetures", "Crème corps", "Sérum"],
-    produits_consultes_apres: ["Pack complet grossesse"],
+    panier: 189,
     achat_final: true,
     produit_achete: "Pack complet grossesse",
-    q_01_type_peau: "Sèche",
-    q_02_moment_grossesse: "1er trimestre",
-    q_04_objectif: "Prévention complète",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Allergies", "Routine actuelle"],
+    abandon_etape: null,
+    duree: 312,
+    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse", "prête à investir"],
+    engagement: "élevé",
+    produits_avant: ["Huile vergetures", "Crème corps", "Sérum"],
+    produits_apres: ["Pack complet grossesse"],
+    type_peau: "Sèche",
+    moment_grossesse: "1er trimestre",
+    concernes_principaux: "Vergetures",
+    objectif: "Prévenir",
+    routine_actuelle: "Complète",
   },
   {
     session_id: "H44WX88",
@@ -242,24 +299,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "14:55",
     statut: "abandonné",
     source: "email",
-    score_persona: "Sophie",
-    persona_confiance: 61,
-    optin_email: false,
+    prenom: "Isabelle",
+    nom: "Garcia",
+    email: "isabelle.g@hotmail.com",
+    telephone: "",
+    type_optin: "aucun",
+    persona_detecte: "Sophie",
+    score_persona: 61,
+    score_confiance_ia: 55,
     offre_recommandee: "—",
     conversion: false,
-    panier_final: null,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux"],
-    abandon_etape: "Concernes principaux",
-    duree_diagnostic: 78,
-    tags_comportementaux: ["indécision", "sensibilité post-partum"],
-    score_engagement: 2,
-    produits_consultes_avant: ["Crème raffermissante"],
-    produits_consultes_apres: [],
+    panier: null,
     achat_final: false,
     produit_achete: null,
-    q_01_type_peau: "Normale",
-    q_02_moment_grossesse: "Post-partum",
-    q_03_concernes_principaux: "Relâchement cutané",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux"],
+    abandon_etape: "Concernes principaux",
+    duree: 78,
+    tags_comportementaux: ["indécision", "sensibilité post-partum"],
+    engagement: "faible",
+    produits_avant: ["Crème raffermissante"],
+    produits_apres: [],
+    type_peau: "Normale",
+    moment_grossesse: "Post-partum",
+    concernes_principaux: "Relâchement cutané",
+    objectif: null,
+    routine_actuelle: null,
   },
   {
     session_id: "I99ZY12",
@@ -267,23 +331,31 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "08:30",
     statut: "terminé",
     source: "social",
-    score_persona: "Léa",
-    persona_confiance: 86,
-    optin_email: true,
+    prenom: "Nathalie",
+    nom: "Simon",
+    email: "nathalie.simon@email.fr",
+    telephone: "06 23 45 67 89",
+    type_optin: "email",
+    persona_detecte: "Léa",
+    score_persona: 86,
+    score_confiance_ia: 89,
     offre_recommandee: "Routine naturelle",
     conversion: true,
-    panier_final: 156,
-    chemin_questions: ["Type de peau", "Préférences ingrédients", "Concernes principaux", "Budget", "Certification recherchée"],
-    abandon_etape: null,
-    duree_diagnostic: 267,
-    tags_comportementaux: ["exigeante bio", "recherche qualité", "fidélité marque"],
-    score_engagement: 5,
-    produits_consultes_avant: ["Gamme naturelle", "Sérum bio"],
-    produits_consultes_apres: ["Routine naturelle", "Complément alimentaire"],
+    panier: 156,
     achat_final: true,
     produit_achete: "Routine naturelle",
-    q_01_type_peau: "Sensible",
-    q_03_concernes_principaux: "Ingrédients naturels",
+    chemin_questions: ["Type de peau", "Préférences ingrédients", "Concernes principaux", "Budget", "Certification recherchée"],
+    abandon_etape: null,
+    duree: 267,
+    tags_comportementaux: ["exigeante bio", "recherche qualité", "fidélité marque"],
+    engagement: "élevé",
+    produits_avant: ["Gamme naturelle", "Sérum bio"],
+    produits_apres: ["Routine naturelle", "Complément alimentaire"],
+    type_peau: "Sensible",
+    moment_grossesse: "3ème trimestre",
+    concernes_principaux: "Démangeaisons",
+    objectif: "Hydrater",
+    routine_actuelle: "Complète",
   },
   {
     session_id: "J55AB34",
@@ -291,67 +363,100 @@ const mockResponses: DiagnosticResponse[] = [
     heure: "19:22",
     statut: "terminé",
     source: "direct",
-    score_persona: "Emma",
-    persona_confiance: 73,
-    optin_email: true,
+    prenom: "Aurélie",
+    nom: "Thomas",
+    email: "aurelie.t@gmail.com",
+    telephone: "",
+    type_optin: "email",
+    persona_detecte: "Emma",
+    score_persona: 73,
+    score_confiance_ia: 76,
     offre_recommandee: "Duo hydratation",
     conversion: false,
-    panier_final: null,
-    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Routine actuelle"],
-    abandon_etape: null,
-    duree_diagnostic: 145,
-    tags_comportementaux: ["budget limité", "première grossesse"],
-    score_engagement: 3,
-    produits_consultes_avant: [],
-    produits_consultes_apres: ["Duo hydratation", "Huile corps"],
+    panier: null,
     achat_final: false,
     produit_achete: null,
-    q_01_type_peau: "Mixte",
-    q_02_moment_grossesse: "3ème trimestre",
-    q_04_objectif: "Hydratation intense",
-    q_05_routine_actuelle: "Complète",
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Routine actuelle"],
+    abandon_etape: null,
+    duree: 145,
+    tags_comportementaux: ["budget limité", "première grossesse"],
+    engagement: "moyen",
+    produits_avant: [],
+    produits_apres: ["Duo hydratation", "Huile corps"],
+    type_peau: "Mixte",
+    moment_grossesse: "3ème trimestre",
+    concernes_principaux: "Vergetures",
+    objectif: "Hydrater",
+    routine_actuelle: "Aucune",
   },
 ];
 
-// Fixed columns - updated with new columns
-const fixedColumns = [
-  { key: "session_id", label: "Session ID", width: "100px" },
-  { key: "date", label: "Date", width: "100px" },
-  { key: "heure", label: "Heure", width: "70px" },
-  { key: "statut", label: "Statut", width: "100px" },
-  { key: "source", label: "Source", width: "80px" },
-  { key: "score_persona", label: "Persona", width: "120px" },
-  { key: "persona_confiance", label: "Confiance", width: "80px" },
-  { key: "optin_email", label: "Opt-in", width: "70px" },
-  { key: "offre_recommandee", label: "Offre recommandée", width: "150px" },
-  { key: "conversion", label: "Conversion", width: "90px" },
-  { key: "panier_final", label: "Panier (€)", width: "90px" },
-  { key: "chemin_questions", label: "Chemin questions", width: "200px" },
-  { key: "abandon_etape", label: "Abandon à l'étape", width: "140px" },
-  { key: "duree_diagnostic", label: "Durée (sec)", width: "100px" },
-  { key: "tags_comportementaux", label: "Tags comportementaux", width: "200px" },
-  { key: "score_engagement", label: "Engagement", width: "100px" },
-  { key: "produits_consultes_avant", label: "Produits consultés avant", width: "180px" },
-  { key: "produits_consultes_apres", label: "Produits consultés après", width: "180px" },
-  { key: "achat_final", label: "Achat final", width: "90px" },
-  { key: "produit_achete", label: "Produit acheté", width: "180px" },
+// Column groups definition
+const columnGroups = [
+  {
+    title: "Identification & Tracking",
+    color: "text-foreground",
+    columns: [
+      { key: "session_id", label: "Session ID" },
+      { key: "date", label: "Date" },
+      { key: "heure", label: "Heure" },
+      { key: "statut", label: "Statut" },
+      { key: "source", label: "Source" },
+      { key: "prenom", label: "Prénom" },
+      { key: "nom", label: "Nom" },
+      { key: "email", label: "Email" },
+      { key: "telephone", label: "Téléphone" },
+      { key: "type_optin", label: "Type d'opt-in" },
+    ],
+  },
+  {
+    title: "Personas & IA",
+    color: "text-violet-600",
+    columns: [
+      { key: "persona_detecte", label: "Persona détecté" },
+      { key: "score_persona", label: "Score persona (%)" },
+      { key: "score_confiance_ia", label: "Confiance IA (%)" },
+    ],
+  },
+  {
+    title: "Business & Conversion",
+    color: "text-emerald-600",
+    columns: [
+      { key: "offre_recommandee", label: "Offre recommandée" },
+      { key: "conversion", label: "Conversion" },
+      { key: "panier", label: "Panier (€)" },
+      { key: "achat_final", label: "Achat final" },
+      { key: "produit_achete", label: "Produit acheté" },
+    ],
+  },
+  {
+    title: "Comportement & Dynamique",
+    color: "text-amber-600",
+    columns: [
+      { key: "chemin_questions", label: "Chemin questions" },
+      { key: "abandon_etape", label: "Abandon à l'étape" },
+      { key: "duree", label: "Durée (sec)" },
+      { key: "tags_comportementaux", label: "Tags comportementaux" },
+      { key: "engagement", label: "Engagement" },
+      { key: "produits_avant", label: "Produits consultés avant" },
+      { key: "produits_apres", label: "Produits consultés après" },
+    ],
+  },
+  {
+    title: "Spécifiques TALM",
+    color: "text-primary",
+    columns: [
+      { key: "type_peau", label: "Type de peau" },
+      { key: "moment_grossesse", label: "Moment grossesse" },
+      { key: "concernes_principaux", label: "Concernes principaux" },
+      { key: "objectif", label: "Objectif" },
+      { key: "routine_actuelle", label: "Routine actuelle" },
+    ],
+  },
 ];
 
-// Dynamic question columns (extracted from all responses)
-const getDynamicColumns = (responses: DiagnosticResponse[]) => {
-  const dynamicKeys = new Set<string>();
-  responses.forEach((response) => {
-    Object.keys(response).forEach((key) => {
-      if (key.startsWith("q_")) {
-        dynamicKeys.add(key);
-      }
-    });
-  });
-  return Array.from(dynamicKeys).sort().map((key) => ({
-    key,
-    label: key.replace(/^q_\d+_/, "").replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-  }));
-};
+// Flatten columns for export
+const allColumns = columnGroups.flatMap((group) => group.columns);
 
 export function ResponsesSection() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -359,14 +464,15 @@ export function ResponsesSection() {
   const [personaFilter, setPersonaFilter] = useState<string>("all");
   const { toast } = useToast();
 
-  const dynamicColumns = getDynamicColumns(mockResponses);
-
   const filteredResponses = mockResponses.filter((response) => {
     const matchesSearch =
       response.session_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      response.score_persona.toLowerCase().includes(searchTerm.toLowerCase());
+      response.persona_detecte.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      response.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      response.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      response.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || response.statut === statusFilter;
-    const matchesPersona = personaFilter === "all" || response.score_persona === personaFilter;
+    const matchesPersona = personaFilter === "all" || response.persona_detecte === personaFilter;
     return matchesSearch && matchesStatus && matchesPersona;
   });
 
@@ -383,7 +489,6 @@ export function ResponsesSection() {
       a.click();
       URL.revokeObjectURL(url);
     } else {
-      const allColumns = [...fixedColumns, ...dynamicColumns];
       const headers = allColumns.map((col) => col.label).join(",");
       const rows = dataToExport.map((row) =>
         allColumns
@@ -425,35 +530,49 @@ export function ResponsesSection() {
     }
   };
 
-  const getPersonaBadge = (persona: string, confiance: number) => {
+  const getPersonaBadge = (persona: string) => {
     const colors: Record<string, string> = {
       Emma: "bg-pink-100 text-pink-700 border-pink-200",
       Sophie: "bg-violet-100 text-violet-700 border-violet-200",
       Léa: "bg-teal-100 text-teal-700 border-teal-200",
     };
     return (
-      <div className="flex items-center gap-2">
-        <Badge className={colors[persona] || "bg-muted text-muted-foreground"}>
-          {persona}
-        </Badge>
-        <span className="text-xs text-muted-foreground">({confiance}%)</span>
-      </div>
+      <Badge className={colors[persona] || "bg-muted text-muted-foreground"}>
+        {persona}
+      </Badge>
     );
   };
 
-  const getEngagementStars = (score: number) => {
-    return (
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-3.5 h-3.5 ${
-              star <= score ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
-            }`}
-          />
-        ))}
-      </div>
-    );
+  const getOptinBadge = (type: string) => {
+    switch (type) {
+      case "email_sms":
+        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Email + SMS</Badge>;
+      case "email":
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Email</Badge>;
+      case "sms":
+        return <Badge className="bg-purple-100 text-purple-700 border-purple-200">SMS</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground">Aucun</Badge>;
+    }
+  };
+
+  const getEngagementBadge = (engagement: string) => {
+    switch (engagement) {
+      case "élevé":
+        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Élevé</Badge>;
+      case "moyen":
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200">Moyen</Badge>;
+      case "faible":
+        return <Badge className="bg-red-100 text-red-700 border-red-200">Faible</Badge>;
+      default:
+        return <Badge variant="outline">{engagement}</Badge>;
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-600 font-semibold";
+    if (score >= 60) return "text-amber-600 font-medium";
+    return "text-red-500";
   };
 
   const renderCellContent = (response: DiagnosticResponse, colKey: string) => {
@@ -470,24 +589,81 @@ export function ResponsesSection() {
             {value as string}
           </Badge>
         );
-      case "score_persona":
-        return getPersonaBadge(response.score_persona, response.persona_confiance);
-      case "persona_confiance":
-        return <span className="text-sm font-medium">{value}%</span>;
-      case "optin_email":
+      case "prenom":
+      case "nom":
+        return <span className="text-sm">{value as string || "—"}</span>;
+      case "email":
         return value ? (
-          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 cursor-help max-w-[120px]">
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs truncate">{value as string}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{value as string}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : (
-          <Badge variant="outline" className="text-muted-foreground">Non</Badge>
+          <span className="text-muted-foreground/50">—</span>
+        );
+      case "telephone":
+        return value ? (
+          <div className="flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs">{value as string}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
+      case "type_optin":
+        return getOptinBadge(value as string);
+      case "persona_detecte":
+        return getPersonaBadge(value as string);
+      case "score_persona":
+      case "score_confiance_ia":
+        return (
+          <span className={getScoreColor(value as number)}>
+            {value}%
+          </span>
+        );
+      case "offre_recommandee":
+        return value && value !== "—" ? (
+          <span className="text-sm">{value as string}</span>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
         );
       case "conversion":
+      case "achat_final":
         return value ? (
           <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
         ) : (
           <Badge variant="outline" className="text-muted-foreground">Non</Badge>
         );
-      case "panier_final":
-        return value !== null ? `${value} €` : "—";
+      case "panier":
+        return value !== null ? (
+          <span className="font-medium">{value} €</span>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
+      case "produit_achete":
+        return value ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm truncate max-w-[120px] block cursor-help">{value as string}</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{value as string}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
       case "chemin_questions":
         const questions = value as string[];
         return (
@@ -496,13 +672,11 @@ export function ResponsesSection() {
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1.5 cursor-help">
                   <Route className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs truncate max-w-[150px]">
-                    {questions.length} étapes
-                  </span>
+                  <span className="text-xs">{questions.length} étapes</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent className="max-w-[300px] p-3">
-                <p className="font-semibold text-sm mb-2">Parcours complet :</p>
+                <p className="font-semibold text-sm mb-2">Parcours :</p>
                 <ol className="text-xs space-y-1">
                   {questions.map((q, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -523,7 +697,7 @@ export function ResponsesSection() {
         ) : (
           <span className="text-muted-foreground/50">—</span>
         );
-      case "duree_diagnostic":
+      case "duree":
         if (value === null) return <span className="text-muted-foreground/50">—</span>;
         const minutes = Math.floor((value as number) / 60);
         const seconds = (value as number) % 60;
@@ -559,10 +733,10 @@ export function ResponsesSection() {
             </Tooltip>
           </TooltipProvider>
         );
-      case "score_engagement":
-        return getEngagementStars(value as number);
-      case "produits_consultes_avant":
-      case "produits_consultes_apres":
+      case "engagement":
+        return getEngagementBadge(value as string);
+      case "produits_avant":
+      case "produits_apres":
         const produits = value as string[];
         if (!produits || produits.length === 0) return <span className="text-muted-foreground/50">—</span>;
         return (
@@ -583,13 +757,11 @@ export function ResponsesSection() {
             </Tooltip>
           </TooltipProvider>
         );
-      case "achat_final":
-        return value ? (
-          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
-        ) : (
-          <Badge variant="outline" className="text-muted-foreground">Non</Badge>
-        );
-      case "produit_achete":
+      case "type_peau":
+      case "moment_grossesse":
+      case "concernes_principaux":
+      case "objectif":
+      case "routine_actuelle":
         return value ? (
           <span className="text-sm">{value as string}</span>
         ) : (
@@ -616,7 +788,7 @@ export function ResponsesSection() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-xl font-bold text-foreground font-heading">
-              Réponses du Diagnostic
+              Réponses / Résultats du Diagnostic
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
               {filteredResponses.length} session{filteredResponses.length > 1 ? "s" : ""} affichée{filteredResponses.length > 1 ? "s" : ""}
@@ -639,7 +811,7 @@ export function ResponsesSection() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher par session ID ou persona..."
+              placeholder="Rechercher par session, nom, email ou persona..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -672,30 +844,33 @@ export function ResponsesSection() {
         </div>
       </div>
 
+      {/* Column Groups Legend */}
+      <div className="flex flex-wrap gap-4 px-2">
+        {columnGroups.map((group) => (
+          <div key={group.title} className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${group.color === "text-foreground" ? "bg-foreground" : group.color === "text-violet-600" ? "bg-violet-500" : group.color === "text-emerald-600" ? "bg-emerald-500" : group.color === "text-amber-600" ? "bg-amber-500" : "bg-primary"}`} />
+            <span className="text-xs text-muted-foreground">{group.title}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Table */}
       <div className="bg-card rounded-xl border border-border/50 shadow-md overflow-hidden">
         <ScrollArea className="w-full">
-          <div className="min-w-[2800px]">
+          <div className="min-w-[3200px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  {fixedColumns.map((col) => (
-                    <TableHead
-                      key={col.key}
-                      className="font-semibold text-foreground whitespace-nowrap"
-                      style={{ minWidth: col.width }}
-                    >
-                      {col.label}
-                    </TableHead>
-                  ))}
-                  {dynamicColumns.map((col) => (
-                    <TableHead
-                      key={col.key}
-                      className="font-semibold text-primary whitespace-nowrap"
-                    >
-                      {col.label}
-                    </TableHead>
-                  ))}
+                  {columnGroups.map((group) =>
+                    group.columns.map((col) => (
+                      <TableHead
+                        key={col.key}
+                        className={`font-semibold whitespace-nowrap ${group.color}`}
+                      >
+                        {col.label}
+                      </TableHead>
+                    ))
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -704,20 +879,13 @@ export function ResponsesSection() {
                     key={response.session_id}
                     className={index % 2 === 0 ? "bg-background" : "bg-muted/10"}
                   >
-                    {fixedColumns.map((col) => (
-                      <TableCell key={col.key}>
-                        {renderCellContent(response, col.key)}
-                      </TableCell>
-                    ))}
-                    {dynamicColumns.map((col) => (
-                      <TableCell key={col.key} className="text-sm">
-                        {response[col.key] !== undefined ? (
-                          <span>{String(response[col.key])}</span>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </TableCell>
-                    ))}
+                    {columnGroups.map((group) =>
+                      group.columns.map((col) => (
+                        <TableCell key={col.key}>
+                          {renderCellContent(response, col.key)}
+                        </TableCell>
+                      ))
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -730,10 +898,9 @@ export function ResponsesSection() {
       {/* Legend */}
       <div className="bg-muted/20 rounded-lg p-4 border border-border/30">
         <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Légende :</span> Les colonnes en{" "}
-          <span className="text-primary font-medium">couleur</span> représentent les questions dynamiques du diagnostic.
-          Les cellules vides (—) indiquent que la question n'a pas été posée à ce prospect. 
+          <span className="font-medium text-foreground">Légende :</span> Les colonnes sont organisées par catégorie (voir légende ci-dessus).
           Survolez les éléments avec <span className="underline decoration-dotted">soulignement pointillé</span> pour voir plus de détails.
+          Les cellules vides (—) indiquent une donnée non renseignée.
         </p>
       </div>
     </motion.div>
