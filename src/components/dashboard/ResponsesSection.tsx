@@ -1161,6 +1161,15 @@ export function ResponsesSection() {
         </div>
       </div>
 
+      {/* Legend */}
+      <div className="bg-muted/20 rounded-lg p-4 border border-border/30">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Légende :</span> Les colonnes sont organisées par catégorie (voir codes couleurs ci-dessous).
+          Survolez les éléments avec <span className="underline decoration-dotted">soulignement pointillé</span> pour voir plus de détails.
+          Les cellules vides (—) indiquent une donnée non renseignée.
+        </p>
+      </div>
+
       {/* Column Groups Legend */}
       <div className="flex flex-wrap gap-4 px-2">
         {columnGroups.map((group) => (
@@ -1218,15 +1227,6 @@ export function ResponsesSection() {
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-      </div>
-
-      {/* Legend */}
-      <div className="bg-muted/20 rounded-lg p-4 border border-border/30">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Légende :</span> Les colonnes sont organisées par catégorie (voir légende ci-dessus).
-          Survolez les éléments avec <span className="underline decoration-dotted">soulignement pointillé</span> pour voir plus de détails.
-          Les cellules vides (—) indiquent une donnée non renseignée.
-        </p>
       </div>
     </motion.div>
   );
