@@ -644,7 +644,7 @@ export function ResponsesSection() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [personaFilter, setPersonaFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<DateFilterType>("30days");
+  const [dateFilter, setDateFilter] = useState<DateFilterType>("allTime");
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
