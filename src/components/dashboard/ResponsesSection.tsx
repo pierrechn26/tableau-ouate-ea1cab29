@@ -638,7 +638,7 @@ const columnGroups = [
 // Flatten columns for export
 const allColumns = columnGroups.flatMap((group) => group.columns);
 
-type DateFilterType = "today" | "7days" | "30days" | "thisMonth" | "custom";
+type DateFilterType = "today" | "7days" | "30days" | "thisMonth" | "allTime" | "custom";
 
 export function ResponsesSection() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -661,6 +661,8 @@ export function ResponsesSection() {
         return { start: subDays(today, 30), end: today };
       case "thisMonth":
         return { start: startOfMonth(today), end: today };
+      case "allTime":
+        return { start: new Date("2020-01-01"), end: today };
       case "custom":
         return customDateRange?.from && customDateRange?.to
           ? { start: customDateRange.from, end: customDateRange.to }
@@ -1010,6 +1012,8 @@ export function ResponsesSection() {
         return "30 derniers jours";
       case "thisMonth":
         return "Ce mois-ci";
+      case "allTime":
+        return "Toute la période";
       case "custom":
         if (customDateRange?.from && customDateRange?.to) {
           return `${format(customDateRange.from, "dd/MM/yyyy")} - ${format(customDateRange.to, "dd/MM/yyyy")}`;
@@ -1079,6 +1083,13 @@ export function ResponsesSection() {
             onClick={() => setDateFilter("thisMonth")}
           >
             Ce mois-ci
+          </Button>
+          <Button
+            variant={dateFilter === "allTime" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter("allTime")}
+          >
+            Toute la période
           </Button>
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
