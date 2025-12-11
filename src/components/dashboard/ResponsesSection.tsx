@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, FileJson, FileSpreadsheet, Search, Filter, ChevronDown } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, Search, Filter, ChevronDown, Clock, Route, Tag, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
 // Types
@@ -41,11 +47,21 @@ interface DiagnosticResponse {
   offre_recommandee: string;
   conversion: boolean;
   panier_final: number | null;
+  // New columns
+  chemin_questions: string[];
+  abandon_etape: string | null;
+  duree_diagnostic: number | null;
+  tags_comportementaux: string[];
+  score_engagement: number;
+  produits_consultes_avant: string[];
+  produits_consultes_apres: string[];
+  achat_final: boolean;
+  produit_achete: string | null;
   // Dynamic questions
-  [key: string]: string | number | boolean | null | undefined;
+  [key: string]: string | number | boolean | null | undefined | string[];
 }
 
-// Mock data
+// Mock data enrichi
 const mockResponses: DiagnosticResponse[] = [
   {
     session_id: "A92JDK2",
@@ -59,6 +75,15 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "Pack 1er trimestre",
     conversion: true,
     panier_final: 89,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Routine actuelle"],
+    abandon_etape: null,
+    duree_diagnostic: 187,
+    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse"],
+    score_engagement: 5,
+    produits_consultes_avant: ["Huile vergetures", "Crème hydratante"],
+    produits_consultes_apres: ["Pack 1er trimestre", "Sérum visage"],
+    achat_final: true,
+    produit_achete: "Pack 1er trimestre",
     q_01_type_peau: "Sèche",
     q_02_moment_grossesse: "1er trimestre",
     q_04_objectif: "Réduire vergetures",
@@ -75,6 +100,15 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "—",
     conversion: false,
     panier_final: null,
+    chemin_questions: ["Type de peau", "Concernes principaux"],
+    abandon_etape: "Concernes principaux",
+    duree_diagnostic: 45,
+    tags_comportementaux: ["indécision", "budget limité"],
+    score_engagement: 2,
+    produits_consultes_avant: ["Baume corps"],
+    produits_consultes_apres: [],
+    achat_final: false,
+    produit_achete: null,
     q_01_type_peau: "Mixte",
     q_03_concernes_principaux: "Rougeurs",
   },
@@ -90,6 +124,15 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "Pack postpartum",
     conversion: true,
     panier_final: 129,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Routine actuelle", "Préoccupations", "Budget"],
+    abandon_etape: null,
+    duree_diagnostic: 234,
+    tags_comportementaux: ["sensibilité post-partum", "besoin d'accompagnement"],
+    score_engagement: 4,
+    produits_consultes_avant: ["Crème cicatrices", "Huile massage"],
+    produits_consultes_apres: ["Pack postpartum", "Gel raffermissant"],
+    achat_final: true,
+    produit_achete: "Pack postpartum + Gel raffermissant",
     q_01_type_peau: "Normale",
     q_02_moment_grossesse: "Post-partum",
     q_05_routine_actuelle: "Aucune",
@@ -106,6 +149,15 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "Huile anti-vergetures",
     conversion: true,
     panier_final: 45,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Fréquence utilisation"],
+    abandon_etape: null,
+    duree_diagnostic: 156,
+    tags_comportementaux: ["décisive", "sensibilité grossesse"],
+    score_engagement: 4,
+    produits_consultes_avant: [],
+    produits_consultes_apres: ["Huile anti-vergetures"],
+    achat_final: true,
+    produit_achete: "Huile anti-vergetures",
     q_01_type_peau: "Sensible",
     q_02_moment_grossesse: "2ème trimestre",
     q_04_objectif: "Hydrater la peau",
@@ -122,6 +174,15 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "—",
     conversion: false,
     panier_final: null,
+    chemin_questions: ["Type de peau"],
+    abandon_etape: "Type de peau",
+    duree_diagnostic: 12,
+    tags_comportementaux: ["curiosité", "indécision"],
+    score_engagement: 1,
+    produits_consultes_avant: ["Sérum vitamine C"],
+    produits_consultes_apres: [],
+    achat_final: false,
+    produit_achete: null,
     q_01_type_peau: "Grasse",
   },
   {
@@ -136,26 +197,144 @@ const mockResponses: DiagnosticResponse[] = [
     offre_recommandee: "Gamme bio certifiée",
     conversion: false,
     panier_final: null,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux", "Routine actuelle", "Préférences ingrédients"],
+    abandon_etape: null,
+    duree_diagnostic: 298,
+    tags_comportementaux: ["exigeante bio", "recherche qualité"],
+    score_engagement: 3,
+    produits_consultes_avant: ["Gamme bio certifiée", "Huile argan bio"],
+    produits_consultes_apres: ["Gamme bio certifiée"],
+    achat_final: false,
+    produit_achete: null,
     q_01_type_peau: "Mixte",
     q_02_moment_grossesse: "Post-partum",
     q_03_concernes_principaux: "Cicatrices",
     q_05_routine_actuelle: "Basique",
   },
+  {
+    session_id: "G12RT55",
+    date: "2024-12-07",
+    heure: "10:18",
+    statut: "terminé",
+    source: "ads",
+    score_persona: "Emma",
+    persona_confiance: 95,
+    optin_email: true,
+    offre_recommandee: "Pack complet grossesse",
+    conversion: true,
+    panier_final: 189,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Budget", "Allergies", "Routine actuelle"],
+    abandon_etape: null,
+    duree_diagnostic: 312,
+    tags_comportementaux: ["besoin d'accompagnement", "sensibilité grossesse", "prête à investir"],
+    score_engagement: 5,
+    produits_consultes_avant: ["Huile vergetures", "Crème corps", "Sérum"],
+    produits_consultes_apres: ["Pack complet grossesse"],
+    achat_final: true,
+    produit_achete: "Pack complet grossesse",
+    q_01_type_peau: "Sèche",
+    q_02_moment_grossesse: "1er trimestre",
+    q_04_objectif: "Prévention complète",
+  },
+  {
+    session_id: "H44WX88",
+    date: "2024-12-07",
+    heure: "14:55",
+    statut: "abandonné",
+    source: "email",
+    score_persona: "Sophie",
+    persona_confiance: 61,
+    optin_email: false,
+    offre_recommandee: "—",
+    conversion: false,
+    panier_final: null,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Concernes principaux"],
+    abandon_etape: "Concernes principaux",
+    duree_diagnostic: 78,
+    tags_comportementaux: ["indécision", "sensibilité post-partum"],
+    score_engagement: 2,
+    produits_consultes_avant: ["Crème raffermissante"],
+    produits_consultes_apres: [],
+    achat_final: false,
+    produit_achete: null,
+    q_01_type_peau: "Normale",
+    q_02_moment_grossesse: "Post-partum",
+    q_03_concernes_principaux: "Relâchement cutané",
+  },
+  {
+    session_id: "I99ZY12",
+    date: "2024-12-06",
+    heure: "08:30",
+    statut: "terminé",
+    source: "social",
+    score_persona: "Léa",
+    persona_confiance: 86,
+    optin_email: true,
+    offre_recommandee: "Routine naturelle",
+    conversion: true,
+    panier_final: 156,
+    chemin_questions: ["Type de peau", "Préférences ingrédients", "Concernes principaux", "Budget", "Certification recherchée"],
+    abandon_etape: null,
+    duree_diagnostic: 267,
+    tags_comportementaux: ["exigeante bio", "recherche qualité", "fidélité marque"],
+    score_engagement: 5,
+    produits_consultes_avant: ["Gamme naturelle", "Sérum bio"],
+    produits_consultes_apres: ["Routine naturelle", "Complément alimentaire"],
+    achat_final: true,
+    produit_achete: "Routine naturelle",
+    q_01_type_peau: "Sensible",
+    q_03_concernes_principaux: "Ingrédients naturels",
+  },
+  {
+    session_id: "J55AB34",
+    date: "2024-12-06",
+    heure: "19:22",
+    statut: "terminé",
+    source: "direct",
+    score_persona: "Emma",
+    persona_confiance: 73,
+    optin_email: true,
+    offre_recommandee: "Duo hydratation",
+    conversion: false,
+    panier_final: null,
+    chemin_questions: ["Type de peau", "Moment grossesse", "Objectif", "Routine actuelle"],
+    abandon_etape: null,
+    duree_diagnostic: 145,
+    tags_comportementaux: ["budget limité", "première grossesse"],
+    score_engagement: 3,
+    produits_consultes_avant: [],
+    produits_consultes_apres: ["Duo hydratation", "Huile corps"],
+    achat_final: false,
+    produit_achete: null,
+    q_01_type_peau: "Mixte",
+    q_02_moment_grossesse: "3ème trimestre",
+    q_04_objectif: "Hydratation intense",
+    q_05_routine_actuelle: "Complète",
+  },
 ];
 
-// Fixed columns
+// Fixed columns - updated with new columns
 const fixedColumns = [
-  { key: "session_id", label: "Session ID" },
-  { key: "date", label: "Date" },
-  { key: "heure", label: "Heure" },
-  { key: "statut", label: "Statut" },
-  { key: "source", label: "Source" },
-  { key: "score_persona", label: "Persona" },
-  { key: "persona_confiance", label: "Confiance" },
-  { key: "optin_email", label: "Opt-in" },
-  { key: "offre_recommandee", label: "Offre recommandée" },
-  { key: "conversion", label: "Conversion" },
-  { key: "panier_final", label: "Panier (€)" },
+  { key: "session_id", label: "Session ID", width: "100px" },
+  { key: "date", label: "Date", width: "100px" },
+  { key: "heure", label: "Heure", width: "70px" },
+  { key: "statut", label: "Statut", width: "100px" },
+  { key: "source", label: "Source", width: "80px" },
+  { key: "score_persona", label: "Persona", width: "120px" },
+  { key: "persona_confiance", label: "Confiance", width: "80px" },
+  { key: "optin_email", label: "Opt-in", width: "70px" },
+  { key: "offre_recommandee", label: "Offre recommandée", width: "150px" },
+  { key: "conversion", label: "Conversion", width: "90px" },
+  { key: "panier_final", label: "Panier (€)", width: "90px" },
+  { key: "chemin_questions", label: "Chemin questions", width: "200px" },
+  { key: "abandon_etape", label: "Abandon à l'étape", width: "140px" },
+  { key: "duree_diagnostic", label: "Durée (sec)", width: "100px" },
+  { key: "tags_comportementaux", label: "Tags comportementaux", width: "200px" },
+  { key: "score_engagement", label: "Engagement", width: "100px" },
+  { key: "produits_consultes_avant", label: "Produits consultés avant", width: "180px" },
+  { key: "produits_consultes_apres", label: "Produits consultés après", width: "180px" },
+  { key: "achat_final", label: "Achat final", width: "90px" },
+  { key: "produit_achete", label: "Produit acheté", width: "180px" },
 ];
 
 // Dynamic question columns (extracted from all responses)
@@ -212,6 +391,7 @@ export function ResponsesSection() {
             const value = row[col.key as keyof DiagnosticResponse];
             if (value === null || value === undefined) return "";
             if (typeof value === "boolean") return value ? "Oui" : "Non";
+            if (Array.isArray(value)) return `"${value.join("; ")}"`;
             return `"${String(value).replace(/"/g, '""')}"`;
           })
           .join(",")
@@ -261,6 +441,169 @@ export function ResponsesSection() {
     );
   };
 
+  const getEngagementStars = (score: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-3.5 h-3.5 ${
+              star <= score ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderCellContent = (response: DiagnosticResponse, colKey: string) => {
+    const value = response[colKey as keyof DiagnosticResponse];
+
+    switch (colKey) {
+      case "session_id":
+        return <span className="font-mono text-sm font-medium">{value as string}</span>;
+      case "statut":
+        return getStatusBadge(value as string);
+      case "source":
+        return (
+          <Badge variant="outline" className="capitalize">
+            {value as string}
+          </Badge>
+        );
+      case "score_persona":
+        return getPersonaBadge(response.score_persona, response.persona_confiance);
+      case "persona_confiance":
+        return <span className="text-sm font-medium">{value}%</span>;
+      case "optin_email":
+        return value ? (
+          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">Non</Badge>
+        );
+      case "conversion":
+        return value ? (
+          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">Non</Badge>
+        );
+      case "panier_final":
+        return value !== null ? `${value} €` : "—";
+      case "chemin_questions":
+        const questions = value as string[];
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 cursor-help">
+                  <Route className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs truncate max-w-[150px]">
+                    {questions.length} étapes
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px] p-3">
+                <p className="font-semibold text-sm mb-2">Parcours complet :</p>
+                <ol className="text-xs space-y-1">
+                  {questions.map((q, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-medium">
+                        {i + 1}
+                      </span>
+                      {q}
+                    </li>
+                  ))}
+                </ol>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      case "abandon_etape":
+        return value ? (
+          <span className="text-destructive text-sm">{value as string}</span>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
+      case "duree_diagnostic":
+        if (value === null) return <span className="text-muted-foreground/50">—</span>;
+        const minutes = Math.floor((value as number) / 60);
+        const seconds = (value as number) % 60;
+        return (
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm">
+              {minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`}
+            </span>
+          </div>
+        );
+      case "tags_comportementaux":
+        const tags = value as string[];
+        if (!tags || tags.length === 0) return <span className="text-muted-foreground/50">—</span>;
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
+                  <Tag className="w-3.5 h-3.5 text-secondary" />
+                  <span className="text-xs">{tags.length} tags</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[250px] p-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      case "score_engagement":
+        return getEngagementStars(value as number);
+      case "produits_consultes_avant":
+      case "produits_consultes_apres":
+        const produits = value as string[];
+        if (!produits || produits.length === 0) return <span className="text-muted-foreground/50">—</span>;
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs cursor-help underline decoration-dotted">
+                  {produits.length} produit{produits.length > 1 ? "s" : ""}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[250px] p-3">
+                <ul className="text-xs space-y-1">
+                  {produits.map((p, i) => (
+                    <li key={i}>• {p}</li>
+                  ))}
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      case "achat_final":
+        return value ? (
+          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">Non</Badge>
+        );
+      case "produit_achete":
+        return value ? (
+          <span className="text-sm">{value as string}</span>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
+      default:
+        return value !== undefined && value !== null ? (
+          <span className="text-sm">{String(value)}</span>
+        ) : (
+          <span className="text-muted-foreground/50">—</span>
+        );
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -279,25 +622,16 @@ export function ResponsesSection() {
               {filteredResponses.length} session{filteredResponses.length > 1 ? "s" : ""} affichée{filteredResponses.length > 1 ? "s" : ""}
             </p>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gap-2">
-                <Download className="w-4 h-4" />
-                Exporter données
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border border-border">
-              <DropdownMenuItem onClick={() => exportData("csv")} className="cursor-pointer gap-2">
-                <FileSpreadsheet className="w-4 h-4" />
-                Exporter en CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportData("json")} className="cursor-pointer gap-2">
-                <FileJson className="w-4 h-4" />
-                Exporter en JSON
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => exportData("csv")} className="gap-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              Export CSV
+            </Button>
+            <Button variant="outline" onClick={() => exportData("json")} className="gap-2">
+              <FileJson className="w-4 h-4" />
+              Export JSON
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -341,7 +675,7 @@ export function ResponsesSection() {
       {/* Table */}
       <div className="bg-card rounded-xl border border-border/50 shadow-md overflow-hidden">
         <ScrollArea className="w-full">
-          <div className="min-w-[1400px]">
+          <div className="min-w-[2800px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -349,6 +683,7 @@ export function ResponsesSection() {
                     <TableHead
                       key={col.key}
                       className="font-semibold text-foreground whitespace-nowrap"
+                      style={{ minWidth: col.width }}
                     >
                       {col.label}
                     </TableHead>
@@ -369,43 +704,11 @@ export function ResponsesSection() {
                     key={response.session_id}
                     className={index % 2 === 0 ? "bg-background" : "bg-muted/10"}
                   >
-                    <TableCell className="font-mono text-sm font-medium">
-                      {response.session_id}
-                    </TableCell>
-                    <TableCell>{response.date}</TableCell>
-                    <TableCell>{response.heure}</TableCell>
-                    <TableCell>{getStatusBadge(response.statut)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {response.source}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {getPersonaBadge(response.score_persona, response.persona_confiance)}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-medium">{response.persona_confiance}%</span>
-                    </TableCell>
-                    <TableCell>
-                      {response.optin_email ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">Non</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate">
-                      {response.offre_recommandee}
-                    </TableCell>
-                    <TableCell>
-                      {response.conversion ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Oui</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">Non</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {response.panier_final !== null ? `${response.panier_final} €` : "—"}
-                    </TableCell>
+                    {fixedColumns.map((col) => (
+                      <TableCell key={col.key}>
+                        {renderCellContent(response, col.key)}
+                      </TableCell>
+                    ))}
                     {dynamicColumns.map((col) => (
                       <TableCell key={col.key} className="text-sm">
                         {response[col.key] !== undefined ? (
@@ -429,7 +732,8 @@ export function ResponsesSection() {
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Légende :</span> Les colonnes en{" "}
           <span className="text-primary font-medium">couleur</span> représentent les questions dynamiques du diagnostic.
-          Les cellules vides (—) indiquent que la question n'a pas été posée à ce prospect.
+          Les cellules vides (—) indiquent que la question n'a pas été posée à ce prospect. 
+          Survolez les éléments avec <span className="underline decoration-dotted">soulignement pointillé</span> pour voir plus de détails.
         </p>
       </div>
     </motion.div>
