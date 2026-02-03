@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     // Extract child data - support both direct fields and children array
     let childName = payload.child_name;
     let childAge = payload.child_age;
-    let detectedPersona = payload.detected_persona;
+    let detectedPersona: string | null | undefined = payload.detected_persona;
 
     // If children array exists, use the first child's data
     if (payload.children && payload.children.length > 0) {
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     const parentName = payload.parent_name || payload.user_name;
 
     // Build metadata with all extra info
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       ...payload.metadata,
       relationship: payload.relationship,
       global_preferences: payload.global_preferences,
@@ -124,6 +124,24 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // If persona doesn't exist, ignore it for now (avoid FK errors) and store raw value in metadata
+    if (detectedPersona) {
+      const { data: personaRow, error: personaError } = await supabase
+        .from('personas')
+        .select('name')
+        .eq('name', detectedPersona)
+        .maybeSingle();
+
+      if (personaError) {
+        console.error('[diagnostic-webhook] Persona lookup error:', personaError);
+      }
+
+      if (!personaRow) {
+        metadata.raw_detected_persona = detectedPersona;
+        detectedPersona = null;
+      }
+    }
 
     // Insert or update diagnostic response
     const { data, error } = await supabase
