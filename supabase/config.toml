@@ -1,1 +1,4 @@
 project_id = "btkjdqelvvqmtguhhkdv"
+
+[functions.diagnostic-webhook]
+verify_jwt = false
