@@ -294,7 +294,6 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Prénom enfant</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Âge</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Persona</th>
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Email</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Opt-in</th>
                     </tr>
                   </thead>
@@ -324,9 +323,6 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                               {response.detected_persona}
                             </span>
                           ) : '-'}
-                        </td>
-                        <td className="py-2 px-3 text-muted-foreground">
-                          {response.email ? response.email.substring(0, 20) + (response.email.length > 20 ? '...' : '') : '-'}
                         </td>
                         <td className="py-2 px-3">
                           <div className="flex gap-1">
