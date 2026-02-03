@@ -5,21 +5,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
 };
 
+interface ChildData {
+  child_name?: string;
+  child_age?: number;
+  skin_concern?: string;
+  skin_reactivity?: string;
+  has_routine?: boolean;
+  detected_persona?: string;
+}
+
 interface DiagnosticPayload {
   session_id: string;
+  // Direct fields (legacy format)
   child_name?: string;
   child_age?: number;
   parent_name?: string;
+  detected_persona?: string;
+  // New format with children array
+  user_name?: string;
+  relationship?: string;
+  children?: ChildData[];
+  // Common fields
   email?: string;
   phone?: string;
   email_optin?: boolean;
   sms_optin?: boolean;
-  detected_persona?: string;
   persona_confidence?: number;
   persona_scores?: Record<string, number>;
   answers?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  global_preferences?: Record<string, unknown>;
+  source?: string;
   source_url?: string;
+  completed_at?: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -76,6 +94,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Extract child data - support both direct fields and children array
+    let childName = payload.child_name;
+    let childAge = payload.child_age;
+    let detectedPersona = payload.detected_persona;
+
+    // If children array exists, use the first child's data
+    if (payload.children && payload.children.length > 0) {
+      const firstChild = payload.children[0];
+      childName = childName || firstChild.child_name;
+      childAge = childAge || firstChild.child_age;
+      detectedPersona = detectedPersona || firstChild.detected_persona;
+    }
+
+    // Extract parent name from user_name if not directly provided
+    const parentName = payload.parent_name || payload.user_name;
+
+    // Build metadata with all extra info
+    const metadata = {
+      ...payload.metadata,
+      relationship: payload.relationship,
+      global_preferences: payload.global_preferences,
+      children: payload.children, // Store full children array
+      completed_at: payload.completed_at,
+      source: payload.source,
+    };
+
     // Initialize Supabase client with service role for inserting data
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -86,19 +130,19 @@ Deno.serve(async (req) => {
       .from('diagnostic_responses')
       .upsert({
         session_id: payload.session_id,
-        child_name: payload.child_name,
-        child_age: payload.child_age,
-        parent_name: payload.parent_name,
+        child_name: childName,
+        child_age: childAge,
+        parent_name: parentName,
         email: payload.email,
         phone: payload.phone,
         email_optin: payload.email_optin ?? false,
         sms_optin: payload.sms_optin ?? false,
-        detected_persona: payload.detected_persona,
+        detected_persona: detectedPersona,
         persona_confidence: payload.persona_confidence,
         persona_scores: payload.persona_scores ?? {},
         answers: payload.answers ?? {},
-        metadata: payload.metadata ?? {},
-        source_url: payload.source_url,
+        metadata: metadata,
+        source_url: payload.source_url || payload.source,
         utm_source: payload.utm_source,
         utm_medium: payload.utm_medium,
         utm_campaign: payload.utm_campaign,
@@ -120,6 +164,12 @@ Deno.serve(async (req) => {
     }
 
     console.log('[diagnostic-webhook] Successfully saved response:', data?.id);
+    console.log('[diagnostic-webhook] Saved data:', JSON.stringify({
+      child_name: childName,
+      child_age: childAge,
+      detected_persona: detectedPersona,
+      parent_name: parentName,
+    }));
 
     return new Response(
       JSON.stringify({ 
