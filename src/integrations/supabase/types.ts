@@ -14,7 +14,119 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      diagnostic_responses: {
+        Row: {
+          answers: Json | null
+          child_age: number | null
+          child_name: string | null
+          created_at: string | null
+          detected_persona: string | null
+          email: string | null
+          email_optin: boolean | null
+          id: string
+          metadata: Json | null
+          parent_name: string | null
+          persona_confidence: number | null
+          persona_scores: Json | null
+          phone: string | null
+          session_id: string
+          sms_optin: boolean | null
+          source_url: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          answers?: Json | null
+          child_age?: number | null
+          child_name?: string | null
+          created_at?: string | null
+          detected_persona?: string | null
+          email?: string | null
+          email_optin?: boolean | null
+          id?: string
+          metadata?: Json | null
+          parent_name?: string | null
+          persona_confidence?: number | null
+          persona_scores?: Json | null
+          phone?: string | null
+          session_id: string
+          sms_optin?: boolean | null
+          source_url?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          answers?: Json | null
+          child_age?: number | null
+          child_name?: string | null
+          created_at?: string | null
+          detected_persona?: string | null
+          email?: string | null
+          email_optin?: boolean | null
+          id?: string
+          metadata?: Json | null
+          parent_name?: string | null
+          persona_confidence?: number | null
+          persona_scores?: Json | null
+          phone?: string | null
+          session_id?: string
+          sms_optin?: boolean | null
+          source_url?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_responses_detected_persona_fkey"
+            columns: ["detected_persona"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["name"]
+          },
+        ]
+      }
+      personas: {
+        Row: {
+          age_range: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          age_range?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          age_range?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
