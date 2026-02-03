@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const DIAGNOSTIC_URL = "https://diagnostic-ouate.lovable.app";
+const DIAGNOSTIC_URL = "https://www.ouate-paris.com/pages/diagnostic-de-peau";
 
 export function DiagnosticPreview() {
   const [isFullscreen, setIsFullscreen] = useState(false);
