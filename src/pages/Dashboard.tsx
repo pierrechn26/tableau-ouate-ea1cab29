@@ -17,6 +17,7 @@ import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
+import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
@@ -528,98 +529,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Diagnostic Performance */}
-            <div className="bg-gradient-to-br from-card via-card to-accent/10 rounded-xl border border-border/50 p-6 shadow-md">
-              <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Performance du Diagnostic</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <motion.div initial={{
-                  opacity: 0,
-                  scale: 0.95
-                }} animate={{
-                  opacity: 1,
-                  scale: 1
-                }} transition={{
-                  duration: 0.3
-                }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <Activity className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                      +8%
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-1">Taux de complétion</p>
-                  <p className="text-2xl font-bold text-foreground">78.5%</p>
-                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
-                  <p className="text-sm font-semibold text-foreground">72.7%</p>
-                </motion.div>
-
-                <motion.div initial={{
-                  opacity: 0,
-                  scale: 0.95
-                }} animate={{
-                  opacity: 1,
-                  scale: 1
-                }} transition={{
-                  duration: 0.3,
-                  delay: 0.1
-                }} className="bg-gradient-to-br from-card via-card to-accent/5 rounded-xl p-6 border border-border/50 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <Users className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                      +5%
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-1">Taux opt-in email</p>
-                  <p className="text-2xl font-bold text-foreground">64.2%</p>
-                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
-                  <p className="text-sm font-semibold text-foreground">61.1%</p>
-                </motion.div>
-
-                <motion.div initial={{
-                  opacity: 0,
-                  scale: 0.95
-                }} animate={{
-                  opacity: 1,
-                  scale: 1
-                }} transition={{
-                  duration: 0.3,
-                  delay: 0.2
-                }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                      +10%
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-1">Durée moyenne</p>
-                  <p className="text-2xl font-bold text-foreground">3:42</p>
-                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
-                  <p className="text-sm font-semibold text-foreground">3:23</p>
-                </motion.div>
-
-                <motion.div initial={{
-                  opacity: 0,
-                  scale: 0.95
-                }} animate={{
-                  opacity: 1,
-                  scale: 1
-                }} transition={{
-                  duration: 0.3,
-                  delay: 0.3
-                }} className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-6 border border-border/50 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <BarChart3 className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                      +12%
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-1">Taux de démarrage</p>
-                  <p className="text-2xl font-bold text-foreground">89.3%</p>
-                  <p className="text-xs text-muted-foreground mt-2">vs période précédente</p>
-                  <p className="text-sm font-semibold text-foreground">79.7%</p>
-                </motion.div>
-              </div>
-            </div>
+            {/* Diagnostic Performance - Real Data */}
+            <OverviewDiagnosticStats dateRange={dateRange} />
 
             {/* Diagnostic Preview */}
             <DiagnosticPreview />
