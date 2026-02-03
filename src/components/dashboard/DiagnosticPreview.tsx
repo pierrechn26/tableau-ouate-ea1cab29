@@ -1,12 +1,19 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, ExternalLink, Play, Smartphone, Monitor } from "lucide-react";
+import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 const DIAGNOSTIC_URL = "https://www.ouate-paris.com/pages/diagnostic-de-peau";
 
 export function DiagnosticPreview() {
-  const handleOpenDiagnostic = () => {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+
+  const handleRefresh = () => {
+    setIframeKey((prev) => prev + 1);
+  };
+
+  const handleOpenExternal = () => {
     window.open(DIAGNOSTIC_URL, "_blank");
   };
 
@@ -15,7 +22,9 @@ export function DiagnosticPreview() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-card via-card to-muted/30 rounded-xl border border-border/50 p-6 shadow-md"
+      className={`bg-gradient-to-br from-card via-card to-muted/30 rounded-xl border border-border/50 p-6 shadow-md ${
+        isFullscreen ? "fixed inset-4 z-50" : ""
+      }`}
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -31,91 +40,59 @@ export function DiagnosticPreview() {
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Actualiser
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-4 h-4 mr-2" />
+                Réduire
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4 mr-2" />
+                Agrandir
+              </>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleOpenExternal}>
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Ouvrir
+          </Button>
+        </div>
       </div>
 
-      <Card className="bg-gradient-to-br from-primary/5 via-card to-accent/5 border-2 border-dashed border-border/50 overflow-hidden">
-        <div className="p-8 md:p-12 text-center">
-          {/* Icon */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mx-auto mb-6"
-          >
-            <Play className="w-10 h-10 text-primary" />
-          </motion.div>
-
-          {/* Title */}
-          <motion.h4
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="text-2xl md:text-3xl font-bold text-foreground mb-4 font-heading"
-          >
-            Diagnostic de peau OUATE
-          </motion.h4>
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-muted-foreground mb-8 max-w-lg mx-auto"
-          >
-            Testez l'expérience de vos clients en lançant le diagnostic personnalisé. 
-            Chaque complétion sera automatiquement synchronisée sur ce dashboard.
-          </motion.p>
-
-          {/* Device preview icons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex items-center justify-center gap-6 mb-8"
-          >
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-3 rounded-xl bg-muted/50 border border-border/50">
-                <Monitor className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <span className="text-xs text-muted-foreground">Desktop</span>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-3 rounded-xl bg-muted/50 border border-border/50">
-                <Smartphone className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <span className="text-xs text-muted-foreground">Mobile</span>
-            </div>
-          </motion.div>
-
-          {/* CTA Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Button
-              onClick={handleOpenDiagnostic}
-              size="lg"
-              className="bg-foreground text-background hover:bg-foreground/90 px-8 py-6 text-base font-medium rounded-xl"
-            >
-              <ExternalLink className="w-5 h-5 mr-2" />
-              Lancer le diagnostic
-            </Button>
-          </motion.div>
-
-          {/* URL display */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6"
-          >
-            <code className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-lg">
+      <div 
+        className={`relative bg-white rounded-xl border-2 border-foreground/10 overflow-hidden ${
+          isFullscreen ? "h-[calc(100%-80px)]" : "h-[600px]"
+        }`}
+      >
+        {/* Browser-like header */}
+        <div className="bg-muted/50 px-4 py-2 border-b border-border flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+          </div>
+          <div className="flex-1 mx-4">
+            <div className="bg-background rounded-md px-3 py-1 text-xs text-muted-foreground truncate">
               {DIAGNOSTIC_URL}
-            </code>
-          </motion.div>
+            </div>
+          </div>
         </div>
-      </Card>
+
+        {/* Iframe */}
+        <iframe
+          key={iframeKey}
+          src={DIAGNOSTIC_URL}
+          className="w-full h-[calc(100%-40px)] border-0"
+          title="Diagnostic OUATE"
+          allow="clipboard-write"
+        />
+      </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
         <span>Propulsé par Ask-It × OUATE</span>
@@ -124,7 +101,7 @@ export function DiagnosticPreview() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </span>
-          Webhook connecté
+          Synchronisé en temps réel
         </span>
       </div>
     </motion.div>
