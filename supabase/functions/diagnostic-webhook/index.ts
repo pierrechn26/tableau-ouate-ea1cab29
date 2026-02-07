@@ -21,48 +21,64 @@ type SupabaseClient = any;
    ============================================================ */
 // deno-lint-ignore no-explicit-any
 async function handleNewFormat(supabase: SupabaseClient, payload: any) {
+  // Fetch existing session to apply COALESCE logic (don't overwrite with nulls)
+  const { data: existing } = await supabase
+    .from("diagnostic_sessions")
+    .select("*")
+    .eq("session_code", payload.session_code)
+    .maybeSingle();
+
+  // Helper: use incoming value if explicitly provided (not undefined/null), else keep existing
+  // deno-lint-ignore no-explicit-any
+  const coalesce = (field: string, fallback: any = null) => {
+    const incoming = payload[field];
+    if (incoming !== undefined && incoming !== null) return incoming;
+    if (existing && existing[field] !== undefined && existing[field] !== null) return existing[field];
+    return fallback;
+  };
+
   const sessionData: Record<string, unknown> = {
     session_code: payload.session_code,
-    status: payload.status || "en_cours",
-    source: payload.source ?? null,
-    utm_campaign: payload.utm_campaign ?? null,
-    device: payload.device ?? null,
-    user_name: payload.user_name ?? null,
-    relationship: payload.relationship ?? null,
-    email: payload.email ?? null,
-    phone: payload.phone ?? null,
-    optin_email: payload.optin_email ?? false,
-    optin_sms: payload.optin_sms ?? false,
-    number_of_children: payload.number_of_children ?? null,
-    locale: payload.locale ?? null,
-    result_url: payload.result_url ?? null,
-    persona_detected: payload.persona_detected ?? null,
-    persona_matching_score: payload.persona_matching_score ?? null,
-    adapted_tone: payload.adapted_tone ?? null,
-    ai_key_messages: payload.ai_key_messages ?? null,
-    ai_suggested_segment: payload.ai_suggested_segment ?? null,
-    conversion: payload.conversion ?? false,
-    exit_type: payload.exit_type ?? null,
-    existing_ouate_products: payload.existing_ouate_products ?? null,
-    is_existing_client: payload.is_existing_client ?? false,
-    recommended_cart_amount: payload.recommended_cart_amount ?? null,
-    validated_cart_amount: payload.validated_cart_amount ?? null,
-    upsell_potential: payload.upsell_potential ?? null,
-    duration_seconds: payload.duration_seconds ?? null,
-    abandoned_at_step: payload.abandoned_at_step ?? null,
-    question_path: payload.question_path ?? null,
-    back_navigation_count: payload.back_navigation_count ?? 0,
-    has_optional_details: payload.has_optional_details ?? false,
-    behavior_tags: payload.behavior_tags ?? null,
-    engagement_score: payload.engagement_score ?? null,
-    routine_size_preference: payload.routine_size_preference ?? null,
-    priorities_ordered: payload.priorities_ordered ?? null,
-    trust_triggers_ordered: payload.trust_triggers_ordered ?? null,
-    content_format_preference: payload.content_format_preference ?? null,
-    avg_response_time: payload.avg_response_time ?? null,
-    total_text_length: payload.total_text_length ?? null,
-    has_detailed_responses: payload.has_detailed_responses ?? false,
-    step_timestamps: payload.step_timestamps ?? null,
+    status: coalesce("status", "en_cours"),
+    source: coalesce("source"),
+    utm_campaign: coalesce("utm_campaign"),
+    device: coalesce("device"),
+    user_name: coalesce("user_name"),
+    relationship: coalesce("relationship"),
+    email: coalesce("email"),
+    phone: coalesce("phone"),
+    optin_email: coalesce("optin_email", false),
+    optin_sms: coalesce("optin_sms", false),
+    number_of_children: coalesce("number_of_children"),
+    locale: coalesce("locale"),
+    result_url: coalesce("result_url"),
+    persona_detected: coalesce("persona_detected"),
+    persona_matching_score: coalesce("persona_matching_score"),
+    adapted_tone: coalesce("adapted_tone"),
+    ai_key_messages: coalesce("ai_key_messages"),
+    ai_suggested_segment: coalesce("ai_suggested_segment"),
+    conversion: coalesce("conversion", false),
+    exit_type: coalesce("exit_type"),
+    existing_ouate_products: coalesce("existing_ouate_products"),
+    is_existing_client: coalesce("is_existing_client", false),
+    recommended_cart_amount: coalesce("recommended_cart_amount"),
+    validated_cart_amount: coalesce("validated_cart_amount"),
+    upsell_potential: coalesce("upsell_potential"),
+    duration_seconds: coalesce("duration_seconds"),
+    abandoned_at_step: coalesce("abandoned_at_step"),
+    question_path: coalesce("question_path"),
+    back_navigation_count: coalesce("back_navigation_count", 0),
+    has_optional_details: coalesce("has_optional_details", false),
+    behavior_tags: coalesce("behavior_tags"),
+    engagement_score: coalesce("engagement_score"),
+    routine_size_preference: coalesce("routine_size_preference"),
+    priorities_ordered: coalesce("priorities_ordered"),
+    trust_triggers_ordered: coalesce("trust_triggers_ordered"),
+    content_format_preference: coalesce("content_format_preference"),
+    avg_response_time: coalesce("avg_response_time"),
+    total_text_length: coalesce("total_text_length"),
+    has_detailed_responses: coalesce("has_detailed_responses", false),
+    step_timestamps: coalesce("step_timestamps"),
   };
 
   const { data: session, error: sessionError } = await supabase
