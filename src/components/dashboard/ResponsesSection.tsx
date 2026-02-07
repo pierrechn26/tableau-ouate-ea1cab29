@@ -1,31 +1,23 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import {
   FileJson,
   FileSpreadsheet,
   Search,
   Loader2,
   RefreshCw,
-  CalendarIcon,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosticSessions } from "@/hooks/useDiagnosticSessions";
 import { SessionsTable, getColumnDefs } from "./SessionsTable";
+import { DateRangePicker } from "./DateRangePicker";
 import { CATEGORIES } from "@/types/diagnostic";
 import type { DiagnosticSession } from "@/types/diagnostic";
+import type { DateRange } from "react-day-picker";
 
 /* ── Export helpers ─────────────────────────────────────── */
 
@@ -66,16 +58,8 @@ function exportJSON(sessions: DiagnosticSession[]) {
 export function ResponsesSection() {
   const { sessions, isLoading, error } = useDiagnosticSessions();
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFrom, setDateFrom] = useState<Date | null>(null);
-  const [dateTo, setDateTo] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const { toast } = useToast();
-
-  const resetDateFilter = () => {
-    setDateFrom(null);
-    setDateTo(null);
-  };
-
-  const hasDateFilter = dateFrom !== null || dateTo !== null;
 
   const handleExportCSV = () => {
     exportCSV(sessions);
@@ -137,64 +121,10 @@ export function ResponsesSection() {
           </div>
 
           {/* Date range filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-10 px-3 text-xs gap-1.5",
-                  dateFrom && "border-primary"
-                )}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                {dateFrom ? format(dateFrom, "dd/MM/yyyy", { locale: fr }) : "Du"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFrom ?? undefined}
-                onSelect={(d) => setDateFrom(d ?? null)}
-                locale={fr}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-10 px-3 text-xs gap-1.5",
-                  dateTo && "border-primary"
-                )}
-              >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                {dateTo ? format(dateTo, "dd/MM/yyyy", { locale: fr }) : "Au"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateTo ?? undefined}
-                onSelect={(d) => setDateTo(d ?? null)}
-                locale={fr}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-
-          {hasDateFilter && (
-            <Button variant="ghost" size="sm" onClick={resetDateFilter} className="h-10 px-2 text-xs gap-1">
-              <X className="w-3.5 h-3.5" />
-              Réinitialiser
-            </Button>
-          )}
+          <DateRangePicker
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
 
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
             <FileSpreadsheet className="w-4 h-4 mr-1" />
@@ -231,8 +161,8 @@ export function ResponsesSection() {
       <SessionsTable
         sessions={sessions}
         searchTerm={searchTerm}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
+        dateFrom={dateRange?.from ?? null}
+        dateTo={dateRange?.to ?? null}
       />
     </motion.div>
   );
