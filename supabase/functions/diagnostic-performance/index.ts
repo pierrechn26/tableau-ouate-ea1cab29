@@ -6,48 +6,28 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type PersonaDistributionItem = {
-  name: string;
-  count: number;
-  percentage: number;
-};
-
-type RecentResponse = {
-  id: string;
-  created_at: string | null;
-  child_name: string | null;
-  child_age: number | null;
-  detected_persona: string | null;
-  email_optin: boolean | null;
-  sms_optin: boolean | null;
-};
-
-type RequestBody = {
-  from?: string; // ISO
-  to?: string; // ISO
-};
-
-function isCompleted(row: {
-  metadata: Record<string, unknown> | null;
-  email: string | null;
-  detected_persona: string | null;
-  child_name: string | null;
-  child_age: number | null;
-}) {
+/* Is a legacy diagnostic_response "completed"? */
+// deno-lint-ignore no-explicit-any
+function isLegacyCompleted(row: any): boolean {
   const completedAt = row.metadata && (row.metadata as any).completed_at;
   if (completedAt) return true;
   if (row.email) return true;
   if (row.detected_persona) return true;
-  if (row.child_name && row.child_age !== null && row.child_age !== undefined) return true;
+  if (row.child_name && row.child_age !== null && row.child_age !== undefined)
+    return true;
   return false;
 }
 
+type RequestBody = {
+  from?: string;
+  to?: string;
+  includeDetails?: boolean;
+};
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -59,84 +39,138 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json().catch(() => ({}));
     const from = body.from ? new Date(body.from) : undefined;
     const to = body.to ? new Date(body.to) : undefined;
+    const includeDetails = body.includeDetails ?? false;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    /* ====== NEW FORMAT: diagnostic_sessions + children ====== */
+    let sessionsQuery = supabase
+      .from("diagnostic_sessions")
+      .select("*, diagnostic_children(*)")
+      .order("created_at", { ascending: false });
+
+    if (from) sessionsQuery = sessionsQuery.gte("created_at", from.toISOString());
+    if (to) sessionsQuery = sessionsQuery.lte("created_at", to.toISOString());
+
+    const { data: sessionsRaw, error: sessionsError } = await sessionsQuery;
+    if (sessionsError) console.error("[perf] Sessions query error:", sessionsError);
+    // deno-lint-ignore no-explicit-any
+    const sessions: any[] = sessionsRaw ?? [];
+
+    let newTotal = 0,
+      newCompleted = 0,
+      newEmailOptin = 0,
+      newSmsOptin = 0;
+    const newPersonaCounts: Record<string, number> = {};
+    // deno-lint-ignore no-explicit-any
+    const recentNew: any[] = [];
+
+    for (const s of sessions) {
+      newTotal++;
+      if (s.status === "termine") newCompleted++;
+      if (s.optin_email) newEmailOptin++;
+      if (s.optin_sms) newSmsOptin++;
+      if (s.persona_detected) {
+        newPersonaCounts[s.persona_detected] =
+          (newPersonaCounts[s.persona_detected] || 0) + 1;
+      }
+      if (recentNew.length < 10) {
+        const children = ((s.diagnostic_children || []) as any[]).sort(
+          (a: any, b: any) => (b.age ?? 0) - (a.age ?? 0)
+        );
+        recentNew.push({
+          id: s.id,
+          created_at: s.created_at,
+          child_name: children[0]?.first_name ?? null,
+          child_age: children[0]?.age ?? null,
+          detected_persona: s.persona_detected,
+          email_optin: s.optin_email,
+          sms_optin: s.optin_sms,
+        });
+      }
+    }
+
+    /* ====== LEGACY FORMAT: diagnostic_responses ====== */
     const pageSize = 1000;
     let offset = 0;
-
-    let totalResponses = 0;
-    let completedResponses = 0;
-    let emailOptinCount = 0;
-    let smsOptinCount = 0;
-
-    const personaCounts: Record<string, number> = {};
-    const recentResponses: RecentResponse[] = [];
+    let legacyTotal = 0,
+      legacyCompleted = 0,
+      legacyEmailOptin = 0,
+      legacySmsOptin = 0;
+    const legacyPersonaCounts: Record<string, number> = {};
+    // deno-lint-ignore no-explicit-any
+    const recentLegacy: any[] = [];
+    // deno-lint-ignore no-explicit-any
+    const legacyRows: any[] = [];
 
     while (true) {
-      let query = supabase
+      let q = supabase
         .from("diagnostic_responses")
-        // NOTE: we select email only to compute completion reliably; we never return it.
         .select(
-          "id, created_at, child_name, child_age, detected_persona, email_optin, sms_optin, email, metadata"
+          "id, created_at, session_id, child_name, child_age, parent_name, email, phone, email_optin, sms_optin, detected_persona, persona_confidence, metadata, source_url, utm_campaign"
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
-      if (from) query = query.gte("created_at", from.toISOString());
-      if (to) query = query.lte("created_at", to.toISOString());
+      if (from) q = q.gte("created_at", from.toISOString());
+      if (to) q = q.lte("created_at", to.toISOString());
 
-      const { data, error } = await query;
+      const { data, error } = await q;
       if (error) {
-        console.error("[diagnostic-performance] DB error:", error);
-        return new Response(
-          JSON.stringify({ error: "Failed to fetch performance data" }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        console.error("[perf] Legacy query error:", error);
+        break;
       }
-
       const rows = data ?? [];
       if (rows.length === 0) break;
 
       for (const row of rows as any[]) {
-        totalResponses += 1;
-
-        if (isCompleted(row)) {
-          completedResponses += 1;
-        }
-
-        if (row.email_optin) emailOptinCount += 1;
-        if (row.sms_optin) smsOptinCount += 1;
-
+        legacyTotal++;
+        if (isLegacyCompleted(row)) legacyCompleted++;
+        if (row.email_optin) legacyEmailOptin++;
+        if (row.sms_optin) legacySmsOptin++;
         if (row.detected_persona) {
-          personaCounts[row.detected_persona] =
-            (personaCounts[row.detected_persona] || 0) + 1;
+          legacyPersonaCounts[row.detected_persona] =
+            (legacyPersonaCounts[row.detected_persona] || 0) + 1;
         }
-
-        // Keep only first 10 items (we're iterating newest-first)
-        if (recentResponses.length < 10) {
-          recentResponses.push({
+        if (recentLegacy.length < 10) {
+          recentLegacy.push({
             id: row.id,
-            created_at: row.created_at ?? null,
-            child_name: row.child_name ?? null,
-            child_age: row.child_age ?? null,
-            detected_persona: row.detected_persona ?? null,
-            email_optin: row.email_optin ?? null,
-            sms_optin: row.sms_optin ?? null,
+            created_at: row.created_at,
+            child_name: row.child_name,
+            child_age: row.child_age,
+            detected_persona: row.detected_persona,
+            email_optin: row.email_optin,
+            sms_optin: row.sms_optin,
           });
         }
+        if (includeDetails) legacyRows.push(row);
       }
-
-      // Next page
       offset += pageSize;
     }
 
-    const personaDistribution: PersonaDistributionItem[] = Object.entries(personaCounts)
+    /* ====== COMBINE METRICS ====== */
+    const totalResponses = newTotal + legacyTotal;
+    const completedResponses = newCompleted + legacyCompleted;
+    const completionRate =
+      totalResponses > 0 ? (completedResponses / totalResponses) * 100 : 0;
+    const emailOptinCount = newEmailOptin + legacyEmailOptin;
+    const smsOptinCount = newSmsOptin + legacySmsOptin;
+    const emailOptinRate =
+      completedResponses > 0
+        ? (emailOptinCount / completedResponses) * 100
+        : 0;
+    const smsOptinRate =
+      completedResponses > 0
+        ? (smsOptinCount / completedResponses) * 100
+        : 0;
+
+    const allPersonaCounts: Record<string, number> = { ...legacyPersonaCounts };
+    for (const [name, count] of Object.entries(newPersonaCounts)) {
+      allPersonaCounts[name] = (allPersonaCounts[name] || 0) + count;
+    }
+    const personaDistribution = Object.entries(allPersonaCounts)
       .map(([name, count]) => ({
         name,
         count,
@@ -144,37 +178,211 @@ Deno.serve(async (req) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    const completionRate = totalResponses > 0
-      ? (completedResponses / totalResponses) * 100
-      : 0;
+    // Recent 10 combined (for DiagnosticsAnalytics backwards compat)
+    const responses = [...recentNew, ...recentLegacy]
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      )
+      .slice(0, 10);
 
-    const emailOptinRate = completedResponses > 0
-      ? (emailOptinCount / completedResponses) * 100
-      : 0;
+    /* ====== BUILD RESPONSE ====== */
+    const result: Record<string, unknown> = {
+      totalResponses,
+      completedResponses,
+      completionRate,
+      emailOptinCount,
+      smsOptinCount,
+      emailOptinRate,
+      smsOptinRate,
+      personaDistribution,
+      responses,
+    };
 
-    const smsOptinRate = completedResponses > 0
-      ? (smsOptinCount / completedResponses) * 100
-      : 0;
+    /* ====== DETAILED SESSIONS (for Réponses tab) ====== */
+    if (includeDetails) {
+      // deno-lint-ignore no-explicit-any
+      const detailed: any[] = [];
 
-    return new Response(
-      JSON.stringify({
-        totalResponses,
-        completedResponses,
-        completionRate,
-        emailOptinCount,
-        smsOptinCount,
-        emailOptinRate,
-        smsOptinRate,
-        personaDistribution,
-        responses: recentResponses,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // Map new sessions
+      for (const s of sessions) {
+        const children = ((s.diagnostic_children || []) as any[])
+          .sort((a: any, b: any) => (b.age ?? 0) - (a.age ?? 0))
+          .map((c: any) => ({
+            child_index: c.child_index,
+            first_name: c.first_name,
+            birth_date: c.birth_date,
+            age: c.age,
+            age_range: c.age_range,
+            skin_concern: c.skin_concern,
+            has_routine: c.has_routine,
+            routine_satisfaction: c.routine_satisfaction,
+            routine_issue: c.routine_issue,
+            routine_issue_details: c.routine_issue_details,
+            has_ouate_products: c.has_ouate_products,
+            ouate_products: c.ouate_products,
+            existing_routine_description: c.existing_routine_description,
+            skin_reactivity: c.skin_reactivity,
+            reactivity_details: c.reactivity_details,
+            exclude_fragrance: c.exclude_fragrance,
+            dynamic_question_1: c.dynamic_question_1,
+            dynamic_answer_1: c.dynamic_answer_1,
+            dynamic_question_2: c.dynamic_question_2,
+            dynamic_answer_2: c.dynamic_answer_2,
+            dynamic_question_3: c.dynamic_question_3,
+            dynamic_answer_3: c.dynamic_answer_3,
+            dynamic_insight_targets: c.dynamic_insight_targets,
+          }));
+
+        detailed.push({
+          id: s.id,
+          session_code: s.session_code,
+          created_at: s.created_at,
+          status: s.status,
+          source: s.source,
+          utm_campaign: s.utm_campaign,
+          device: s.device,
+          user_name: s.user_name,
+          relationship: s.relationship,
+          email: s.email,
+          phone: s.phone,
+          optin_email: s.optin_email,
+          optin_sms: s.optin_sms,
+          number_of_children: s.number_of_children,
+          locale: s.locale,
+          result_url: s.result_url,
+          persona_detected: s.persona_detected,
+          persona_matching_score: s.persona_matching_score,
+          adapted_tone: s.adapted_tone,
+          ai_key_messages: s.ai_key_messages,
+          ai_suggested_segment: s.ai_suggested_segment,
+          conversion: s.conversion,
+          exit_type: s.exit_type,
+          existing_ouate_products: s.existing_ouate_products,
+          is_existing_client: s.is_existing_client,
+          recommended_cart_amount: s.recommended_cart_amount,
+          validated_cart_amount: s.validated_cart_amount,
+          upsell_potential: s.upsell_potential,
+          duration_seconds: s.duration_seconds,
+          abandoned_at_step: s.abandoned_at_step,
+          question_path: s.question_path,
+          back_navigation_count: s.back_navigation_count,
+          has_optional_details: s.has_optional_details,
+          behavior_tags: s.behavior_tags,
+          engagement_score: s.engagement_score,
+          routine_size_preference: s.routine_size_preference,
+          priorities_ordered: s.priorities_ordered,
+          trust_triggers_ordered: s.trust_triggers_ordered,
+          content_format_preference: s.content_format_preference,
+          children,
+          _source: "new",
+        });
       }
-    );
+
+      // Map legacy responses
+      for (const r of legacyRows) {
+        // deno-lint-ignore no-explicit-any
+        const children: any[] = [];
+        if (r.child_name || r.child_age != null) {
+          children.push({
+            child_index: 0,
+            first_name: r.child_name,
+            birth_date: null,
+            age: r.child_age,
+            age_range: null,
+            skin_concern: null,
+            has_routine: null,
+            routine_satisfaction: null,
+            routine_issue: null,
+            routine_issue_details: null,
+            has_ouate_products: null,
+            ouate_products: null,
+            existing_routine_description: null,
+            skin_reactivity: null,
+            reactivity_details: null,
+            exclude_fragrance: null,
+            dynamic_question_1: null,
+            dynamic_answer_1: null,
+            dynamic_question_2: null,
+            dynamic_answer_2: null,
+            dynamic_question_3: null,
+            dynamic_answer_3: null,
+            dynamic_insight_targets: null,
+          });
+        }
+
+        detailed.push({
+          id: r.id,
+          session_code: r.session_id,
+          created_at: r.created_at,
+          status: isLegacyCompleted(r) ? "termine" : "en_cours",
+          source: r.source_url,
+          utm_campaign: r.utm_campaign,
+          device: null,
+          user_name: r.parent_name,
+          relationship: null,
+          email: r.email,
+          phone: r.phone,
+          optin_email: r.email_optin ?? false,
+          optin_sms: r.sms_optin ?? false,
+          number_of_children: children.length > 0 ? 1 : null,
+          locale: null,
+          result_url: null,
+          persona_detected: r.detected_persona,
+          persona_matching_score: r.persona_confidence
+            ? Math.round(r.persona_confidence * 100)
+            : null,
+          adapted_tone: null,
+          ai_key_messages: null,
+          ai_suggested_segment: null,
+          conversion: false,
+          exit_type: null,
+          existing_ouate_products: null,
+          is_existing_client: false,
+          recommended_cart_amount: null,
+          validated_cart_amount: null,
+          upsell_potential: null,
+          duration_seconds: null,
+          abandoned_at_step: null,
+          question_path: null,
+          back_navigation_count: 0,
+          has_optional_details: false,
+          behavior_tags: null,
+          engagement_score: null,
+          routine_size_preference: null,
+          priorities_ordered: null,
+          trust_triggers_ordered: null,
+          content_format_preference: null,
+          children,
+          _source: "legacy",
+        });
+      }
+
+      // Sort combined by date desc
+      detailed.sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      );
+
+      result.sessions = detailed;
+      result.categories = {
+        identification: { color: "#E8E8E8", label: "Identification & Tracking" },
+        persona: { color: "#EDE0F0", label: "Personas & IA" },
+        business: { color: "#D5F5E3", label: "Business & Conversion" },
+        comportement: { color: "#FEF3C7", label: "Comportement" },
+        statiques: { color: "#DBEAFE", label: "Questions statiques" },
+        dynamiques: { color: "#FEE2E2", label: "Questions dynamiques IA" },
+      };
+    }
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
-    console.error("[diagnostic-performance] Unexpected error:", err);
+    console.error("[perf] Unexpected error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
