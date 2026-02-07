@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      diagnostic_children: {
+        Row: {
+          age: number | null
+          age_range: string | null
+          birth_date: string | null
+          child_index: number
+          dynamic_answer_1: string | null
+          dynamic_answer_2: string | null
+          dynamic_answer_3: string | null
+          dynamic_insight_targets: string | null
+          dynamic_question_1: string | null
+          dynamic_question_2: string | null
+          dynamic_question_3: string | null
+          exclude_fragrance: boolean | null
+          existing_routine_description: string | null
+          first_name: string | null
+          has_ouate_products: boolean | null
+          has_routine: boolean | null
+          id: string
+          ouate_products: string | null
+          reactivity_details: string | null
+          routine_issue: string | null
+          routine_issue_details: string | null
+          routine_satisfaction: number | null
+          session_id: string
+          skin_concern: string | null
+          skin_reactivity: string | null
+        }
+        Insert: {
+          age?: number | null
+          age_range?: string | null
+          birth_date?: string | null
+          child_index: number
+          dynamic_answer_1?: string | null
+          dynamic_answer_2?: string | null
+          dynamic_answer_3?: string | null
+          dynamic_insight_targets?: string | null
+          dynamic_question_1?: string | null
+          dynamic_question_2?: string | null
+          dynamic_question_3?: string | null
+          exclude_fragrance?: boolean | null
+          existing_routine_description?: string | null
+          first_name?: string | null
+          has_ouate_products?: boolean | null
+          has_routine?: boolean | null
+          id?: string
+          ouate_products?: string | null
+          reactivity_details?: string | null
+          routine_issue?: string | null
+          routine_issue_details?: string | null
+          routine_satisfaction?: number | null
+          session_id: string
+          skin_concern?: string | null
+          skin_reactivity?: string | null
+        }
+        Update: {
+          age?: number | null
+          age_range?: string | null
+          birth_date?: string | null
+          child_index?: number
+          dynamic_answer_1?: string | null
+          dynamic_answer_2?: string | null
+          dynamic_answer_3?: string | null
+          dynamic_insight_targets?: string | null
+          dynamic_question_1?: string | null
+          dynamic_question_2?: string | null
+          dynamic_question_3?: string | null
+          exclude_fragrance?: boolean | null
+          existing_routine_description?: string | null
+          first_name?: string | null
+          has_ouate_products?: boolean | null
+          has_routine?: boolean | null
+          id?: string
+          ouate_products?: string | null
+          reactivity_details?: string | null
+          routine_issue?: string | null
+          routine_issue_details?: string | null
+          routine_satisfaction?: number | null
+          session_id?: string
+          skin_concern?: string | null
+          skin_reactivity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_children_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_responses: {
         Row: {
           answers: Json | null
@@ -93,6 +185,144 @@ export type Database = {
             referencedColumns: ["name"]
           },
         ]
+      }
+      diagnostic_sessions: {
+        Row: {
+          abandoned_at_step: string | null
+          adapted_tone: string | null
+          ai_key_messages: string | null
+          ai_suggested_segment: string | null
+          avg_response_time: number | null
+          back_navigation_count: number | null
+          behavior_tags: string | null
+          content_format_preference: string | null
+          conversion: boolean | null
+          created_at: string | null
+          device: string | null
+          duration_seconds: number | null
+          email: string | null
+          engagement_score: number | null
+          existing_ouate_products: string | null
+          exit_type: string | null
+          has_detailed_responses: boolean | null
+          has_optional_details: boolean | null
+          id: string
+          is_existing_client: boolean | null
+          locale: string | null
+          number_of_children: number | null
+          optin_email: boolean | null
+          optin_sms: boolean | null
+          persona_detected: string | null
+          persona_matching_score: number | null
+          phone: string | null
+          priorities_ordered: string | null
+          question_path: string | null
+          recommended_cart_amount: number | null
+          relationship: string | null
+          result_url: string | null
+          routine_size_preference: string | null
+          session_code: string
+          source: string | null
+          status: string
+          step_timestamps: Json | null
+          total_text_length: number | null
+          trust_triggers_ordered: string | null
+          upsell_potential: string | null
+          user_name: string | null
+          utm_campaign: string | null
+          validated_cart_amount: number | null
+        }
+        Insert: {
+          abandoned_at_step?: string | null
+          adapted_tone?: string | null
+          ai_key_messages?: string | null
+          ai_suggested_segment?: string | null
+          avg_response_time?: number | null
+          back_navigation_count?: number | null
+          behavior_tags?: string | null
+          content_format_preference?: string | null
+          conversion?: boolean | null
+          created_at?: string | null
+          device?: string | null
+          duration_seconds?: number | null
+          email?: string | null
+          engagement_score?: number | null
+          existing_ouate_products?: string | null
+          exit_type?: string | null
+          has_detailed_responses?: boolean | null
+          has_optional_details?: boolean | null
+          id?: string
+          is_existing_client?: boolean | null
+          locale?: string | null
+          number_of_children?: number | null
+          optin_email?: boolean | null
+          optin_sms?: boolean | null
+          persona_detected?: string | null
+          persona_matching_score?: number | null
+          phone?: string | null
+          priorities_ordered?: string | null
+          question_path?: string | null
+          recommended_cart_amount?: number | null
+          relationship?: string | null
+          result_url?: string | null
+          routine_size_preference?: string | null
+          session_code: string
+          source?: string | null
+          status?: string
+          step_timestamps?: Json | null
+          total_text_length?: number | null
+          trust_triggers_ordered?: string | null
+          upsell_potential?: string | null
+          user_name?: string | null
+          utm_campaign?: string | null
+          validated_cart_amount?: number | null
+        }
+        Update: {
+          abandoned_at_step?: string | null
+          adapted_tone?: string | null
+          ai_key_messages?: string | null
+          ai_suggested_segment?: string | null
+          avg_response_time?: number | null
+          back_navigation_count?: number | null
+          behavior_tags?: string | null
+          content_format_preference?: string | null
+          conversion?: boolean | null
+          created_at?: string | null
+          device?: string | null
+          duration_seconds?: number | null
+          email?: string | null
+          engagement_score?: number | null
+          existing_ouate_products?: string | null
+          exit_type?: string | null
+          has_detailed_responses?: boolean | null
+          has_optional_details?: boolean | null
+          id?: string
+          is_existing_client?: boolean | null
+          locale?: string | null
+          number_of_children?: number | null
+          optin_email?: boolean | null
+          optin_sms?: boolean | null
+          persona_detected?: string | null
+          persona_matching_score?: number | null
+          phone?: string | null
+          priorities_ordered?: string | null
+          question_path?: string | null
+          recommended_cart_amount?: number | null
+          relationship?: string | null
+          result_url?: string | null
+          routine_size_preference?: string | null
+          session_code?: string
+          source?: string | null
+          status?: string
+          step_timestamps?: Json | null
+          total_text_length?: number | null
+          trust_triggers_ordered?: string | null
+          upsell_potential?: string | null
+          user_name?: string | null
+          utm_campaign?: string | null
+          validated_cart_amount?: number | null
+        }
+        Relationships: []
       }
       personas: {
         Row: {
