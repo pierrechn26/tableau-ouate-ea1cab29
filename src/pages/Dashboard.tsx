@@ -277,7 +277,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} customComparisonRange={customComparisonRange} onCustomComparisonRangeChange={setCustomComparisonRange} onApply={handleApplyDates} />
+              <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
               <Dialog open={exportOpen} onOpenChange={setExportOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="hover:bg-primary/70 hover:brightness-110 transition-all">
