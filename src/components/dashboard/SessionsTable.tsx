@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +8,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DiagnosticSession, DiagnosticChild, CategoryKey } from "@/types/diagnostic";
 import {
   CATEGORIES,
@@ -39,6 +48,7 @@ const fmtDate = (iso: string | null) => {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Europe/Paris",
   });
 };
 
@@ -47,6 +57,7 @@ const fmtTime = (iso: string | null) => {
   return new Date(iso).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   });
 };
 
@@ -217,96 +228,226 @@ const categoryMap = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
 interface SessionsTableProps {
   sessions: DiagnosticSession[];
   searchTerm?: string;
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
 }
 
-export function SessionsTable({ sessions, searchTerm }: SessionsTableProps) {
+const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
+
+export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo }: SessionsTableProps) {
   const columns = useMemo(buildAllColumns, []);
   const spans = useMemo(() => getCategorySpans(columns), [columns]);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
-    if (!searchTerm) return sessions;
-    const q = searchTerm.toLowerCase();
-    return sessions.filter(
-      (s) =>
-        s.session_code?.toLowerCase().includes(q) ||
-        s.user_name?.toLowerCase().includes(q) ||
-        s.email?.toLowerCase().includes(q) ||
-        s.persona_detected?.toLowerCase().includes(q)
-    );
-  }, [sessions, searchTerm]);
+    let result = sessions;
+
+    // Search filter
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.session_code?.toLowerCase().includes(q) ||
+          s.user_name?.toLowerCase().includes(q) ||
+          s.email?.toLowerCase().includes(q) ||
+          s.persona_detected?.toLowerCase().includes(q)
+      );
+    }
+
+    // Date range filter (using Europe/Paris timezone)
+    if (dateFrom) {
+      result = result.filter((s) => {
+        if (!s.created_at) return false;
+        const sessionDate = new Date(s.created_at);
+        const parisDate = new Date(sessionDate.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+        const fromStart = new Date(dateFrom);
+        fromStart.setHours(0, 0, 0, 0);
+        return parisDate >= fromStart;
+      });
+    }
+    if (dateTo) {
+      result = result.filter((s) => {
+        if (!s.created_at) return false;
+        const sessionDate = new Date(s.created_at);
+        const parisDate = new Date(sessionDate.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+        const toEnd = new Date(dateTo);
+        toEnd.setHours(23, 59, 59, 999);
+        return parisDate <= toEnd;
+      });
+    }
+
+    return result;
+  }, [sessions, searchTerm, dateFrom, dateTo]);
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, dateFrom, dateTo, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filtered.length);
+  const paginatedSessions = filtered.slice(startIndex, endIndex);
+
+  const handlePageSizeChange = (value: string) => {
+    setPageSize(Number(value));
+    setCurrentPage(1);
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safeCurrentPage > 3) pages.push("ellipsis");
+      const start = Math.max(2, safeCurrentPage - 1);
+      const end = Math.min(totalPages - 1, safeCurrentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (safeCurrentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
-    <ScrollArea className="w-full whitespace-nowrap rounded-lg border border-border">
-      <div className="min-w-max">
-        <Table>
-          <TableHeader>
-            {/* Category band row */}
-            <TableRow className="border-b-0">
-              {spans.map((span, i) => {
-                const cat = categoryMap[span.category];
-                return (
-                  <TableHead
-                    key={`cat-${i}`}
-                    colSpan={span.count}
-                    className="text-center text-xs font-bold py-2 border-x border-border/30"
-                    style={{ backgroundColor: cat?.color ?? "#f5f5f5" }}
-                  >
-                    {cat?.label ?? span.category}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-
-            {/* Column headers row */}
-            <TableRow>
-              {columns.map((col) => {
-                const cat = categoryMap[col.category];
-                return (
-                  <TableHead
-                    key={col.key}
-                    className="text-xs font-medium px-3 py-2 min-w-[120px] border-x border-border/20"
-                    style={{ backgroundColor: `${cat?.color ?? "#f5f5f5"}80` }}
-                  >
-                    {col.label}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center py-12 text-muted-foreground"
-                >
-                  Aucune session trouvée
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtered.map((session) => (
-                <TableRow
-                  key={session.id}
-                  className="hover:bg-muted/40 transition-colors"
-                >
-                  {columns.map((col) => (
-                    <TableCell
-                      key={col.key}
-                      className="px-3 py-2 text-xs max-w-[250px] truncate"
-                      title={col.getValue(session)}
+    <div className="space-y-4">
+      <ScrollArea className="w-full whitespace-nowrap rounded-lg border border-border">
+        <div className="min-w-max">
+          <Table>
+            <TableHeader>
+              {/* Category band row */}
+              <TableRow className="border-b-0">
+                {spans.map((span, i) => {
+                  const cat = categoryMap[span.category];
+                  return (
+                    <TableHead
+                      key={`cat-${i}`}
+                      colSpan={span.count}
+                      className="text-center text-xs font-bold py-2 border-x border-border/30"
+                      style={{ backgroundColor: cat?.color ?? "#f5f5f5" }}
                     >
-                      {col.getValue(session)}
-                    </TableCell>
-                  ))}
+                      {cat?.label ?? span.category}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+
+              {/* Column headers row */}
+              <TableRow>
+                {columns.map((col) => {
+                  const cat = categoryMap[col.category];
+                  return (
+                    <TableHead
+                      key={col.key}
+                      className="text-xs font-medium px-3 py-2 min-w-[120px] border-x border-border/20"
+                      style={{ backgroundColor: `${cat?.color ?? "#f5f5f5"}80` }}
+                    >
+                      {col.label}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {paginatedSessions.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-center py-12 text-muted-foreground"
+                  >
+                    Aucune session trouvée
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                paginatedSessions.map((session) => (
+                  <TableRow
+                    key={session.id}
+                    className="hover:bg-muted/40 transition-colors"
+                  >
+                    {columns.map((col) => (
+                      <TableCell
+                        key={col.key}
+                        className="px-3 py-2 text-xs max-w-[250px] truncate"
+                        title={col.getValue(session)}
+                      >
+                        {col.getValue(session)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+
+      {/* Pagination controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Lignes par page :</span>
+          <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+            <SelectTrigger className="w-[70px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={String(size)}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="ml-2">
+            Affichage {filtered.length === 0 ? 0 : startIndex + 1}–{endIndex} sur {filtered.length} résultat{filtered.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safeCurrentPage <= 1}
+            className="h-8 px-3 text-xs"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+            Précédent
+          </Button>
+
+          {getPageNumbers().map((page, i) =>
+            page === "ellipsis" ? (
+              <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground text-xs">…</span>
+            ) : (
+              <Button
+                key={page}
+                variant={page === safeCurrentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className="h-8 w-8 p-0 text-xs"
+              >
+                {page}
+              </Button>
+            )
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safeCurrentPage >= totalPages}
+            className="h-8 px-3 text-xs"
+          >
+            Suivant
+            <ChevronRight className="w-3.5 h-3.5 ml-1" />
+          </Button>
+        </div>
       </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    </div>
   );
 }
 
