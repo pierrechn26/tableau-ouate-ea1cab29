@@ -72,7 +72,13 @@ const IDENTIFICATION_COLS: ColumnDef[] = [
   { key: "session_code", label: "Session ID", category: "identification", getValue: (s) => s.session_code },
   { key: "date", label: "Date", category: "identification", getValue: (s) => fmtDate(s.created_at) },
   { key: "heure", label: "Heure", category: "identification", getValue: (s) => fmtTime(s.created_at) },
-  { key: "status", label: "Statut", category: "identification", getValue: (s) => STATUS_LABELS[s.status] ?? s.status ?? "—" },
+  { key: "status", label: "Statut", category: "identification", getValue: (s) => {
+    if (s.status === "en_cours" && s.created_at) {
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      return new Date(s.created_at).getTime() < twoHoursAgo ? "Abandonné" : "En cours";
+    }
+    return STATUS_LABELS[s.status] ?? s.status ?? "—";
+  }},
   { key: "source", label: "Source", category: "identification", getValue: (s) => fmt(s.source) },
   { key: "utm_campaign", label: "UTM Campaign", category: "identification", getValue: (s) => fmt(s.utm_campaign) },
   { key: "device", label: "Device", category: "identification", getValue: (s) => fmt(s.device) },
