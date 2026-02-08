@@ -100,7 +100,9 @@ const BUSINESS_COLS: ColumnDef[] = [
   { key: "exit_type", label: "Type de sortie", category: "business", getValue: (s) => fmt(s.exit_type) },
   { key: "existing_products", label: "Produits Ouate utilisés", category: "business", getValue: (s) => fmt(s.existing_ouate_products) },
   { key: "is_existing_client", label: "Client existant", category: "business", getValue: (s) => s.is_existing_client ? "Oui" : "Non" },
+  { key: "recommended_products", label: "Routine recommandée", category: "business", getValue: (s) => fmt(s.recommended_products) },
   { key: "recommended_cart", label: "Panier recommandé (€)", category: "business", getValue: (s) => fmtEuro(s.recommended_cart_amount) },
+  { key: "validated_products", label: "Produits achetés", category: "business", getValue: (s) => fmt(s.validated_products) },
   { key: "validated_cart", label: "Panier validé (€)", category: "business", getValue: (s) => fmtEuro(s.validated_cart_amount) },
   { key: "upsell_potential", label: "Potentiel upsell", category: "business", getValue: (s) => fmt(s.upsell_potential) },
 ];
