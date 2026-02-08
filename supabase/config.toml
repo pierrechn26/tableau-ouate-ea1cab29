@@ -2,3 +2,6 @@ project_id = "btkjdqelvvqmtguhhkdv"
 
 [functions.diagnostic-webhook]
 verify_jwt = false
+
+[functions.shopify-order-webhook]
+verify_jwt = false
