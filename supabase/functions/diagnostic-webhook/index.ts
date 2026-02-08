@@ -67,7 +67,7 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     validated_products: coalesce("validated_products"),
     upsell_potential: coalesce("upsell_potential"),
     duration_seconds: coalesce("duration_seconds"),
-    abandoned_at_step: coalesce("abandoned_at_step"),
+    abandoned_at_step: payload.abandoned_at_step === "CLEAR" ? null : coalesce("abandoned_at_step"),
     question_path: coalesce("question_path"),
     back_navigation_count: coalesce("back_navigation_count", 0),
     has_optional_details: coalesce("has_optional_details", false),
