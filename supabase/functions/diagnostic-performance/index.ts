@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
           validated_cart_amount: s.validated_cart_amount,
           upsell_potential: s.upsell_potential,
           duration_seconds: s.duration_seconds,
-          abandoned_at_step: s.abandoned_at_step,
+          abandoned_at_step: s.status === "termine" ? null : s.abandoned_at_step,
           question_path: s.question_path,
           back_navigation_count: s.back_navigation_count,
           has_optional_details: s.has_optional_details,
