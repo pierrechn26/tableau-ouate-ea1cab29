@@ -271,7 +271,7 @@ export default function Dashboard() {
               <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src="/lovable-uploads/30b93e71-30dd-4fdd-aae7-9d008af6fa5c.png" />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
-                  Dashboard TALM — Plan Premium   
+                  Dashboard Ouate Paris — Plan Premium   
                 </p>
                 
               </div>
