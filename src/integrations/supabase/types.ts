@@ -218,6 +218,7 @@ export type Database = {
           priorities_ordered: string | null
           question_path: string | null
           recommended_cart_amount: number | null
+          recommended_products: string | null
           relationship: string | null
           result_url: string | null
           routine_size_preference: string | null
@@ -231,6 +232,7 @@ export type Database = {
           user_name: string | null
           utm_campaign: string | null
           validated_cart_amount: number | null
+          validated_products: string | null
         }
         Insert: {
           abandoned_at_step?: string | null
@@ -263,6 +265,7 @@ export type Database = {
           priorities_ordered?: string | null
           question_path?: string | null
           recommended_cart_amount?: number | null
+          recommended_products?: string | null
           relationship?: string | null
           result_url?: string | null
           routine_size_preference?: string | null
@@ -276,6 +279,7 @@ export type Database = {
           user_name?: string | null
           utm_campaign?: string | null
           validated_cart_amount?: number | null
+          validated_products?: string | null
         }
         Update: {
           abandoned_at_step?: string | null
@@ -308,6 +312,7 @@ export type Database = {
           priorities_ordered?: string | null
           question_path?: string | null
           recommended_cart_amount?: number | null
+          recommended_products?: string | null
           relationship?: string | null
           result_url?: string | null
           routine_size_preference?: string | null
@@ -321,6 +326,7 @@ export type Database = {
           user_name?: string | null
           utm_campaign?: string | null
           validated_cart_amount?: number | null
+          validated_products?: string | null
         }
         Relationships: []
       }

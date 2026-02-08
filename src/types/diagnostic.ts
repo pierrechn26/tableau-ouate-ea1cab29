@@ -50,7 +50,9 @@ export interface DiagnosticSession {
   exit_type: string | null;
   existing_ouate_products: string | null;
   is_existing_client: boolean;
+  recommended_products: string | null;
   recommended_cart_amount: number | null;
+  validated_products: string | null;
   validated_cart_amount: number | null;
   upsell_potential: string | null;
   duration_seconds: number | null;
