@@ -408,7 +408,7 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                     >
                       {col.label}
                       {isSortable && (
-                        <span className={`ml-1 ${isActive ? "" : "opacity-40"}`}>
+                        <span className={`ml-1 text-black ${isActive ? "" : "opacity-50"}`}>
                           {isActive ? (sortDir === "asc" ? "▲" : "▼") : "▼"}
                         </span>
                       )}
