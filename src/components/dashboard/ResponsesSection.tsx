@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   FileJson,
@@ -10,10 +10,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosticSessions } from "@/hooks/useDiagnosticSessions";
-import { SessionsTable, getColumnDefs } from "./SessionsTable";
+import { SessionsTable, getColumnDefs, getDisplayStatus } from "./SessionsTable";
 import { DateRangePicker } from "./DateRangePicker";
 import { CATEGORIES } from "@/types/diagnostic";
 import type { DiagnosticSession } from "@/types/diagnostic";
@@ -59,7 +66,51 @@ export function ResponsesSection() {
   const { sessions, isLoading, error } = useDiagnosticSessions();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [conversionFilter, setConversionFilter] = useState("all");
   const { toast } = useToast();
+
+  const filteredCount = useMemo(() => {
+    let result = sessions;
+    if (statusFilter !== "all") {
+      result = result.filter((s) => getDisplayStatus(s) === statusFilter);
+    }
+    if (conversionFilter !== "all") {
+      const val = conversionFilter === "oui";
+      result = result.filter((s) => s.conversion === val);
+    }
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.session_code?.toLowerCase().includes(q) ||
+          s.user_name?.toLowerCase().includes(q) ||
+          s.email?.toLowerCase().includes(q) ||
+          s.persona_detected?.toLowerCase().includes(q)
+      );
+    }
+    if (dateRange?.from) {
+      result = result.filter((s) => {
+        if (!s.created_at) return false;
+        const d = new Date(s.created_at);
+        const p = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+        const from = new Date(dateRange.from!);
+        from.setHours(0, 0, 0, 0);
+        return p >= from;
+      });
+    }
+    if (dateRange?.to) {
+      result = result.filter((s) => {
+        if (!s.created_at) return false;
+        const d = new Date(s.created_at);
+        const p = new Date(d.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+        const to = new Date(dateRange.to!);
+        to.setHours(23, 59, 59, 999);
+        return p <= to;
+      });
+    }
+    return result.length;
+  }, [sessions, statusFilter, conversionFilter, searchTerm, dateRange]);
 
   const handleExportCSV = () => {
     exportCSV(sessions);
@@ -105,7 +156,9 @@ export function ResponsesSection() {
             Résultats du diagnostic
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {sessions.length} session{sessions.length !== 1 ? "s" : ""} au total
+            {filteredCount !== sessions.length
+              ? `${filteredCount} session${filteredCount !== 1 ? "s" : ""} sur ${sessions.length}`
+              : `${sessions.length} session${sessions.length !== 1 ? "s" : ""} au total`}
           </p>
         </div>
 
@@ -119,6 +172,31 @@ export function ResponsesSection() {
               className="pl-9 w-56"
             />
           </div>
+
+          {/* Status filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px] h-10 text-sm">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Statut : Tous</SelectItem>
+              <SelectItem value="Terminé">Terminé</SelectItem>
+              <SelectItem value="En cours">En cours</SelectItem>
+              <SelectItem value="Abandonné">Abandonné</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Conversion filter */}
+          <Select value={conversionFilter} onValueChange={setConversionFilter}>
+            <SelectTrigger className="w-[160px] h-10 text-sm">
+              <SelectValue placeholder="Conversion" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Conversion : Tous</SelectItem>
+              <SelectItem value="oui">Oui</SelectItem>
+              <SelectItem value="non">Non</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Date range filter */}
           <DateRangePicker
@@ -163,6 +241,8 @@ export function ResponsesSection() {
         searchTerm={searchTerm}
         dateFrom={dateRange?.from ?? null}
         dateTo={dateRange?.to ?? null}
+        statusFilter={statusFilter}
+        conversionFilter={conversionFilter}
       />
     </motion.div>
   );

@@ -27,6 +27,16 @@ import {
   getExtraChildrenDynamic,
 } from "@/types/diagnostic";
 
+/* ── Display status helper ──────────────────────────────── */
+
+export function getDisplayStatus(s: DiagnosticSession): string {
+  if (s.status === "en_cours" && s.created_at) {
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    return new Date(s.created_at).getTime() < twoHoursAgo ? "Abandonné" : "En cours";
+  }
+  return STATUS_LABELS[s.status] ?? s.status ?? "—";
+}
+
 /* ── Column definition ─────────────────────────────────── */
 
 export interface ColumnDef {
@@ -72,13 +82,7 @@ const IDENTIFICATION_COLS: ColumnDef[] = [
   { key: "session_code", label: "Session ID", category: "identification", getValue: (s) => s.session_code },
   { key: "date", label: "Date", category: "identification", getValue: (s) => fmtDate(s.created_at) },
   { key: "heure", label: "Heure", category: "identification", getValue: (s) => fmtTime(s.created_at) },
-  { key: "status", label: "Statut", category: "identification", getValue: (s) => {
-    if (s.status === "en_cours" && s.created_at) {
-      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-      return new Date(s.created_at).getTime() < twoHoursAgo ? "Abandonné" : "En cours";
-    }
-    return STATUS_LABELS[s.status] ?? s.status ?? "—";
-  }},
+  { key: "status", label: "Statut", category: "identification", getValue: (s) => getDisplayStatus(s) },
   { key: "source", label: "Source", category: "identification", getValue: (s) => fmt(s.source) },
   { key: "utm_campaign", label: "UTM Campaign", category: "identification", getValue: (s) => fmt(s.utm_campaign) },
   { key: "device", label: "Device", category: "identification", getValue: (s) => fmt(s.device) },
@@ -238,18 +242,45 @@ interface SessionsTableProps {
   searchTerm?: string;
   dateFrom?: Date | null;
   dateTo?: Date | null;
+  statusFilter?: string;
+  conversionFilter?: string;
 }
+
+type SortKey = "date" | "recommended_cart" | "validated_cart";
+type SortDir = "asc" | "desc";
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
 
-export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo }: SessionsTableProps) {
+export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFilter, conversionFilter }: SessionsTableProps) {
   const columns = useMemo(buildAllColumns, []);
   const spans = useMemo(() => getCategorySpans(columns), [columns]);
   const [pageSize, setPageSize] = useState<number>(20);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
 
   const filtered = useMemo(() => {
     let result = sessions;
+
+    // Status filter
+    if (statusFilter && statusFilter !== "all") {
+      result = result.filter((s) => getDisplayStatus(s) === statusFilter);
+    }
+
+    // Conversion filter
+    if (conversionFilter && conversionFilter !== "all") {
+      const val = conversionFilter === "oui";
+      result = result.filter((s) => s.conversion === val);
+    }
 
     // Search filter
     if (searchTerm) {
@@ -285,13 +316,26 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo }: Sessio
       });
     }
 
-    return result;
-  }, [sessions, searchTerm, dateFrom, dateTo]);
+    // Sorting
+    const sorted = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "date") {
+        cmp = new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
+      } else if (sortKey === "recommended_cart") {
+        cmp = (a.recommended_cart_amount ?? 0) - (b.recommended_cart_amount ?? 0);
+      } else if (sortKey === "validated_cart") {
+        cmp = (a.validated_cart_amount ?? 0) - (b.validated_cart_amount ?? 0);
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return sorted;
+  }, [sessions, searchTerm, dateFrom, dateTo, statusFilter, conversionFilter, sortKey, sortDir]);
 
   // Reset page when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [searchTerm, dateFrom, dateTo, pageSize]);
+  }, [searchTerm, dateFrom, dateTo, pageSize, statusFilter, conversionFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -347,13 +391,25 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo }: Sessio
               <TableRow>
                 {columns.map((col) => {
                   const cat = categoryMap[col.category];
+                  const sortableMap: Record<string, SortKey> = {
+                    date: "date",
+                    recommended_cart: "recommended_cart",
+                    validated_cart: "validated_cart",
+                  };
+                  const sk = sortableMap[col.key];
+                  const isSortable = !!sk;
+                  const isActive = sk === sortKey;
                   return (
                     <TableHead
                       key={col.key}
-                      className="text-xs font-medium px-3 py-2 min-w-[120px] border-x border-border/20"
+                      className={`text-xs font-medium px-3 py-2 min-w-[120px] border-x border-border/20 ${isSortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
                       style={{ backgroundColor: `${cat?.color ?? "#f5f5f5"}80` }}
+                      onClick={isSortable ? () => handleSort(sk) : undefined}
                     >
                       {col.label}
+                      {isActive && (
+                        <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
+                      )}
                     </TableHead>
                   );
                 })}
