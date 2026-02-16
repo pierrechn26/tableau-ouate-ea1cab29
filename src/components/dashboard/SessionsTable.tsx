@@ -407,8 +407,10 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                       onClick={isSortable ? () => handleSort(sk) : undefined}
                     >
                       {col.label}
-                      {isActive && (
-                        <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
+                      {isSortable && (
+                        <span className="ml-1 opacity-40">
+                          {isActive ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
+                        </span>
                       )}
                     </TableHead>
                   );
