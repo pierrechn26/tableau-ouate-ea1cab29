@@ -96,13 +96,13 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <MetricCard
-            title="Total réponses"
+            title="Total sessions"
             value={stats.totalResponses.toLocaleString('fr-FR')}
             icon={Users}
             index={0}
           />
           <MetricCard
-            title="Complétés"
+            title="Complétées"
             value={stats.completedResponses.toLocaleString('fr-FR')}
             icon={CheckCircle}
             index={1}
@@ -229,7 +229,7 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground text-right">
-                  {stats.emailOptinRate.toFixed(1)}% des complétés
+                  {stats.emailOptinRate.toFixed(1)}% des vues opt-in
                 </p>
               </div>
 
@@ -251,7 +251,7 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground text-right">
-                  {stats.smsOptinRate.toFixed(1)}% des complétés
+                  {stats.smsOptinRate.toFixed(1)}% des vues opt-in
                 </p>
               </div>
 
@@ -302,9 +302,10 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                       <tr key={response.id} className="border-b border-border/50 hover:bg-muted/50">
                         <td className="py-2 px-3 text-muted-foreground">
                           {response.created_at 
-                            ? new Date(response.created_at).toLocaleDateString('fr-FR', {
+                            ? new Date(response.created_at).toLocaleString('fr-FR', {
                                 day: '2-digit',
                                 month: '2-digit',
+                                year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })
