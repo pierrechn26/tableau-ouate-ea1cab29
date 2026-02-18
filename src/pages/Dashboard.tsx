@@ -648,7 +648,7 @@ export default function Dashboard() {
 
           <TabsContent value="funnel" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <div ref={funnelRef}>
-              <FunnelVisualization />
+              <FunnelVisualization dateRange={dateRange} />
             </div>
           </TabsContent>
 

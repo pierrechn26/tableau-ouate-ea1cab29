@@ -36,6 +36,14 @@ type PerformancePayload = {
   emailOptinRate: number;
   smsOptinRate: number;
   personaDistribution: Array<{ name: string; count: number; percentage: number }>;
+  funnel: {
+    started: number;
+    completed: number;
+    optinEmail: number;
+    recommendation: number;
+    purchase: number;
+    avgDurationSeconds: number | null;
+  };
   responses: Array<{
     id: string;
     created_at: string | null;
@@ -66,6 +74,16 @@ interface DiagnosticStats {
     count: number;
     percentage: number;
   }>;
+
+  // Funnel
+  funnel: {
+    started: number;
+    completed: number;
+    optinEmail: number;
+    recommendation: number;
+    purchase: number;
+    avgDurationSeconds: number | null;
+  };
   
   // Données brutes
   responses: DiagnosticResponse[];
@@ -119,6 +137,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
           emailOptinRate: data.emailOptinRate,
           smsOptinRate: data.smsOptinRate,
           personaDistribution: data.personaDistribution,
+          funnel: data.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, purchase: 0, avgDurationSeconds: null },
         });
 
         // Map sanitized recent responses into local shape (fields not provided become null)
@@ -178,6 +197,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
     const emailOptinRate = serverStats?.emailOptinRate ?? 0;
     const smsOptinRate = serverStats?.smsOptinRate ?? 0;
     const personaDistribution = serverStats?.personaDistribution ?? [];
+    const funnel = serverStats?.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, purchase: 0, avgDurationSeconds: null };
 
     return {
       totalResponses,
@@ -189,6 +209,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
       emailOptinRate,
       smsOptinRate,
       personaDistribution,
+      funnel,
       responses,
       isLoading,
       error,
