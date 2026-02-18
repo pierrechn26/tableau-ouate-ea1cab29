@@ -18,10 +18,13 @@ function base64url(buf: ArrayBuffer): string {
 }
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const b64 = pem
+  // Normalize literal \n characters (common when secrets are pasted with escaped newlines)
+  const normalized = pem.replace(/\\n/g, "\n");
+  const b64 = normalized
     .replace(/-----BEGIN [A-Z ]+-----/g, "")
     .replace(/-----END [A-Z ]+-----/g, "")
     .replace(/\s/g, "");
+  console.log("🔐 PEM base64 length after cleanup:", b64.length);
   const binary = atob(b64);
   const buf = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
