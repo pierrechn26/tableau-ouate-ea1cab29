@@ -179,7 +179,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
 
     // poll (simple + reliable)
     if (pollRef.current) window.clearInterval(pollRef.current);
-    pollRef.current = window.setInterval(fetchPerformance, 15000);
+    pollRef.current = window.setInterval(fetchPerformance, 120000);
 
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);

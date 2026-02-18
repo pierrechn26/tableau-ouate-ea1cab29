@@ -44,7 +44,7 @@ export function useDiagnosticSessions(): SessionsData {
     fetchSessions();
 
     if (pollRef.current) window.clearInterval(pollRef.current);
-    pollRef.current = window.setInterval(fetchSessions, 15_000);
+    pollRef.current = window.setInterval(fetchSessions, 120_000);
 
     return () => {
       isMounted = false;

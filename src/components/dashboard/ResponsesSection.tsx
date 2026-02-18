@@ -229,7 +229,7 @@ export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
       {/* Live indicator */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <RefreshCw className="w-3.5 h-3.5" />
-        <span>Mise à jour automatique toutes les 15 s</span>
+        <span>Mise à jour automatique toutes les 2 min</span>
       </div>
 
       {/* Table */}
