@@ -196,6 +196,23 @@ Deno.serve(async (req) => {
       )
       .slice(0, 10);
 
+    /* ====== FUNNEL DATA (from diagnostic_sessions only) ====== */
+    let funnelOptinEmail = 0;
+    let funnelRecommendation = 0;
+    let funnelConversion = 0;
+    let funnelDurationSum = 0;
+    let funnelDurationCount = 0;
+
+    for (const s of sessions) {
+      if (s.status === "termine" && s.optin_email) funnelOptinEmail++;
+      if (s.recommended_products) funnelRecommendation++;
+      if (s.conversion) funnelConversion++;
+      if (s.status === "termine" && s.duration_seconds != null) {
+        funnelDurationSum += s.duration_seconds;
+        funnelDurationCount++;
+      }
+    }
+
     /* ====== BUILD RESPONSE ====== */
     const result: Record<string, unknown> = {
       totalResponses,
@@ -208,6 +225,14 @@ Deno.serve(async (req) => {
       smsOptinRate,
       personaDistribution,
       responses,
+      funnel: {
+        started: newTotal,
+        completed: newCompleted,
+        optinEmail: funnelOptinEmail,
+        recommendation: funnelRecommendation,
+        purchase: funnelConversion,
+        avgDurationSeconds: funnelDurationCount > 0 ? Math.round(funnelDurationSum / funnelDurationCount) : null,
+      },
     };
 
     /* ====== DETAILED SESSIONS (for Réponses tab) ====== */
