@@ -220,7 +220,6 @@ Deno.serve(async (req) => {
     /* ====== DETAILED DIAGNOSTIC FUNNEL ====== */
     const detailedSteps = [
       { label: "Prénom parent", match: (s: any) => s.question_path && (/(?:^|>)1(?:>|$)/.test(s.question_path) || /^0>1/.test(s.question_path)) },
-      { label: "Prénom parent", match: (s: any) => s.question_path && (/(?:^|>)1(?:>|$)/.test(s.question_path) || /^0>1/.test(s.question_path)) },
       { label: "Lien avec l'enfant", match: (s: any) => s.question_path && />2(?:>|$)/.test(s.question_path) },
       { label: "Nombre d'enfants", match: (s: any) => s.question_path && />3(?:>|$)/.test(s.question_path) },
       { label: "Info enfant", match: (s: any) => s.question_path && />4(?:>|$)/.test(s.question_path) },
