@@ -46,12 +46,15 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     /* ====== NEW FORMAT: diagnostic_sessions + children ====== */
+    const cutoffDate = "2026-02-08T00:00:00.000Z";
+
     let sessionsQuery = supabase
       .from("diagnostic_sessions")
       .select("*, diagnostic_children(*)")
+      .gte("created_at", cutoffDate)
       .order("created_at", { ascending: false });
 
-    if (from) sessionsQuery = sessionsQuery.gte("created_at", from.toISOString());
+    if (from && new Date(from) > new Date(cutoffDate)) sessionsQuery = sessionsQuery.gte("created_at", from.toISOString());
     if (to) sessionsQuery = sessionsQuery.lte("created_at", to.toISOString());
 
     const { data: sessionsRaw, error: sessionsError } = await sessionsQuery;
@@ -114,7 +117,8 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
-      if (from) q = q.gte("created_at", from.toISOString());
+      q = q.gte("created_at", cutoffDate);
+      if (from && new Date(from) > new Date(cutoffDate)) q = q.gte("created_at", from.toISOString());
       if (to) q = q.lte("created_at", to.toISOString());
 
       const { data, error } = await q;
