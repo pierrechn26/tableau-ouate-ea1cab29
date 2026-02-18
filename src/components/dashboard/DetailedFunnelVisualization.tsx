@@ -28,7 +28,7 @@ interface DetailedFunnelVisualizationProps {
   dateRange?: DateRange;
 }
 
-const STEP_ICONS = [Hand, User, Heart, Baby, Info, Droplets, Repeat, HelpCircle, Sparkles, Settings, Mail, Eye];
+const STEP_ICONS = [User, Heart, Baby, Info, Droplets, Repeat, HelpCircle, Sparkles, Settings, Mail, Eye];
 
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "—";
