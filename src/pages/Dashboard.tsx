@@ -665,7 +665,7 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="responses">
-            <ResponsesSection />
+            <ResponsesSection dateRange={dateRange} />
           </TabsContent>
         </Tabs>
       </main>
