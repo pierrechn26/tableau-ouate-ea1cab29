@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosticSessions } from "@/hooks/useDiagnosticSessions";
 import { SessionsTable, getColumnDefs, getDisplayStatus } from "./SessionsTable";
-import { DateRangePicker } from "./DateRangePicker";
 import { CATEGORIES } from "@/types/diagnostic";
 import type { DiagnosticSession } from "@/types/diagnostic";
 import type { DateRange } from "react-day-picker";
@@ -62,10 +61,13 @@ function exportJSON(sessions: DiagnosticSession[]) {
 
 /* ── Component ─────────────────────────────────────────── */
 
-export function ResponsesSection() {
+interface ResponsesSectionProps {
+  dateRange?: DateRange;
+}
+
+export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
   const { sessions, isLoading, error } = useDiagnosticSessions();
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState("all");
   const [conversionFilter, setConversionFilter] = useState("all");
   const { toast } = useToast();
@@ -198,11 +200,6 @@ export function ResponsesSection() {
             </SelectContent>
           </Select>
 
-          {/* Date range filter */}
-          <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-          />
 
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
             <FileSpreadsheet className="w-4 h-4 mr-1" />
