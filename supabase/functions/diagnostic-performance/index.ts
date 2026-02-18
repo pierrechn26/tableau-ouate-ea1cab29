@@ -231,7 +231,6 @@ Deno.serve(async (req) => {
       { label: "Préférences", match: (s: any) => s.question_path && />13(?:>|$)/.test(s.question_path) },
       { label: "Opt-in", match: (s: any) => s.status === "termine" },
       { label: "Recommandation affichée", match: (s: any) => !!s.recommended_products },
-      { label: "Ajout panier", match: (s: any) => s.selected_cart_amount != null },
     ];
 
     const detailedFunnel = detailedSteps.map((step) => {
