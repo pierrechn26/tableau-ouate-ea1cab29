@@ -253,7 +253,10 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
             >
               <p className="text-2xl md:text-3xl font-bold text-foreground">{conversionRate}%</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Taux de conversion
+                Taux de conversion*
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                *Sur les vues diagnostic
               </p>
             </motion.div>
             <motion.div 
