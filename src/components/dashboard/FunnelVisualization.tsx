@@ -164,7 +164,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
                         <div className="text-white font-bold text-base md:text-lg">
                           {step.isPlaceholder ? "—" : `${step.percentage!.toFixed(1)}%`}
                         </div>
-                        <div className="text-white/80 text-xs">
+                        <div className="text-white/80 text-sm">
                           {step.isPlaceholder ? "—" : step.value.toLocaleString()}
                         </div>
                       </div>
