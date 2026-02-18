@@ -72,6 +72,7 @@ async function getAccessToken(email: string, privateKey: string): Promise<string
     privateKey,
     "https://www.googleapis.com/auth/analytics.readonly",
   );
+  console.log("✅ JWT generated successfully, length:", jwt.length);
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -84,9 +85,11 @@ async function getAccessToken(email: string, privateKey: string): Promise<string
 
   if (!res.ok) {
     const text = await res.text();
+    console.error("❌ Google OAuth error:", res.status, text);
     throw new Error(`Google OAuth error: ${res.status} – ${text}`);
   }
   const data = await res.json();
+  console.log("✅ OAuth token retrieved, token starts with:", data.access_token?.substring(0, 20));
   return data.access_token;
 }
 
@@ -120,6 +123,8 @@ async function runReport(
   }
 
   const url = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`;
+  console.log("📊 GA4 runReport request:", JSON.stringify({ url, body, pageFilter: pageFilter || "none" }));
+  
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -131,11 +136,14 @@ async function runReport(
 
   if (!res.ok) {
     const text = await res.text();
+    console.error("❌ GA4 API error:", res.status, text);
     throw new Error(`GA4 API error: ${res.status} – ${text}`);
   }
 
   const data = await res.json();
+  console.log("📊 GA4 API response (filter:", pageFilter || "none", "):", JSON.stringify(data));
   const value = data?.rows?.[0]?.metricValues?.[0]?.value;
+  console.log("📊 Extracted value:", value);
   return value ? parseInt(value, 10) : 0;
 }
 
@@ -158,10 +166,12 @@ serve(async (req) => {
     }
 
     const { start_date, end_date } = await req.json();
+    console.log("📅 Request params:", { start_date, end_date });
     if (!start_date || !end_date) {
       throw new Error("start_date and end_date are required");
     }
 
+    console.log("🔑 Secrets loaded: propertyId=", propertyId, "email=", email, "privateKey length=", privateKey?.length);
     const accessToken = await getAccessToken(email, privateKey);
 
     const [siteSessions, diagnosticPageSessions] = await Promise.all([
@@ -169,8 +179,10 @@ serve(async (req) => {
       runReport(accessToken, propertyId, start_date, end_date, "/pages/diagnostic-de-peau"),
     ]);
 
+    const result = { site_sessions: siteSessions, diagnostic_page_sessions: diagnosticPageSessions };
+    console.log("✅ Final response:", JSON.stringify(result));
     return new Response(
-      JSON.stringify({ site_sessions: siteSessions, diagnostic_page_sessions: diagnosticPageSessions }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
     );
   } catch (error) {
