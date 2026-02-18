@@ -117,7 +117,7 @@ async function runReport(
       filter: {
         fieldName: "pagePath",
         stringFilter: {
-          matchType: "EXACT",
+          matchType: "BEGINS_WITH",
           value: pageFilter,
           caseSensitive: false,
         },

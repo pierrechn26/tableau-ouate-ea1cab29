@@ -119,17 +119,20 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     funnel.purchase,
   ];
 
-  const base = stepValues[0] || 1; // base = site sessions (top of funnel)
+  const diagnosticViews = stepValues[1] || 1; // base = diagnostic page views (100%)
 
   const funnelSteps = STEP_LABELS.map((label, i) => {
     const value = stepValues[i];
-    const isPlaceholder = i === 6 || i === 7; // Only Ajout panier & Checkout are placeholders now
-    const percentage = isPlaceholder ? null : (value / base) * 100;
-    return { label, value, percentage, icon: STEP_ICONS[i], isPlaceholder };
+    const isPlaceholder = i === 6 || i === 7;
+    // Step 0 (Visite du site) shows only volume, no percentage
+    const isSiteVisit = i === 0;
+    const percentage = isPlaceholder || isSiteVisit ? null : (value / diagnosticViews) * 100;
+    return { label, value, percentage, icon: STEP_ICONS[i], isPlaceholder, isSiteVisit };
   });
 
   const getLoss = (index: number) => {
-    if (index === 0) return null;
+    // No loss shown for first step or for site visit → diagnostic (different bases)
+    if (index <= 1) return null;
     const prev = funnelSteps[index - 1];
     const curr = funnelSteps[index];
     // If either step is placeholder, show "—" indicator
@@ -142,9 +145,9 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     return { percent: lossPercent, volume: lossVolume };
   };
 
-  const siteVisits = stepValues[0] || 1;
-  const conversionRate = siteVisits > 0 ? ((funnel.purchase / siteVisits) * 100).toFixed(1) : "0.0";
-  const visiteursPerdus = (stepValues[0] || 0) - funnel.purchase;
+  const siteVisits = stepValues[0] || 0;
+  const conversionRate = diagnosticViews > 1 ? ((funnel.purchase / diagnosticViews) * 100).toFixed(1) : "0.0";
+  const visiteursPerdus = (stepValues[1] || 0) - funnel.purchase;
 
   return (
     <div className="space-y-8">
@@ -195,7 +198,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
                       <div className="text-right">
                         <div className="text-white font-bold text-base md:text-lg">
-                          {step.isPlaceholder ? "—" : `${step.percentage!.toFixed(1)}%`}
+                          {step.isPlaceholder || step.isSiteVisit ? "—" : `${step.percentage!.toFixed(1)}%`}
                         </div>
                         <div className="text-white/80 text-sm">
                           {step.isPlaceholder ? "—" : step.value.toLocaleString()}
@@ -247,7 +250,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
             >
               <p className="text-2xl md:text-3xl font-bold text-destructive">{visiteursPerdus.toLocaleString()}</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Visiteurs perdus
+                Visiteurs perdus (diag→achat)
               </p>
             </motion.div>
             <motion.div 
