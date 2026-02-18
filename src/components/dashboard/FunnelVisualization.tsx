@@ -119,7 +119,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     funnel.purchase,
   ];
 
-  const base = funnel.started || 1; // avoid /0
+  const base = stepValues[0] || 1; // base = site sessions (top of funnel)
 
   const funnelSteps = STEP_LABELS.map((label, i) => {
     const value = stepValues[i];
@@ -142,8 +142,9 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     return { percent: lossPercent, volume: lossVolume };
   };
 
-  const conversionRate = funnel.started > 0 ? ((funnel.purchase / funnel.started) * 100).toFixed(1) : "0.0";
-  const visiteursPerdus = funnel.started - funnel.purchase;
+  const siteVisits = stepValues[0] || 1;
+  const conversionRate = siteVisits > 0 ? ((funnel.purchase / siteVisits) * 100).toFixed(1) : "0.0";
+  const visiteursPerdus = (stepValues[0] || 0) - funnel.purchase;
 
   return (
     <div className="space-y-8">

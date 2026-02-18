@@ -117,7 +117,7 @@ async function runReport(
       filter: {
         fieldName: "pagePath",
         stringFilter: {
-          matchType: "CONTAINS",
+          matchType: "EXACT",
           value: pageFilter,
           caseSensitive: false,
         },
