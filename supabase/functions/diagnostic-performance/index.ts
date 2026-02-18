@@ -208,8 +208,8 @@ Deno.serve(async (req) => {
     for (const s of sessions) {
       if (s.status === "termine" && s.optin_email) funnelOptinEmail++;
       if (s.recommended_products) funnelRecommendation++;
-      if (s.selected_cart_amount != null) funnelAddToCart++;
-      if (s.checkout_started) funnelCheckout++;
+      if (s.selected_cart_amount != null || s.conversion) funnelAddToCart++;
+      if (s.checkout_started || s.conversion) funnelCheckout++;
       if (s.conversion) funnelConversion++;
       if (s.status === "termine" && s.duration_seconds != null) {
         funnelDurationSum += s.duration_seconds;
