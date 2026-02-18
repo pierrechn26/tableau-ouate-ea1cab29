@@ -23,13 +23,13 @@ interface FunnelVisualizationProps {
   dateRange?: DateRange;
 }
 
-const STEP_ICONS = [Globe, MousePointer, Play, Mail, CheckCircle, Package, ShoppingCart, CreditCard, Heart];
+const STEP_ICONS = [Globe, MousePointer, Play, CheckCircle, Mail, Package, ShoppingCart, CreditCard, Heart];
 const STEP_LABELS = [
   "Visite du site",
   "Vues diagnostic",
   "Diagnostic démarré",
-  "Opt-in E-mail & SMS",
   "Diagnostic complété",
+  "Opt-in E-mail & SMS",
   "Recommandation affichée",
   "Ajout panier",
   "Checkout",
@@ -74,13 +74,13 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
   const { funnel } = stats;
 
-  // Build steps: indices 0,1 = placeholder (0), 2-8 = real data
+  // Build steps: order is Visite, Vues, Démarré, Complété, Opt-in, Reco, Panier, Checkout, Achat
   const stepValues = [
     0, // Visite du site
     0, // Vues diagnostic
     funnel.started,
-    funnel.optinEmail,
     funnel.completed,
+    funnel.optinEmail,
     funnel.recommendation,
     0, // Ajout panier
     0, // Checkout
@@ -100,8 +100,11 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     if (index === 0) return null;
     const prev = funnelSteps[index - 1];
     const curr = funnelSteps[index];
-    if (prev.isPlaceholder || curr.isPlaceholder) return null;
-    if (prev.value === 0) return null;
+    // If either step is placeholder, show "—" indicator
+    if (prev.isPlaceholder || curr.isPlaceholder) {
+      return { percent: "—", volume: null };
+    }
+    if (prev.value === 0) return { percent: "—", volume: null };
     const lossVolume = prev.value - curr.value;
     const lossPercent = ((lossVolume / prev.value) * 100).toFixed(0);
     return { percent: lossPercent, volume: lossVolume };
@@ -169,16 +172,18 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
                   </div>
 
                   <div className="w-28 md:w-36 flex-shrink-0">
-                    {loss && loss.volume > 0 && (
+                    {loss && (
                       <div className="flex items-center gap-2 p-2 md:p-3 rounded-xl bg-destructive/10 border border-destructive/20">
                         <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-destructive">
-                            -{loss.percent}%
+                            {loss.volume !== null ? `-${loss.percent}%` : "—"}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            -{loss.volume.toLocaleString()}
-                          </span>
+                          {loss.volume !== null && (
+                            <span className="text-xs text-muted-foreground">
+                              -{loss.volume.toLocaleString()}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
