@@ -196,6 +196,8 @@ export type Database = {
           back_navigation_count: number | null
           behavior_tags: string | null
           cart_selected_at: string | null
+          checkout_at: string | null
+          checkout_started: boolean
           content_format_preference: string | null
           conversion: boolean | null
           created_at: string | null
@@ -245,6 +247,8 @@ export type Database = {
           back_navigation_count?: number | null
           behavior_tags?: string | null
           cart_selected_at?: string | null
+          checkout_at?: string | null
+          checkout_started?: boolean
           content_format_preference?: string | null
           conversion?: boolean | null
           created_at?: string | null
@@ -294,6 +298,8 @@ export type Database = {
           back_navigation_count?: number | null
           behavior_tags?: string | null
           cart_selected_at?: string | null
+          checkout_at?: string | null
+          checkout_started?: boolean
           content_format_preference?: string | null
           conversion?: boolean | null
           created_at?: string | null
