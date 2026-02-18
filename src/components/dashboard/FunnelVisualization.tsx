@@ -114,7 +114,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     funnel.completed,
     funnel.optinEmail,
     funnel.recommendation,
-    0, // Ajout panier
+    funnel.addToCart, // Ajout panier
     0, // Checkout
     funnel.purchase,
   ];
@@ -123,7 +123,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
   const funnelSteps = STEP_LABELS.map((label, i) => {
     const value = stepValues[i];
-    const isPlaceholder = i === 6 || i === 7;
+    const isPlaceholder = i === 7; // only Checkout is placeholder now
     // Step 0 (Visite du site) shows only volume, no percentage
     const isSiteVisit = i === 0;
     const percentage = isPlaceholder || isSiteVisit ? null : (value / diagnosticViews) * 100;
