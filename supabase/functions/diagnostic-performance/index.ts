@@ -199,6 +199,7 @@ Deno.serve(async (req) => {
     /* ====== FUNNEL DATA (from diagnostic_sessions only) ====== */
     let funnelOptinEmail = 0;
     let funnelRecommendation = 0;
+    let funnelAddToCart = 0;
     let funnelConversion = 0;
     let funnelDurationSum = 0;
     let funnelDurationCount = 0;
@@ -206,6 +207,7 @@ Deno.serve(async (req) => {
     for (const s of sessions) {
       if (s.status === "termine" && s.optin_email) funnelOptinEmail++;
       if (s.recommended_products) funnelRecommendation++;
+      if (s.validated_cart_amount != null) funnelAddToCart++;
       if (s.conversion) funnelConversion++;
       if (s.status === "termine" && s.duration_seconds != null) {
         funnelDurationSum += s.duration_seconds;
@@ -230,6 +232,7 @@ Deno.serve(async (req) => {
         completed: newCompleted,
         optinEmail: funnelOptinEmail,
         recommendation: funnelRecommendation,
+        addToCart: funnelAddToCart,
         purchase: funnelConversion,
         avgDurationSeconds: funnelDurationCount > 0 ? Math.round(funnelDurationSum / funnelDurationCount) : null,
       },
