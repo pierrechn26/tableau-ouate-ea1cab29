@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonaCard } from "@/components/dashboard/PersonaCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { FunnelVisualization } from "@/components/dashboard/FunnelVisualization";
+import { DetailedFunnelVisualization } from "@/components/dashboard/DetailedFunnelVisualization";
 import { MarketingRecommendations } from "@/components/dashboard/MarketingRecommendations";
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytics";
@@ -647,8 +648,9 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="funnel" className="bg-card rounded-lg border border-border p-6 shadow-md">
-            <div ref={funnelRef}>
+            <div ref={funnelRef} className="space-y-12">
               <FunnelVisualization dateRange={dateRange} />
+              <DetailedFunnelVisualization dateRange={dateRange} />
             </div>
           </TabsContent>
 
