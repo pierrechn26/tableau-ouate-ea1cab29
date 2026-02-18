@@ -152,6 +152,58 @@ async function runReport(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Landing page report helper                                        */
+/* ------------------------------------------------------------------ */
+
+async function runReportLandingPage(
+  accessToken: string,
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+  landingPagePath: string,
+): Promise<number> {
+  const body = {
+    dateRanges: [{ startDate, endDate }],
+    metrics: [{ name: "sessions" }],
+    dimensions: [{ name: "landingPage" }],
+    dimensionFilter: {
+      filter: {
+        fieldName: "landingPage",
+        stringFilter: {
+          matchType: "EXACT",
+          value: landingPagePath,
+          caseSensitive: false,
+        },
+      },
+    },
+  };
+
+  const url = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`;
+  console.log("📊 GA4 landingPage report request:", JSON.stringify({ url, body }));
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("❌ GA4 landingPage API error:", res.status, text);
+    throw new Error(`GA4 landingPage API error: ${res.status} – ${text}`);
+  }
+
+  const data = await res.json();
+  console.log("📊 GA4 landingPage response:", JSON.stringify(data));
+  const value = data?.rows?.[0]?.metricValues?.[0]?.value;
+  console.log("📊 Landing page sessions extracted:", value);
+  return value ? parseInt(value, 10) : 0;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main handler                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -178,12 +230,12 @@ serve(async (req) => {
     console.log("🔑 Secrets loaded: propertyId=", propertyId, "email=", email, "privateKey length=", privateKey?.length);
     const accessToken = await getAccessToken(email, privateKey);
 
-    const [siteSessions, diagnosticPageViews] = await Promise.all([
+    const [siteSessions, diagnosticLandingSessions] = await Promise.all([
       runReport(accessToken, propertyId, start_date, end_date),
-      runReport(accessToken, propertyId, start_date, end_date, "/pages/diagnostic-de-peau", "screenPageViews"),
+      runReportLandingPage(accessToken, propertyId, start_date, end_date, "/pages/diagnostic-de-peau"),
     ]);
 
-    const result = { site_sessions: siteSessions, diagnostic_page_sessions: diagnosticPageViews };
+    const result = { site_sessions: siteSessions, diagnostic_page_sessions: diagnosticLandingSessions };
     console.log("✅ Final response:", JSON.stringify(result));
     return new Response(
       JSON.stringify(result),
