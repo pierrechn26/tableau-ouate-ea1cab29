@@ -18,6 +18,8 @@ import {
   CheckCircle,
   Timer,
   Loader2,
+  Eye,
+  ShoppingCart,
 } from "lucide-react";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import type { DateRange } from "react-day-picker";
@@ -26,7 +28,7 @@ interface DetailedFunnelVisualizationProps {
   dateRange?: DateRange;
 }
 
-const STEP_ICONS = [Hand, User, Heart, Baby, Info, Droplets, Repeat, HelpCircle, Sparkles, Settings, Mail];
+const STEP_ICONS = [Hand, User, Heart, Baby, Info, Droplets, Repeat, HelpCircle, Sparkles, Settings, Mail, Eye, ShoppingCart];
 
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "—";
