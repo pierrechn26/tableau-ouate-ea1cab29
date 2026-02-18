@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,8 @@ import {
   Loader2
 } from "lucide-react";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 
 interface FunnelVisualizationProps {
@@ -63,8 +66,37 @@ const frictions = [
 
 export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
   const stats = useDiagnosticStats(dateRange);
+  const [ga4Data, setGa4Data] = useState<{ site_sessions: number; diagnostic_page_sessions: number } | null>(null);
+  const [ga4Loading, setGa4Loading] = useState(false);
 
-  if (stats.isLoading) {
+  useEffect(() => {
+    const fetchGA4 = async () => {
+      setGa4Loading(true);
+      try {
+        const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "2026-02-08";
+        const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
+        
+        const { data, error } = await supabase.functions.invoke("ga4-analytics", {
+          body: { start_date: startDate, end_date: endDate },
+        });
+        
+        if (error) {
+          console.error("GA4 fetch error:", error);
+          setGa4Data(null);
+        } else {
+          setGa4Data(data);
+        }
+      } catch (err) {
+        console.error("GA4 fetch error:", err);
+        setGa4Data(null);
+      } finally {
+        setGa4Loading(false);
+      }
+    };
+    fetchGA4();
+  }, [dateRange?.from?.getTime(), dateRange?.to?.getTime()]);
+
+  if (stats.isLoading || ga4Loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -76,8 +108,8 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
   // Build steps: order is Visite, Vues, Démarré, Complété, Opt-in, Reco, Panier, Checkout, Achat
   const stepValues = [
-    0, // Visite du site
-    0, // Vues diagnostic
+    ga4Data?.site_sessions ?? 0, // Visite du site (GA4)
+    ga4Data?.diagnostic_page_sessions ?? 0, // Vues diagnostic (GA4)
     funnel.started,
     funnel.completed,
     funnel.optinEmail,
@@ -91,7 +123,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
   const funnelSteps = STEP_LABELS.map((label, i) => {
     const value = stepValues[i];
-    const isPlaceholder = i === 0 || i === 1 || i === 6 || i === 7;
+    const isPlaceholder = i === 6 || i === 7; // Only Ajout panier & Checkout are placeholders now
     const percentage = isPlaceholder ? null : (value / base) * 100;
     return { label, value, percentage, icon: STEP_ICONS[i], isPlaceholder };
   });
