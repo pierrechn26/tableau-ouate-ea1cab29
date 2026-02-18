@@ -65,7 +65,8 @@ Deno.serve(async (req) => {
     let newTotal = 0,
       newCompleted = 0,
       newEmailOptin = 0,
-      newSmsOptin = 0;
+      newSmsOptin = 0,
+      newDoubleOptin = 0;
     const newPersonaCounts: Record<string, number> = {};
     // deno-lint-ignore no-explicit-any
     const recentNew: any[] = [];
@@ -75,6 +76,7 @@ Deno.serve(async (req) => {
       if (s.status === "termine") newCompleted++;
       if (s.optin_email) newEmailOptin++;
       if (s.optin_sms) newSmsOptin++;
+      if (s.optin_email && s.optin_sms) newDoubleOptin++;
       if (s.persona_detected) {
         newPersonaCounts[s.persona_detected] =
           (newPersonaCounts[s.persona_detected] || 0) + 1;
@@ -101,7 +103,8 @@ Deno.serve(async (req) => {
     let legacyTotal = 0,
       legacyCompleted = 0,
       legacyEmailOptin = 0,
-      legacySmsOptin = 0;
+      legacySmsOptin = 0,
+      legacyDoubleOptin = 0;
     const legacyPersonaCounts: Record<string, number> = {};
     // deno-lint-ignore no-explicit-any
     const recentLegacy: any[] = [];
@@ -134,6 +137,7 @@ Deno.serve(async (req) => {
         if (isLegacyCompleted(row)) legacyCompleted++;
         if (row.email_optin) legacyEmailOptin++;
         if (row.sms_optin) legacySmsOptin++;
+        if (row.email_optin && row.sms_optin) legacyDoubleOptin++;
         if (row.detected_persona) {
           legacyPersonaCounts[row.detected_persona] =
             (legacyPersonaCounts[row.detected_persona] || 0) + 1;
@@ -161,6 +165,7 @@ Deno.serve(async (req) => {
       totalResponses > 0 ? (completedResponses / totalResponses) * 100 : 0;
     const emailOptinCount = newEmailOptin + legacyEmailOptin;
     const smsOptinCount = newSmsOptin + legacySmsOptin;
+    const doubleOptinCount = newDoubleOptin + legacyDoubleOptin;
     const emailOptinRate =
       completedResponses > 0
         ? (emailOptinCount / completedResponses) * 100
@@ -198,6 +203,7 @@ Deno.serve(async (req) => {
       completionRate,
       emailOptinCount,
       smsOptinCount,
+      doubleOptinCount,
       emailOptinRate,
       smsOptinRate,
       personaDistribution,
