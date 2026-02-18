@@ -55,6 +55,11 @@ const PRESETS = [
       to: new Date(),
     }),
   },
+  {
+    label: "Toute la période",
+    getValue: () => ({ from: undefined as unknown as Date, to: undefined as unknown as Date }),
+    isAllTime: true,
+  },
 ];
 
 export function DateRangePicker({
@@ -80,7 +85,11 @@ export function DateRangePicker({
   }, [pendingRange]);
 
   const activePreset = useMemo(() => {
+    if (!pendingRange?.from && !pendingRange?.to) {
+      return "Toute la période";
+    }
     for (const preset of PRESETS) {
+      if ((preset as any).isAllTime) continue;
       const val = preset.getValue();
       if (
         pendingRange?.from &&
@@ -113,9 +122,14 @@ export function DateRangePicker({
   };
 
   const handlePreset = (preset: (typeof PRESETS)[number]) => {
+    if ((preset as any).isAllTime) {
+      setPendingRange(undefined);
+      onDateRangeChange(undefined);
+      setIsOpen(false);
+      return;
+    }
     const val = preset.getValue();
     setPendingRange(val);
-    // Apply immediately for presets
     onDateRangeChange(val);
     setIsOpen(false);
   };
@@ -151,7 +165,7 @@ export function DateRangePicker({
                 </>
               )
             ) : (
-              "Sélectionner une période"
+              "Toute la période"
             )}
           </span>
         </Button>

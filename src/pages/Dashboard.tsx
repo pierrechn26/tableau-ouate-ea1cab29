@@ -95,10 +95,7 @@ export default function Dashboard() {
   const {
     toast
   } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 6),
-    to: new Date()
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
   const sectionRefs: Record<string, React.RefObject<HTMLDivElement>> = {
     overview: overviewRef,
