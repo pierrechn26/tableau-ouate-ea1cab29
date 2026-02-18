@@ -134,14 +134,13 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
     if (index === 0) return null;
     const prev = funnelSteps[index - 1];
     const curr = funnelSteps[index];
-    // If either step is placeholder, show "—" indicator
     if (prev.isPlaceholder || curr.isPlaceholder) {
-      return { percent: "—", volume: null };
+      return { percent: "—", volume: null, isGain: false };
     }
-    if (prev.value === 0) return { percent: "—", volume: null };
-    const lossVolume = prev.value - curr.value;
-    const lossPercent = ((lossVolume / prev.value) * 100).toFixed(0);
-    return { percent: lossPercent, volume: lossVolume };
+    if (prev.value === 0) return { percent: "—", volume: null, isGain: false };
+    const diff = prev.value - curr.value;
+    const diffPercent = ((Math.abs(diff) / prev.value) * 100).toFixed(0);
+    return { percent: diffPercent, volume: Math.abs(diff), isGain: diff < 0 };
   };
 
   const siteVisits = stepValues[0] || 0;
@@ -216,15 +215,23 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
 
                   <div className="w-28 md:w-36 flex-shrink-0">
                     {loss && (
-                      <div className="flex items-center gap-2 p-2 md:p-3 rounded-xl bg-destructive/10 border border-destructive/20">
-                        <TrendingDown className="w-4 h-4 text-destructive flex-shrink-0" />
+                      <div className={`flex items-center gap-2 p-2 md:p-3 rounded-xl border ${
+                        loss.isGain 
+                          ? 'bg-green-500/10 border-green-500/20' 
+                          : 'bg-destructive/10 border-destructive/20'
+                      }`}>
+                        <TrendingDown className={`w-4 h-4 flex-shrink-0 ${
+                          loss.isGain ? 'text-green-600 rotate-180' : 'text-destructive'
+                        }`} />
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-destructive">
-                            {loss.volume !== null ? `-${loss.percent}%` : "—"}
+                          <span className={`text-sm font-bold ${
+                            loss.isGain ? 'text-green-600' : 'text-destructive'
+                          }`}>
+                            {loss.volume !== null ? `${loss.isGain ? '+' : '-'}${loss.percent}%` : "—"}
                           </span>
                           {loss.volume !== null && (
                             <span className="text-xs text-muted-foreground">
-                              -{loss.volume.toLocaleString()}
+                              {loss.isGain ? '+' : '-'}{loss.volume.toLocaleString()}
                             </span>
                           )}
                         </div>
