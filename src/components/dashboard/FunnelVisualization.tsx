@@ -131,8 +131,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
   });
 
   const getLoss = (index: number) => {
-    // No loss shown for first step or for site visit → diagnostic (different bases)
-    if (index <= 1) return null;
+    if (index === 0) return null;
     const prev = funnelSteps[index - 1];
     const curr = funnelSteps[index];
     // If either step is placeholder, show "—" indicator
@@ -197,12 +196,20 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-white font-bold text-base md:text-lg">
-                          {step.isPlaceholder || step.isSiteVisit ? "—" : `${step.percentage!.toFixed(1)}%`}
-                        </div>
-                        <div className="text-white/80 text-sm">
-                          {step.isPlaceholder ? "—" : step.value.toLocaleString()}
-                        </div>
+                        {step.isSiteVisit ? (
+                          <div className="text-white font-bold text-xl md:text-2xl">
+                            {step.value.toLocaleString()}
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-white font-bold text-base md:text-lg">
+                              {step.isPlaceholder ? "—" : `${step.percentage!.toFixed(1)}%`}
+                            </div>
+                            <div className="text-white/80 text-sm">
+                              {step.isPlaceholder ? "—" : step.value.toLocaleString()}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
