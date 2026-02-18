@@ -260,7 +260,7 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Double opt-in (Email + SMS)</span>
                   <span className="text-lg font-bold text-foreground">
-                    {stats.responses.filter((r) => r.email_optin && r.sms_optin).length}
+                    {stats.doubleOptinCount}
                   </span>
                 </div>
               </div>
@@ -307,7 +307,8 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                                 month: '2-digit',
                                 year: 'numeric',
                                 hour: '2-digit',
-                                minute: '2-digit'
+                                minute: '2-digit',
+                                timeZone: 'Europe/Paris'
                               })
                             : '-'}
                         </td>

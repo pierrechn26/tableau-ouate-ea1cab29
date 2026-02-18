@@ -32,6 +32,7 @@ type PerformancePayload = {
   completionRate: number;
   emailOptinCount: number;
   smsOptinCount: number;
+  doubleOptinCount: number;
   emailOptinRate: number;
   smsOptinRate: number;
   personaDistribution: Array<{ name: string; count: number; percentage: number }>;
@@ -55,6 +56,7 @@ interface DiagnosticStats {
   // Opt-ins
   emailOptinCount: number;
   smsOptinCount: number;
+  doubleOptinCount: number;
   emailOptinRate: number;
   smsOptinRate: number;
   
@@ -113,6 +115,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
           completionRate: data.completionRate,
           emailOptinCount: data.emailOptinCount,
           smsOptinCount: data.smsOptinCount,
+          doubleOptinCount: data.doubleOptinCount ?? 0,
           emailOptinRate: data.emailOptinRate,
           smsOptinRate: data.smsOptinRate,
           personaDistribution: data.personaDistribution,
@@ -171,6 +174,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
     const completionRate = serverStats?.completionRate ?? 0;
     const emailOptinCount = serverStats?.emailOptinCount ?? 0;
     const smsOptinCount = serverStats?.smsOptinCount ?? 0;
+    const doubleOptinCount = serverStats?.doubleOptinCount ?? 0;
     const emailOptinRate = serverStats?.emailOptinRate ?? 0;
     const smsOptinRate = serverStats?.smsOptinRate ?? 0;
     const personaDistribution = serverStats?.personaDistribution ?? [];
@@ -181,6 +185,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
       completionRate,
       emailOptinCount,
       smsOptinCount,
+      doubleOptinCount,
       emailOptinRate,
       smsOptinRate,
       personaDistribution,
