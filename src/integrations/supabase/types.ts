@@ -195,6 +195,7 @@ export type Database = {
           avg_response_time: number | null
           back_navigation_count: number | null
           behavior_tags: string | null
+          cart_selected_at: string | null
           content_format_preference: string | null
           conversion: boolean | null
           created_at: string | null
@@ -222,6 +223,7 @@ export type Database = {
           relationship: string | null
           result_url: string | null
           routine_size_preference: string | null
+          selected_cart_amount: number | null
           session_code: string
           source: string | null
           status: string
@@ -242,6 +244,7 @@ export type Database = {
           avg_response_time?: number | null
           back_navigation_count?: number | null
           behavior_tags?: string | null
+          cart_selected_at?: string | null
           content_format_preference?: string | null
           conversion?: boolean | null
           created_at?: string | null
@@ -269,6 +272,7 @@ export type Database = {
           relationship?: string | null
           result_url?: string | null
           routine_size_preference?: string | null
+          selected_cart_amount?: number | null
           session_code: string
           source?: string | null
           status?: string
@@ -289,6 +293,7 @@ export type Database = {
           avg_response_time?: number | null
           back_navigation_count?: number | null
           behavior_tags?: string | null
+          cart_selected_at?: string | null
           content_format_preference?: string | null
           conversion?: boolean | null
           created_at?: string | null
@@ -316,6 +321,7 @@ export type Database = {
           relationship?: string | null
           result_url?: string | null
           routine_size_preference?: string | null
+          selected_cart_amount?: number | null
           session_code?: string
           source?: string | null
           status?: string
