@@ -46,6 +46,7 @@ type PerformancePayload = {
     purchase: number;
     avgDurationSeconds: number | null;
   };
+  detailedFunnel: Array<{ label: string; count: number }>;
   responses: Array<{
     id: string;
     created_at: string | null;
@@ -89,6 +90,9 @@ interface DiagnosticStats {
     avgDurationSeconds: number | null;
   };
   
+  // Detailed diagnostic funnel
+  detailedFunnel: Array<{ label: string; count: number }>;
+  
   // Données brutes
   responses: DiagnosticResponse[];
   
@@ -131,18 +135,19 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
         if (fnError) throw fnError;
         if (!data) throw new Error('No data returned from diagnostic-performance');
 
-        setServerStats({
-          totalResponses: data.totalResponses,
-          completedResponses: data.completedResponses,
-          completionRate: data.completionRate,
-          emailOptinCount: data.emailOptinCount,
-          smsOptinCount: data.smsOptinCount,
-          doubleOptinCount: data.doubleOptinCount ?? 0,
-          emailOptinRate: data.emailOptinRate,
-          smsOptinRate: data.smsOptinRate,
-          personaDistribution: data.personaDistribution,
-          funnel: data.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, checkout: 0, purchase: 0, avgDurationSeconds: null },
-        });
+          setServerStats({
+            totalResponses: data.totalResponses,
+            completedResponses: data.completedResponses,
+            completionRate: data.completionRate,
+            emailOptinCount: data.emailOptinCount,
+            smsOptinCount: data.smsOptinCount,
+            doubleOptinCount: data.doubleOptinCount ?? 0,
+            emailOptinRate: data.emailOptinRate,
+            smsOptinRate: data.smsOptinRate,
+            personaDistribution: data.personaDistribution,
+            funnel: data.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, checkout: 0, purchase: 0, avgDurationSeconds: null },
+            detailedFunnel: data.detailedFunnel ?? [],
+          });
 
         // Map sanitized recent responses into local shape (fields not provided become null)
         setResponses(
@@ -202,6 +207,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
     const smsOptinRate = serverStats?.smsOptinRate ?? 0;
     const personaDistribution = serverStats?.personaDistribution ?? [];
     const funnel = serverStats?.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, checkout: 0, purchase: 0, avgDurationSeconds: null };
+    const detailedFunnel = serverStats?.detailedFunnel ?? [];
 
     return {
       totalResponses,
@@ -214,6 +220,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
       smsOptinRate,
       personaDistribution,
       funnel,
+      detailedFunnel,
       responses,
       isLoading,
       error,

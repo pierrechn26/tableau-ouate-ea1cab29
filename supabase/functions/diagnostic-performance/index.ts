@@ -217,6 +217,29 @@ Deno.serve(async (req) => {
       }
     }
 
+    /* ====== DETAILED DIAGNOSTIC FUNNEL ====== */
+    const detailedSteps = [
+      { label: "Bienvenue", match: () => true },
+      { label: "Prénom parent", match: (s: any) => s.question_path && (/(?:^|>)1>/.test(s.question_path) || /^0>1/.test(s.question_path)) },
+      { label: "Lien avec l'enfant", match: (s: any) => s.question_path && />2>/.test(s.question_path) },
+      { label: "Nombre d'enfants", match: (s: any) => s.question_path && />3>/.test(s.question_path) },
+      { label: "Info enfant", match: (s: any) => s.question_path && />4>/.test(s.question_path) },
+      { label: "Type de peau", match: (s: any) => s.question_path && />5>/.test(s.question_path) },
+      { label: "Routine existante", match: (s: any) => s.question_path && />6>/.test(s.question_path) },
+      { label: "Questions peau", match: (s: any) => s.question_path && />11>/.test(s.question_path) },
+      { label: "Questions IA", match: (s: any) => s.question_path && />12>/.test(s.question_path) },
+      { label: "Préférences", match: (s: any) => s.question_path && />13>/.test(s.question_path) },
+      { label: "Opt-in", match: (s: any) => s.status === "termine" },
+    ];
+
+    const detailedFunnel = detailedSteps.map((step) => {
+      let count = 0;
+      for (const s of sessions) {
+        if (step.match(s)) count++;
+      }
+      return { label: step.label, count };
+    });
+
     /* ====== BUILD RESPONSE ====== */
     const result: Record<string, unknown> = {
       totalResponses,
@@ -239,6 +262,7 @@ Deno.serve(async (req) => {
         purchase: funnelConversion,
         avgDurationSeconds: funnelDurationCount > 0 ? Math.round(funnelDurationSum / funnelDurationCount) : null,
       },
+      detailedFunnel,
     };
 
     /* ====== DETAILED SESSIONS (for Réponses tab) ====== */
