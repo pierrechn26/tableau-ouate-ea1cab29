@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.ga4-analytics]
 verify_jwt = false
+
+[functions.shopify-checkout-webhook]
+verify_jwt = false

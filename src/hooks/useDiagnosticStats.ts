@@ -42,6 +42,7 @@ type PerformancePayload = {
     optinEmail: number;
     recommendation: number;
     addToCart: number;
+    checkout: number;
     purchase: number;
     avgDurationSeconds: number | null;
   };
@@ -83,6 +84,7 @@ interface DiagnosticStats {
     optinEmail: number;
     recommendation: number;
     addToCart: number;
+    checkout: number;
     purchase: number;
     avgDurationSeconds: number | null;
   };
@@ -139,7 +141,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
           emailOptinRate: data.emailOptinRate,
           smsOptinRate: data.smsOptinRate,
           personaDistribution: data.personaDistribution,
-          funnel: data.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, purchase: 0, avgDurationSeconds: null },
+          funnel: data.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, checkout: 0, purchase: 0, avgDurationSeconds: null },
         });
 
         // Map sanitized recent responses into local shape (fields not provided become null)
@@ -199,7 +201,7 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
     const emailOptinRate = serverStats?.emailOptinRate ?? 0;
     const smsOptinRate = serverStats?.smsOptinRate ?? 0;
     const personaDistribution = serverStats?.personaDistribution ?? [];
-    const funnel = serverStats?.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, purchase: 0, avgDurationSeconds: null };
+    const funnel = serverStats?.funnel ?? { started: 0, completed: 0, optinEmail: 0, recommendation: 0, addToCart: 0, checkout: 0, purchase: 0, avgDurationSeconds: null };
 
     return {
       totalResponses,
