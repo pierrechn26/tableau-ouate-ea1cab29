@@ -106,10 +106,11 @@ async function runReport(
   startDate: string,
   endDate: string,
   pageFilter?: string,
+  metric: string = "sessions",
 ): Promise<number> {
   const body: Record<string, unknown> = {
     dateRanges: [{ startDate, endDate }],
-    metrics: [{ name: "sessions" }],
+    metrics: [{ name: metric }],
   };
 
   if (pageFilter) {
@@ -177,12 +178,12 @@ serve(async (req) => {
     console.log("🔑 Secrets loaded: propertyId=", propertyId, "email=", email, "privateKey length=", privateKey?.length);
     const accessToken = await getAccessToken(email, privateKey);
 
-    const [siteSessions, diagnosticPageSessions] = await Promise.all([
+    const [siteSessions, diagnosticPageViews] = await Promise.all([
       runReport(accessToken, propertyId, start_date, end_date),
-      runReport(accessToken, propertyId, start_date, end_date, "/pages/diagnostic-de-peau"),
+      runReport(accessToken, propertyId, start_date, end_date, "/pages/diagnostic-de-peau", "screenPageViews"),
     ]);
 
-    const result = { site_sessions: siteSessions, diagnostic_page_sessions: diagnosticPageSessions };
+    const result = { site_sessions: siteSessions, diagnostic_page_sessions: diagnosticPageViews };
     console.log("✅ Final response:", JSON.stringify(result));
     return new Response(
       JSON.stringify(result),
