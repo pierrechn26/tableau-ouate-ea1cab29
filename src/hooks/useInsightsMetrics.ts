@@ -36,7 +36,7 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
       // Fetch completed sessions with relevant fields
       const { data: sessions } = await supabase
         .from("diagnostic_sessions")
-        .select("recommended_products, is_existing_client, recommended_cart_amount, conversion")
+        .select("recommended_products, validated_products, is_existing_client, recommended_cart_amount, conversion")
         .eq("status", "termine")
         .gte("created_at", fromISO)
         .lte("created_at", toISO);
@@ -44,7 +44,7 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
       // Fetch diagnostic orders
       const { data: diagOrders } = await supabase
         .from("shopify_orders")
-        .select("total_price")
+        .select("total_price, diagnostic_session_id")
         .eq("is_from_diagnostic", true)
         .gt("total_price", 0)
         .gte("created_at", fromISO)
@@ -61,7 +61,7 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
       }).length;
       const routineCompletePercent = total > 0 ? (routineCount / total) * 100 : 0;
 
-      // 2. Écart panier
+      // 2. Écart panier (only on actual orders)
       const ordersList = diagOrders || [];
       const avgOrderPrice =
         ordersList.length > 0
@@ -82,11 +82,11 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
           ? avgOrderPrice - avgRecommended
           : null;
 
-      // 3. Top produit
+      // 3. Top produit ACHETÉ (from validated_products on converted sessions)
       const productCounts: Record<string, number> = {};
       list.forEach((s) => {
-        if (!s.recommended_products) return;
-        s.recommended_products.split(",").forEach((p) => {
+        if (!s.conversion || !s.validated_products) return;
+        s.validated_products.split(",").forEach((p) => {
           const name = p.trim();
           if (name) productCounts[name] = (productCounts[name] || 0) + 1;
         });
@@ -100,9 +100,10 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
         }
       }
 
-      // 4. Clients existants
-      const existingCount = list.filter((s) => s.is_existing_client).length;
-      const clientsExistantsPercent = total > 0 ? (existingCount / total) * 100 : 0;
+      // 4. Clients existants parmi les commandes (converted sessions only)
+      const convertedSessions = list.filter((s) => s.conversion);
+      const existingCount = convertedSessions.filter((s) => s.is_existing_client).length;
+      const clientsExistantsPercent = convertedSessions.length > 0 ? (existingCount / convertedSessions.length) * 100 : 0;
 
       setData({
         routineCompletePercent,

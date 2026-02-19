@@ -249,8 +249,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Routine complète</p>
-                <p className="text-3xl font-bold text-foreground">{fmt(insights.routineCompletePercent, 1)}%</p>
-                <p className="text-xs text-muted-foreground">adoptent une routine 3+ produits</p>
+                <p className="text-3xl font-bold text-purple-600">{fmt(insights.routineCompletePercent, 1)}%</p>
+                <p className="text-sm font-medium text-foreground">adoptent une routine 3+ produits</p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Écart panier recommandé vs acheté</p>
@@ -259,7 +259,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                     <p className={`text-3xl font-bold ${insights.ecartPanier >= 0 ? "text-green-600" : "text-red-600"}`}>
                       {insights.ecartPanier >= 0 ? "+" : ""}{fmt(insights.ecartPanier, 2)} €
                     </p>
-                    <p className="text-xs text-muted-foreground">panier réel vs recommandé</p>
+                    <p className="text-sm font-medium text-foreground">panier réel vs recommandé</p>
                     <p className={`text-xs ${insights.ecartPanier >= 0 ? "text-green-600" : "text-red-600"}`}>
                       {insights.ecartPanier >= 0 ? "les clients achètent plus" : "les clients achètent moins"}
                     </p>
@@ -267,23 +267,23 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                 ) : (
                   <>
                     <p className="text-3xl font-bold text-muted-foreground">—</p>
-                    <p className="text-xs text-muted-foreground">données insuffisantes</p>
+                    <p className="text-sm font-medium text-foreground">données insuffisantes</p>
                   </>
                 )}
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Top produit recommandé</p>
-                <p className="text-2xl font-bold text-foreground truncate" title={insights.topProduct ?? ""}>
+                <p className="text-sm text-muted-foreground">Top produit acheté</p>
+                <p className="text-2xl font-bold text-amber-600 truncate" title={insights.topProduct ?? ""}>
                   {insights.topProduct ?? "—"}
                 </p>
                 {insights.topProduct && (
-                  <p className="text-xs text-muted-foreground">produit le + recommandé ({insights.topProductCount} fois)</p>
+                  <p className="text-sm font-medium text-foreground">produit le + acheté ({insights.topProductCount} fois)</p>
                 )}
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Clients existants</p>
-                <p className="text-3xl font-bold text-foreground">{fmt(insights.clientsExistantsPercent, 1)}%</p>
-                <p className="text-xs text-muted-foreground">utilisaient déjà Ouate</p>
+                <p className="text-3xl font-bold text-blue-600">{fmt(insights.clientsExistantsPercent, 1)}%</p>
+                <p className="text-sm font-medium text-foreground">utilisaient déjà Ouate</p>
               </div>
             </div>
           )}
