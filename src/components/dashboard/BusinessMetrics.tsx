@@ -49,6 +49,12 @@ function fmt(n: number, decimals = 0): string {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
+function percentDiff(a: number, b: number): { value: string; positive: boolean } | null {
+  if (b === 0) return null;
+  const diff = ((a - b) / b) * 100;
+  return { value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`, positive: diff >= 0 };
+}
+
 export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
   const metrics = useBusinessMetrics(dateRange);
 
@@ -56,14 +62,18 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
     : 0;
 
-  const convRate = metrics.completedSessions > 0
-    ? (metrics.orderCountDiag / metrics.completedSessions) * 100
+  // Conversion rate: diag purchases / diagnostic page views (GA4)
+  const convRateDiag = metrics.diagnosticPageViews > 0
+    ? (metrics.orderCountDiag / metrics.diagnosticPageViews) * 100
     : 0;
 
-  // Global conversion rate placeholder (would need GA4 views as denominator)
-  const globalConvRate = metrics.orderCountTotal > 0 && metrics.completedSessions > 0
-    ? (metrics.orderCountTotal / metrics.completedSessions) * 100
+  // Global conversion rate: non-diag orders / site sessions (GA4)
+  const convRateGlobal = metrics.siteSessions > 0
+    ? (metrics.orderCountNonDiag / metrics.siteSessions) * 100
     : 0;
+
+  const aovDiff = percentDiff(metrics.aovDiag, metrics.aovNonDiag);
+  const convDiff = percentDiff(convRateDiag, convRateGlobal);
 
   return (
     <div className="space-y-8">
@@ -84,7 +94,6 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               value={`${fmt(metrics.revenueDiag)} €`}
               subtitle={`${metrics.orderCountDiag} commandes`}
               icon={DollarSign}
-              comparison={{ period: "vs sans diagnostic", value: `${fmt(metrics.revenueNonDiag)} €` }}
               index={0}
             />
             <MetricCard
@@ -100,15 +109,23 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               value={`${fmt(metrics.aovDiag, 2)} €`}
               subtitle={`${metrics.orderCountDiag} commandes`}
               icon={ShoppingCart}
-              comparison={{ period: "vs sans diagnostic", value: `${fmt(metrics.aovNonDiag, 2)} €` }}
+              comparison={{
+                period: "vs sans diagnostic",
+                value: `${fmt(metrics.aovNonDiag, 2)} € ${aovDiff ? `(${aovDiff.value})` : ""}`,
+                positive: aovDiff?.positive,
+              }}
               index={2}
             />
             <MetricCard
               title="Taux de conversion diag"
-              value={`${fmt(convRate, 1)}%`}
-              subtitle={`${metrics.orderCountDiag} commandes / ${metrics.completedSessions} sessions`}
+              value={`${fmt(convRateDiag, 1)}%`}
+              subtitle={`${metrics.orderCountDiag} achats / ${metrics.diagnosticPageViews.toLocaleString()} vues diag`}
               icon={Users}
-              comparison={{ period: "vs global", value: `${fmt(globalConvRate, 1)}%` }}
+              comparison={{
+                period: "vs global",
+                value: `${fmt(convRateGlobal, 2)}% ${convDiff ? `(${convDiff.value})` : ""}`,
+                positive: convDiff?.positive,
+              }}
               index={3}
             />
           </div>
