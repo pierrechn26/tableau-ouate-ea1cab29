@@ -394,7 +394,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Analyse automatique chaque lundi — Les recommandations non appliquées peuvent être conservées
+            Analyse automatique chaque lundi basée sur les 7 derniers jours — Les recommandations non appliquées peuvent être conservées
           </p>
         </CardHeader>
         <CardContent>
