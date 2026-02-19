@@ -14,6 +14,7 @@ interface MetricCardProps {
   comparison?: {
     value: string;
     period: string;
+    positive?: boolean;
   };
   index?: number;
 }
@@ -60,7 +61,11 @@ export function MetricCard({
             {comparison && (
               <div className="mt-3 pt-3 border-t border-border/30">
                 <p className="text-xs text-muted-foreground">{comparison.period}</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">
+                <p className={`text-sm font-semibold mt-0.5 ${
+                  comparison.positive === true ? "text-green-600" :
+                  comparison.positive === false ? "text-red-600" :
+                  "text-foreground"
+                }`}>
                   {comparison.value}
                 </p>
               </div>
