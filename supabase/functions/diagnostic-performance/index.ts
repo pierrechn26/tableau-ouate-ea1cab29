@@ -218,10 +218,11 @@ Deno.serve(async (req) => {
     // Funnel purchase count & AOV from shopify_orders (single source of truth)
     let funnelPurchaseCount = 0;
     let funnelOrderAmountAvg: number | null = null;
+    let orphanOrderCount = 0;
     {
       let ordQ = supabase
         .from("shopify_orders")
-        .select("total_price")
+        .select("total_price, diagnostic_session_id")
         .eq("is_from_diagnostic", true)
         .gt("total_price", 0);
       if (from) ordQ = ordQ.gte("created_at", from.toISOString());
@@ -230,11 +231,16 @@ Deno.serve(async (req) => {
       if (diagOrdErr) console.error("[perf] Diag orders query error:", diagOrdErr);
       const dOrders = diagOrders ?? [];
       funnelPurchaseCount = dOrders.length;
+      orphanOrderCount = dOrders.filter((o: any) => !o.diagnostic_session_id).length;
       if (funnelPurchaseCount > 0) {
         const sum = dOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0);
         funnelOrderAmountAvg = Math.round((sum / funnelPurchaseCount) * 100) / 100;
       }
     }
+
+    // Add orphan buyers to cart & checkout so funnel is always decreasing
+    funnelAddToCart += orphanOrderCount;
+    funnelCheckout += orphanOrderCount;
 
     /* ====== DETAILED DIAGNOSTIC FUNNEL ====== */
     const detailedSteps = [
