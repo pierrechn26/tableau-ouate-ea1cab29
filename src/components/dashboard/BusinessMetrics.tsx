@@ -199,7 +199,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                                 style={{ backgroundColor: entry.color }}
                               />
                               <span className="text-muted-foreground">
-                                {entry.dataKey === "withDiag" ? "Avec diagnostic" : "Sans diagnostic"}:
+                                {entry.dataKey === "withDiag" ? "CA total (avec diagnostic)" : "CA sans diagnostic"}:
                               </span>
                               <span className="font-medium text-foreground">
                                 {fmtEuro(entry.value ?? 0)}
@@ -211,8 +211,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="withDiag" stroke="hsl(var(--primary))" strokeWidth={3} name="Avec diagnostic" dot={{ fill: "hsl(var(--primary))", r: 3 }} animationDuration={1200} />
-                  <Line type="monotone" dataKey="withoutDiag" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="Sans diagnostic" dot={{ fill: "hsl(var(--muted-foreground))", r: 2 }} animationDuration={1200} />
+                  <Line type="monotone" dataKey="withDiag" stroke="hsl(var(--primary))" strokeWidth={3} name="CA total (avec diagnostic)" dot={{ fill: "hsl(var(--primary))", r: 3 }} animationDuration={1200} />
+                  <Line type="monotone" dataKey="withoutDiag" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="CA sans diagnostic" dot={{ fill: "hsl(var(--muted-foreground))", r: 2 }} animationDuration={1200} />
                 </LineChart>
               </ResponsiveContainer>
             )}
