@@ -15,14 +15,16 @@ export function DiagnosticPreview() {
   };
 
   const handleRestart = () => {
-    // Post a reset message to the iframe, then reload with a fresh key
     try {
-      iframeRef.current?.contentWindow?.postMessage({ type: "ouate_diagnostic_reset" }, "*");
+      const win = iframeRef.current?.contentWindow;
+      if (win) {
+        // Clear all storage so the diagnostic app loses its session state
+        win.sessionStorage.clear();
+        win.localStorage.clear();
+      }
     } catch (_) { /* cross-origin — ignored */ }
-    // Small delay to let the message propagate, then force new iframe
-    setTimeout(() => {
-      setIframeKey((prev) => prev + 1);
-    }, 100);
+    // Force a completely new iframe instance
+    setIframeKey((prev) => prev + 1);
   };
 
   const handleOpenExternal = () => {
