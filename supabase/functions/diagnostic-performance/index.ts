@@ -238,9 +238,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Add orphan buyers to cart & checkout so funnel is always decreasing
-    funnelAddToCart += orphanOrderCount;
-    funnelCheckout += orphanOrderCount;
+    // Ensure funnel is always decreasing: cart & checkout >= purchases
+    funnelAddToCart = Math.max(funnelAddToCart + orphanOrderCount, funnelPurchaseCount);
+    funnelCheckout = Math.max(funnelCheckout + orphanOrderCount, funnelPurchaseCount);
 
     /* ====== DETAILED DIAGNOSTIC FUNNEL ====== */
     const detailedSteps = [
