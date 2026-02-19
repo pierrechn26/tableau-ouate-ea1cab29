@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,22 @@ const DIAGNOSTIC_URL = "https://diagnostic-ouate.lovable.app";
 
 export function DiagnosticPreview() {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [iframeSrc, setIframeSrc] = useState(DIAGNOSTIC_URL);
   const [iframeKey, setIframeKey] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const handleRefresh = () => {
     setIframeKey((prev) => prev + 1);
   };
 
   const handleRestart = () => {
-    // Force a clean reload to the home page by busting cache
-    setIframeSrc(`${DIAGNOSTIC_URL}?reset=${Date.now()}`);
-    setIframeKey((prev) => prev + 1);
+    // Post a reset message to the iframe, then reload with a fresh key
+    try {
+      iframeRef.current?.contentWindow?.postMessage({ type: "ouate_diagnostic_reset" }, "*");
+    } catch (_) { /* cross-origin — ignored */ }
+    // Small delay to let the message propagate, then force new iframe
+    setTimeout(() => {
+      setIframeKey((prev) => prev + 1);
+    }, 100);
   };
 
   const handleOpenExternal = () => {
@@ -98,12 +103,13 @@ export function DiagnosticPreview() {
         {/* Iframe — tabIndex -1 prevents auto-scroll on load */}
         <iframe
           key={iframeKey}
-          src={iframeSrc}
+          name={`diagnostic-frame-${iframeKey}`}
+          src={`${DIAGNOSTIC_URL}${iframeKey > 0 ? `?_t=${iframeKey}` : ""}`}
+          ref={iframeRef}
           className="w-full h-[calc(100%-40px)] border-0"
           title="Diagnostic OUATE"
           allow="clipboard-write"
           tabIndex={-1}
-          loading="lazy"
         />
       </div>
 
