@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
+import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DIAGNOSTIC_URL = "https://diagnostic-ouate.lovable.app";
@@ -44,6 +44,10 @@ export function DiagnosticPreview() {
           <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Actualiser
+          </Button>
+          <Button size="sm" onClick={() => setIframeKey((prev) => prev + 1)}>
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Recommencer
           </Button>
           <Button variant="outline" size="sm" onClick={() => setIsFullscreen(!isFullscreen)}>
             {isFullscreen ? (
