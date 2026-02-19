@@ -15,8 +15,10 @@ interface MetricCardProps {
     value: string;
     period: string;
     positive?: boolean;
+    diff?: string;
   };
   index?: number;
+  largeValue?: boolean;
 }
 
 export function MetricCard({
@@ -27,6 +29,7 @@ export function MetricCard({
   trend,
   comparison,
   index = 0,
+  largeValue = false,
 }: MetricCardProps) {
   return (
     <motion.div
@@ -39,7 +42,7 @@ export function MetricCard({
           <div className="space-y-2 flex-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <div className="space-y-1">
-              <p className="text-3xl font-bold text-foreground">{value}</p>
+              <p className={`font-bold text-foreground ${largeValue ? 'text-4xl' : 'text-3xl'}`}>{value}</p>
             {subtitle && (
                 <p className="text-xs text-muted-foreground">{subtitle}</p>
               )}
@@ -61,12 +64,17 @@ export function MetricCard({
             {comparison && (
               <div className="mt-3 pt-3 border-t border-border/30">
                 <p className="text-xs text-muted-foreground">{comparison.period}</p>
-                <p className={`text-sm font-semibold mt-0.5 ${
-                  comparison.positive === true ? "text-green-600" :
-                  comparison.positive === false ? "text-red-600" :
-                  "text-foreground"
-                }`}>
+                <p className="text-sm font-semibold mt-0.5 text-foreground">
                   {comparison.value}
+                  {comparison.diff && (
+                    <span className={`ml-1 ${
+                      comparison.positive === true ? "text-green-600" :
+                      comparison.positive === false ? "text-red-600" :
+                      "text-muted-foreground"
+                    }`}>
+                      ({comparison.diff})
+                    </span>
+                  )}
                 </p>
               </div>
             )}
