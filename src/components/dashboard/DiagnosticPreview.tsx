@@ -36,25 +36,20 @@ export function DiagnosticPreview() {
   };
 
   const handleRestart = useCallback(() => {
-    // Phase 1: Try to navigate existing iframe to about:blank to break the
-    // session, then remove the iframe from the DOM entirely.
+    // Send reset message to the diagnostic app via postMessage
     try {
-      if (iframeRef.current) {
-        iframeRef.current.src = "about:blank";
-      }
-    } catch (_) { /* ignored */ }
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "ouate_diagnostic_reset" },
+        "*"
+      );
+    } catch (_) { /* cross-origin — ignored */ }
 
-    // Remove iframe from DOM completely
+    // Also remount the iframe after a short delay as fallback
     setIsResetting(true);
-
-    // Phase 2: After a delay, mount a brand-new iframe with a unique URL
-    // to guarantee the browser creates a fresh browsing context with empty
-    // sessionStorage. We also append a cache-busting param to defeat any
-    // HTTP or service-worker caching.
     setTimeout(() => {
       setIframeKey((prev) => prev + 1);
       setIsResetting(false);
-    }, 400);
+    }, 600);
   }, []);
 
   const handleOpenExternal = () => {
