@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import {
@@ -15,7 +16,11 @@ import {
 import { DollarSign, TrendingUp, ShoppingCart, Users, Loader2 } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
+import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface BusinessMetricsProps {
   dateRange?: DateRange;
@@ -30,20 +35,9 @@ const revenueByPersona = [
 
 const totalRevenue = revenueByPersona.reduce((sum, p) => sum + p.revenue, 0);
 
-const monthlyRevenue = [
-  { month: "Jan", withDiag: 87000, withoutDiag: 54000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Fév", withDiag: 92000, withoutDiag: 56000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Mar", withDiag: 98000, withoutDiag: 58000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Avr", withDiag: 105000, withoutDiag: 61000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Mai", withDiag: 112000, withoutDiag: 63000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Juin", withDiag: 118000, withoutDiag: 65000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Juil", withDiag: 121000, withoutDiag: 66000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Août", withDiag: 119000, withoutDiag: 64000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Sep", withDiag: 124000, withoutDiag: 68000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Oct", withDiag: 131000, withoutDiag: 71000, withDiagDashed: null, withoutDiagDashed: null },
-  { month: "Nov", withDiag: 127450, withoutDiag: 69000, withDiagDashed: 127450, withoutDiagDashed: 69000 },
-  { month: "Déc", withDiag: null, withoutDiag: null, withDiagDashed: 134000, withoutDiagDashed: 72000 },
-];
+function fmtEuro(n: number): string {
+  return n.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " €";
+}
 
 function fmt(n: number, decimals = 0): string {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -56,7 +50,9 @@ function percentDiff(a: number, b: number): { value: string; positive: boolean }
 }
 
 export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
+  const [granularity, setGranularity] = useState<Granularity>("day");
   const metrics = useBusinessMetrics(dateRange);
+  const revenue = useRevenueTimeseries(dateRange, granularity);
 
   const percentInfluenced = metrics.revenueTotal > 0
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
@@ -143,9 +139,9 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
         )}
       </div>
 
-      {/* Charts — kept as static/fictive */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Comparison */}
+        {/* Revenue Comparison — real data */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,60 +152,70 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               <h3 className="text-lg font-bold text-foreground font-heading">
                 Impact du Diagnostic sur le CA
               </h3>
-              <span className="text-xs text-muted-foreground">
-                Données depuis le début de l'année
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  {dateRange?.from
+                    ? `${format(dateRange.from, "dd MMM yyyy", { locale: fr })} – ${format(dateRange.to ?? new Date(), "dd MMM yyyy", { locale: fr })}`
+                    : "30 derniers jours"}
+                </span>
+                <ToggleGroup
+                  type="single"
+                  value={granularity}
+                  onValueChange={(v) => { if (v) setGranularity(v as Granularity); }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <ToggleGroupItem value="day" className="text-xs px-2">Jour</ToggleGroupItem>
+                  <ToggleGroupItem value="week" className="text-xs px-2">Semaine</ToggleGroupItem>
+                  <ToggleGroupItem value="month" className="text-xs px-2">Mois</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload) return null;
-                    
-                    const filteredPayload = payload.filter((entry: any) => {
-                      if (label === "Nov") {
-                        return entry.dataKey === "withDiag" || entry.dataKey === "withoutDiag";
-                      }
-                      if (label === "Déc") {
-                        return entry.dataKey === "withDiagDashed" || entry.dataKey === "withoutDiagDashed";
-                      }
-                      return entry.dataKey === "withDiag" || entry.dataKey === "withoutDiag";
-                    });
-
-                    return (
-                      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                        <p className="font-medium text-foreground mb-2">{label}</p>
-                        {filteredPayload.map((entry: any, index: number) => (
-                          <div key={index} className="flex items-center gap-2 text-sm">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: entry.color }}
-                            />
-                            <span className="text-muted-foreground">
-                              {entry.dataKey === "withDiag" || entry.dataKey === "withDiagDashed" ? "Avec diagnostic" : "Sans diagnostic"}:
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {entry.value?.toLocaleString()} €
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="withDiag" stroke="hsl(var(--primary))" strokeWidth={3} name="Avec diagnostic" dot={{ fill: "hsl(var(--primary))", r: 4 }} connectNulls={false} animationDuration={1500} animationBegin={0} />
-                <Line type="monotone" dataKey="withoutDiag" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="Sans diagnostic" dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }} connectNulls={false} animationDuration={1500} animationBegin={0} />
-                <Line type="monotone" dataKey="withDiagDashed" stroke="hsl(var(--primary))" strokeWidth={3} strokeDasharray="5 5" dot={{ fill: "hsl(var(--primary))", r: 4 }} connectNulls={false} legendType="none" animationDuration={800} animationBegin={1400} />
-                <Line type="monotone" dataKey="withoutDiagDashed" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }} connectNulls={false} legendType="none" animationDuration={800} animationBegin={1400} />
-              </LineChart>
-            </ResponsiveContainer>
-            <p className="text-xs text-muted-foreground mt-2">
-              Les lignes pointillées représentent les données partielles du mois en cours
-            </p>
+            {revenue.isLoading ? (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Chargement...</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={revenue.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => fmtEuro(v)}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      return (
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                          <p className="font-medium text-foreground mb-2">{label}</p>
+                          {payload.map((entry: any, index: number) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="text-muted-foreground">
+                                {entry.dataKey === "withDiag" ? "Avec diagnostic" : "Sans diagnostic"}:
+                              </span>
+                              <span className="font-medium text-foreground">
+                                {fmtEuro(entry.value ?? 0)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="withDiag" stroke="hsl(var(--primary))" strokeWidth={3} name="Avec diagnostic" dot={{ fill: "hsl(var(--primary))", r: 3 }} animationDuration={1200} />
+                  <Line type="monotone" dataKey="withoutDiag" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="Sans diagnostic" dot={{ fill: "hsl(var(--muted-foreground))", r: 2 }} animationDuration={1200} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </motion.div>
 
