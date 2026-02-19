@@ -66,7 +66,7 @@ interface ResponsesSectionProps {
 }
 
 export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
-  const { sessions, isLoading, error } = useDiagnosticSessions();
+  const { sessions, isLoading, error } = useDiagnosticSessions(dateRange);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [conversionFilter, setConversionFilter] = useState("all");
