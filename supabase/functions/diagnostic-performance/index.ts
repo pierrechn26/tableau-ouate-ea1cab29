@@ -204,13 +204,21 @@ Deno.serve(async (req) => {
     let funnelConversion = 0;
     let funnelDurationSum = 0;
     let funnelDurationCount = 0;
+    let funnelOrderAmountSum = 0;
+    let funnelOrderAmountCount = 0;
 
     for (const s of sessions) {
       if (s.status === "termine" && s.optin_email) funnelOptinEmail++;
       if (s.recommended_products) funnelRecommendation++;
       if (s.selected_cart_amount != null || s.conversion) funnelAddToCart++;
       if (s.checkout_started || s.conversion) funnelCheckout++;
-      if (s.conversion) funnelConversion++;
+      if (s.conversion) {
+        funnelConversion++;
+        if (s.validated_cart_amount != null) {
+          funnelOrderAmountSum += Number(s.validated_cart_amount);
+          funnelOrderAmountCount++;
+        }
+      }
       if (s.status === "termine" && s.duration_seconds != null) {
         funnelDurationSum += s.duration_seconds;
         funnelDurationCount++;
@@ -261,6 +269,7 @@ Deno.serve(async (req) => {
         checkout: funnelCheckout,
         purchase: funnelConversion,
         avgDurationSeconds: funnelDurationCount > 0 ? Math.round(funnelDurationSum / funnelDurationCount) : null,
+        avgOrderAmount: funnelOrderAmountCount > 0 ? Math.round((funnelOrderAmountSum / funnelOrderAmountCount) * 100) / 100 : null,
       },
       detailedFunnel,
     };
