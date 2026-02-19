@@ -74,7 +74,9 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
 
   const aovDiff = percentDiff(metrics.aovDiag, metrics.aovNonDiag);
   const convDiff = percentDiff(convRateDiag, convRateGlobal);
-  const caDiff = percentDiff(metrics.revenueDiag, metrics.revenueNonDiag);
+  const caWithDiag = metrics.revenueTotal;
+  const caWithoutDiag = metrics.revenueTotal - metrics.revenueDiag;
+  const caDiff = percentDiff(caWithDiag, caWithoutDiag);
 
   return (
     <div className="space-y-8">
@@ -96,8 +98,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               subtitle={`${metrics.orderCountDiag} commandes`}
               icon={DollarSign}
               comparison={{
-                period: "vs sans diagnostic",
-                value: `${fmt(metrics.revenueNonDiag)} €`,
+                period: "CA total vs CA sans diagnostic",
+                value: `${fmt(caWithDiag)} € vs ${fmt(caWithoutDiag)} €`,
                 diff: caDiff ? caDiff.value : undefined,
                 positive: caDiff?.positive,
               }}
