@@ -100,15 +100,15 @@ export function DiagnosticPreview() {
           </div>
         </div>
 
-        {/* Iframe — tabIndex -1 prevents auto-scroll on load */}
+        {/* Iframe — sandbox without allow-same-origin blocks sessionStorage, forcing fresh start */}
         <iframe
           key={iframeKey}
           name={`diagnostic-frame-${iframeKey}`}
-          src={`${DIAGNOSTIC_URL}${iframeKey > 0 ? `?_t=${iframeKey}` : ""}`}
+          src={DIAGNOSTIC_URL}
           ref={iframeRef}
           className="w-full h-[calc(100%-40px)] border-0"
           title="Diagnostic OUATE"
-          allow="clipboard-write"
+          sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
           tabIndex={-1}
         />
       </div>
