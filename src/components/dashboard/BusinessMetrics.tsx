@@ -49,23 +49,20 @@ function fmt(n: number, decimals = 0): string {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function pctChange(current: number, previous: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0;
-  return Math.round(((current - previous) / previous) * 100);
-}
-
 export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
   const metrics = useBusinessMetrics(dateRange);
 
   const percentInfluenced = metrics.revenueTotal > 0
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
     : 0;
-  const prevPercentInfluenced = metrics.revenueTotalPrev > 0
-    ? (metrics.revenueDiagPrev / metrics.revenueTotalPrev) * 100
-    : 0;
 
   const convRate = metrics.completedSessions > 0
     ? (metrics.orderCountDiag / metrics.completedSessions) * 100
+    : 0;
+
+  // Global conversion rate placeholder (would need GA4 views as denominator)
+  const globalConvRate = metrics.orderCountTotal > 0 && metrics.completedSessions > 0
+    ? (metrics.orderCountTotal / metrics.completedSessions) * 100
     : 0;
 
   return (
@@ -85,28 +82,25 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
             <MetricCard
               title="CA via diagnostic"
               value={`${fmt(metrics.revenueDiag)} €`}
-              subtitle="Sur la période"
+              subtitle={`${metrics.orderCountDiag} commandes`}
               icon={DollarSign}
-              trend={{ value: Math.abs(pctChange(metrics.revenueDiag, metrics.revenueDiagPrev)), isPositive: pctChange(metrics.revenueDiag, metrics.revenueDiagPrev) >= 0 }}
-              comparison={{ period: "vs période précédente", value: `${fmt(metrics.revenueDiagPrev)} €` }}
+              comparison={{ period: "vs sans diagnostic", value: `${fmt(metrics.revenueNonDiag)} €` }}
               index={0}
             />
             <MetricCard
               title="% ventes influencées"
               value={`${fmt(percentInfluenced, 1)}%`}
-              subtitle="des ventes totales"
+              subtitle={`${metrics.orderCountDiag} / ${metrics.orderCountTotal} commandes`}
               icon={TrendingUp}
-              trend={{ value: Math.abs(pctChange(percentInfluenced, prevPercentInfluenced)), isPositive: pctChange(percentInfluenced, prevPercentInfluenced) >= 0 }}
-              comparison={{ period: "vs période précédente", value: `${fmt(prevPercentInfluenced, 1)}%` }}
+              comparison={{ period: `${fmt(percentInfluenced, 1)}% du CA total`, value: `${fmt(metrics.revenueDiag)} € sur ${fmt(metrics.revenueTotal)} €` }}
               index={1}
             />
             <MetricCard
               title="AOV après diag"
               value={`${fmt(metrics.aovDiag, 2)} €`}
-              subtitle={`vs ${fmt(metrics.aovNonDiag, 2)} € sans`}
+              subtitle={`${metrics.orderCountDiag} commandes`}
               icon={ShoppingCart}
-              trend={{ value: Math.abs(pctChange(metrics.aovDiag, metrics.aovDiagPrev)), isPositive: pctChange(metrics.aovDiag, metrics.aovDiagPrev) >= 0 }}
-              comparison={{ period: "vs période précédente", value: `${fmt(metrics.aovDiagPrev, 2)} €` }}
+              comparison={{ period: "vs sans diagnostic", value: `${fmt(metrics.aovNonDiag, 2)} €` }}
               index={2}
             />
             <MetricCard
@@ -114,8 +108,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               value={`${fmt(convRate, 1)}%`}
               subtitle={`${metrics.orderCountDiag} commandes / ${metrics.completedSessions} sessions`}
               icon={Users}
-              trend={{ value: Math.abs(pctChange(convRate, metrics.convRatePrev)), isPositive: pctChange(convRate, metrics.convRatePrev) >= 0 }}
-              comparison={{ period: "vs période précédente", value: `${fmt(metrics.convRatePrev, 1)}%` }}
+              comparison={{ period: "vs global", value: `${fmt(globalConvRate, 1)}%` }}
               index={3}
             />
           </div>
