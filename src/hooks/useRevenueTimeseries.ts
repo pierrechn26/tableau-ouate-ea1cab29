@@ -71,7 +71,7 @@ export function useRevenueTimeseries(
             const date = parse(d, "yyyy-MM-dd", new Date());
             return {
               label: format(date, "dd/MM"),
-              withDiag: v.withDiag,
+              withDiag: Math.round((v.withDiag + v.withoutDiag) * 100) / 100,
               withoutDiag: v.withoutDiag,
             };
           })
@@ -93,7 +93,7 @@ export function useRevenueTimeseries(
         setData(
           Array.from(weekMap.entries()).map(([key, v]) => ({
             label: key.split("-")[1],
-            withDiag: Math.round(v.withDiag * 100) / 100,
+            withDiag: Math.round((v.withDiag + v.withoutDiag) * 100) / 100,
             withoutDiag: Math.round(v.withoutDiag * 100) / 100,
           }))
         );
@@ -120,7 +120,7 @@ export function useRevenueTimeseries(
             const date = parse(key + "-01", "yyyy-MM-dd", new Date());
             return {
               label: format(date, "MMMM", { locale: fr }),
-              withDiag: Math.round(v.withDiag * 100) / 100,
+              withDiag: Math.round((v.withDiag + v.withoutDiag) * 100) / 100,
               withoutDiag: Math.round(v.withoutDiag * 100) / 100,
             };
           })
