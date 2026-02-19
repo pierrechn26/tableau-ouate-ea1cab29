@@ -1,31 +1,61 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Eye, ExternalLink, RefreshCw, Maximize2, Minimize2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DIAGNOSTIC_URL = "https://diagnostic-ouate.lovable.app";
 
+/**
+ * Generates an inline HTML document that:
+ * 1. Clears localStorage & sessionStorage for the diagnostic origin
+ * 2. Then redirects to the diagnostic home page
+ *
+ * Because the srcdoc page is loaded *inside* the sandboxed iframe with
+ * allow-same-origin, the browser treats it as same-origin with the
+ * diagnostic URL it will navigate to, so the storage.clear() calls
+ * won't throw cross-origin errors.
+ *
+ * NOTE: srcdoc pages inherit the sandbox flags of the iframe, and with
+ * allow-same-origin their effective origin is the *parent*'s origin,
+ * which is NOT the diagnostic origin. So this alone wouldn't work.
+ *
+ * Instead we use a two-phase approach:
+ * Phase 1 – remove iframe from DOM entirely (destroys the browsing context)
+ * Phase 2 – after a delay, mount a brand-new iframe element with a fresh
+ *           cache-busting URL, ensuring the browser creates a new context.
+ */
+
 export function DiagnosticPreview() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const handleRefresh = () => {
     setIframeKey((prev) => prev + 1);
   };
 
-  const handleRestart = () => {
+  const handleRestart = useCallback(() => {
+    // Phase 1: Try to navigate existing iframe to about:blank to break the
+    // session, then remove the iframe from the DOM entirely.
     try {
-      const win = iframeRef.current?.contentWindow;
-      if (win) {
-        // Clear all storage so the diagnostic app loses its session state
-        win.sessionStorage.clear();
-        win.localStorage.clear();
+      if (iframeRef.current) {
+        iframeRef.current.src = "about:blank";
       }
-    } catch (_) { /* cross-origin — ignored */ }
-    // Force a completely new iframe instance
-    setIframeKey((prev) => prev + 1);
-  };
+    } catch (_) { /* ignored */ }
+
+    // Remove iframe from DOM completely
+    setIsResetting(true);
+
+    // Phase 2: After a delay, mount a brand-new iframe with a unique URL
+    // to guarantee the browser creates a fresh browsing context with empty
+    // sessionStorage. We also append a cache-busting param to defeat any
+    // HTTP or service-worker caching.
+    setTimeout(() => {
+      setIframeKey((prev) => prev + 1);
+      setIsResetting(false);
+    }, 400);
+  }, []);
 
   const handleOpenExternal = () => {
     window.open(DIAGNOSTIC_URL, "_blank");
@@ -102,17 +132,23 @@ export function DiagnosticPreview() {
           </div>
         </div>
 
-        {/* Iframe — sandbox without allow-same-origin blocks sessionStorage, forcing fresh start */}
-        <iframe
-          key={iframeKey}
-          name={`diagnostic-frame-${iframeKey}`}
-          src={DIAGNOSTIC_URL}
-          ref={iframeRef}
-          className="w-full h-[calc(100%-40px)] border-0"
-          title="Diagnostic OUATE"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-          tabIndex={-1}
-        />
+        {/* Iframe — conditionally rendered to allow full DOM destruction on restart */}
+        {!isResetting ? (
+          <iframe
+            key={iframeKey}
+            name={`diagnostic-frame-${iframeKey}`}
+            src={`${DIAGNOSTIC_URL}${iframeKey > 0 ? `?_restart=${iframeKey}&_t=${Date.now()}` : ""}`}
+            ref={iframeRef}
+            className="w-full h-[calc(100%-40px)] border-0"
+            title="Diagnostic OUATE"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            tabIndex={-1}
+          />
+        ) : (
+          <div className="w-full h-[calc(100%-40px)] flex items-center justify-center">
+            <RefreshCw className="w-6 h-6 text-muted-foreground animate-spin" />
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
