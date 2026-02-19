@@ -53,15 +53,7 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       const fromISO = from.toISOString();
       const toISO = to.toISOString();
 
-      // 1. Diagnostic conversions from diagnostic_sessions (source of truth)
-      const { data: diagSessions } = await supabase
-        .from("diagnostic_sessions")
-        .select("validated_cart_amount")
-        .eq("conversion", true)
-        .gte("created_at", fromISO)
-        .lte("created_at", toISO);
-
-      // 2. All orders from shopify_orders (exclude 0€) for total revenue
+      // All orders from shopify_orders (single source of truth)
       const { data: allOrders } = await supabase
         .from("shopify_orders")
         .select("total_price, is_from_diagnostic")
@@ -69,7 +61,7 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         .gte("created_at", fromISO)
         .lte("created_at", toISO);
 
-      // 3. GA4 data for conversion rate denominators
+      // GA4 data for conversion rate denominators
       const startDate = format(from, "yyyy-MM-dd");
       const endDate = format(to, "yyyy-MM-dd");
       let siteSessions = 0;
@@ -87,17 +79,19 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         console.error("GA4 fetch error in useBusinessMetrics:", err);
       }
 
-      // Calculate diagnostic metrics
-      const sessions = diagSessions || [];
-      const orderCountDiag = sessions.length;
-      const revenueDiag = sessions.reduce(
-        (s, o) => s + (Number(o.validated_cart_amount) || 0),
+      const allOrdersList = allOrders || [];
+
+      // Diagnostic metrics from shopify_orders
+      const diagOrders = allOrdersList.filter((o: any) => o.is_from_diagnostic);
+      const orderCountDiag = diagOrders.length;
+      const revenueDiag = diagOrders.reduce(
+        (s, o) => s + (Number(o.total_price) || 0),
         0
       );
       const aovDiag = orderCountDiag > 0 ? revenueDiag / orderCountDiag : 0;
 
-      // Calculate non-diagnostic metrics from allOrders
-      const nonDiag = (allOrders || []).filter((o: any) => !o.is_from_diagnostic);
+      // Non-diagnostic metrics from shopify_orders
+      const nonDiag = allOrdersList.filter((o: any) => !o.is_from_diagnostic);
       const orderCountNonDiag = nonDiag.length;
       const revenueNonDiag = nonDiag.reduce(
         (s, o) => s + (Number(o.total_price) || 0),
@@ -105,8 +99,7 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       );
       const aovNonDiag = orderCountNonDiag > 0 ? revenueNonDiag / orderCountNonDiag : 0;
 
-      // Calculate total from shopify_orders (single source of truth for total)
-      const allOrdersList = allOrders || [];
+      // Total
       const orderCountTotal = allOrdersList.length;
       const revenueTotal = allOrdersList.reduce(
         (s, o) => s + (Number(o.total_price) || 0),

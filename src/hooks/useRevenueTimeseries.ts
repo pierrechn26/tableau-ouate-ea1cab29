@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DateRange } from "react-day-picker";
-import { subDays, startOfWeek, getISOWeek, format, parse } from "date-fns";
+import { subDays, getISOWeek, format, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export type Granularity = "day" | "week" | "month";
@@ -33,46 +33,55 @@ export function useRevenueTimeseries(
       const to = new Date(toRaw);
       to.setHours(23, 59, 59, 999);
 
-      const { data: result, error } = await supabase.functions.invoke(
-        "diagnostic-performance",
-        { body: { from: from.toISOString(), to: to.toISOString() } }
-      );
+      const { data: orders, error } = await supabase
+        .from("shopify_orders")
+        .select("created_at, total_price, is_from_diagnostic")
+        .gt("total_price", 0)
+        .gte("created_at", from.toISOString())
+        .lte("created_at", to.toISOString());
 
-      if (error || !result?.revenueTimeseries) {
+      if (error || !orders) {
         setData([]);
         setIsLoading(false);
         return;
       }
 
-      const raw: { date: string; withDiag: number; withoutDiag: number }[] =
-        result.revenueTimeseries;
-
-      // Fill missing days within range
+      // Group orders by local date (browser timezone, should be Europe/Paris for FR users)
       const dayMap = new Map<string, { withDiag: number; withoutDiag: number }>();
-      for (const r of raw) {
-        dayMap.set(r.date, { withDiag: r.withDiag, withoutDiag: r.withoutDiag });
+      for (const o of orders) {
+        const date = new Date(o.created_at!);
+        const dayKey = format(date, "yyyy-MM-dd");
+        const existing = dayMap.get(dayKey) ?? { withDiag: 0, withoutDiag: 0 };
+        const amount = Number(o.total_price) || 0;
+        if (o.is_from_diagnostic) {
+          existing.withDiag += amount;
+        } else {
+          existing.withoutDiag += amount;
+        }
+        dayMap.set(dayKey, existing);
       }
 
+      // Fill all days in range
       const allDays: string[] = [];
       const cur = new Date(from);
       cur.setHours(0, 0, 0, 0);
       const end = new Date(to);
       end.setHours(0, 0, 0, 0);
       while (cur <= end) {
-        allDays.push(cur.toISOString().substring(0, 10));
+        allDays.push(format(cur, "yyyy-MM-dd"));
         cur.setDate(cur.getDate() + 1);
       }
 
-      // Aggregate based on granularity
       if (granularity === "day") {
         setData(
           allDays.map((d) => {
             const v = dayMap.get(d) ?? { withDiag: 0, withoutDiag: 0 };
             const date = parse(d, "yyyy-MM-dd", new Date());
+            const total = Math.round((v.withDiag + v.withoutDiag) * 100) / 100;
             return {
               label: format(date, "dd/MM"),
-              withDiag: Math.round((v.withDiag + v.withoutDiag) * 100) / 100,
-              withoutDiag: v.withoutDiag,
+              withDiag: total,
+              withoutDiag: Math.round(v.withoutDiag * 100) / 100,
             };
           })
         );
