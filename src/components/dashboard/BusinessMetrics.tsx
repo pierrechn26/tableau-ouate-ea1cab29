@@ -26,14 +26,6 @@ interface BusinessMetricsProps {
   dateRange?: DateRange;
 }
 
-const revenueByPersona = [
-  { persona: "Emma", typology: "Enceinte 1er trimestre", revenue: 54230, aov: 68.5, conversion: 3.8 },
-  { persona: "Sophie", typology: "Jeune maman postpartum", revenue: 48670, aov: 71.2, conversion: 4.2 },
-  { persona: "Léa", typology: "Maman de 2 enfants", revenue: 24550, aov: 76.8, conversion: 3.4 },
-  { persona: "Autres", typology: "Profils en découverte", revenue: 68450, aov: 58.3, conversion: 2.1, locked: true },
-];
-
-const totalRevenue = revenueByPersona.reduce((sum, p) => sum + p.revenue, 0);
 
 function fmtEuro(n: number): string {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + " €";
@@ -219,49 +211,19 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
           </Card>
         </motion.div>
 
-        {/* Performance by Persona */}
+        {/* Performance by Persona — à venir */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md flex flex-col items-center justify-center h-full min-h-[380px]">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
               CA par Persona
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueByPersona}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="persona" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                  formatter={(value: number) => [
-                    `${value.toLocaleString()} € (${((value / totalRevenue) * 100).toFixed(1)}% du CA total)`,
-                    "CA"
-                  ]}
-                />
-                <Legend />
-                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} name="CA" />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
-              {revenueByPersona.map((persona) => (
-                <div key={persona.persona} className={`text-center ${persona.locked ? 'opacity-60' : ''}`}>
-                  <p className="text-sm font-semibold text-foreground flex items-center justify-center gap-1">
-                    {persona.persona}
-                    {persona.locked && <span className="text-xs">🔒</span>}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{persona.typology}</p>
-                  <p className="text-xs text-muted-foreground mt-1">AOV: {persona.aov}€</p>
-                  <p className="text-xs text-muted-foreground">Conv: {persona.conversion}%</p>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Les données par persona seront disponibles prochainement.
+            </p>
           </Card>
         </motion.div>
       </div>
