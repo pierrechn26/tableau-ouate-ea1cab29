@@ -12,8 +12,14 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DollarSign, TrendingUp, ShoppingCart, Users } from "lucide-react";
+import { DollarSign, TrendingUp, ShoppingCart, Users, Loader2 } from "lucide-react";
 import { MetricCard } from "./MetricCard";
+import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
+import type { DateRange } from "react-day-picker";
+
+interface BusinessMetricsProps {
+  dateRange?: DateRange;
+}
 
 const revenueByPersona = [
   { persona: "Emma", typology: "Enceinte 1er trimestre", revenue: 54230, aov: 68.5, conversion: 3.8 },
@@ -39,7 +45,29 @@ const monthlyRevenue = [
   { month: "Déc", withDiag: null, withoutDiag: null, withDiagDashed: 134000, withoutDiagDashed: 72000 },
 ];
 
-export function BusinessMetrics() {
+function fmt(n: number, decimals = 0): string {
+  return n.toLocaleString("fr-FR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function pctChange(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
+  const metrics = useBusinessMetrics(dateRange);
+
+  const percentInfluenced = metrics.revenueTotal > 0
+    ? (metrics.revenueDiag / metrics.revenueTotal) * 100
+    : 0;
+  const prevPercentInfluenced = metrics.revenueTotalPrev > 0
+    ? (metrics.revenueDiagPrev / metrics.revenueTotalPrev) * 100
+    : 0;
+
+  const convRate = metrics.completedSessions > 0
+    ? (metrics.orderCountDiag / metrics.completedSessions) * 100
+    : 0;
+
   return (
     <div className="space-y-8">
       {/* Key Business Metrics */}
@@ -47,47 +75,54 @@ export function BusinessMetrics() {
         <h2 className="text-2xl font-bold text-foreground mb-6 font-heading">
           Business & Conversion
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <MetricCard
-            title="CA via diagnostic"
-            value="127 450 €"
-            subtitle="Ce mois"
-            icon={DollarSign}
-            trend={{ value: 23, isPositive: true }}
-            comparison={{ period: "vs période précédente", value: "103 617 €" }}
-            index={0}
-          />
-          <MetricCard
-            title="% ventes influencées"
-            value="66.2%"
-            subtitle="des ventes totales"
-            icon={TrendingUp}
-            trend={{ value: 8, isPositive: true }}
-            comparison={{ period: "vs période précédente", value: "61.3%" }}
-            index={1}
-          />
-          <MetricCard
-            title="AOV après diag"
-            value="71.20 €"
-            subtitle="vs 52.30 € sans"
-            icon={ShoppingCart}
-            trend={{ value: 36, isPositive: true }}
-            comparison={{ period: "vs période précédente", value: "52.35 €" }}
-            index={2}
-          />
-          <MetricCard
-            title="LTV moyenne"
-            value="234 €"
-            subtitle="+42% vs sans diag"
-            icon={Users}
-            trend={{ value: 42, isPositive: true }}
-            comparison={{ period: "vs période précédente", value: "164.79 €" }}
-            index={3}
-          />
-        </div>
+        {metrics.isLoading ? (
+          <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Chargement des données...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <MetricCard
+              title="CA via diagnostic"
+              value={`${fmt(metrics.revenueDiag)} €`}
+              subtitle="Sur la période"
+              icon={DollarSign}
+              trend={{ value: Math.abs(pctChange(metrics.revenueDiag, metrics.revenueDiagPrev)), isPositive: pctChange(metrics.revenueDiag, metrics.revenueDiagPrev) >= 0 }}
+              comparison={{ period: "vs période précédente", value: `${fmt(metrics.revenueDiagPrev)} €` }}
+              index={0}
+            />
+            <MetricCard
+              title="% ventes influencées"
+              value={`${fmt(percentInfluenced, 1)}%`}
+              subtitle="des ventes totales"
+              icon={TrendingUp}
+              trend={{ value: Math.abs(pctChange(percentInfluenced, prevPercentInfluenced)), isPositive: pctChange(percentInfluenced, prevPercentInfluenced) >= 0 }}
+              comparison={{ period: "vs période précédente", value: `${fmt(prevPercentInfluenced, 1)}%` }}
+              index={1}
+            />
+            <MetricCard
+              title="AOV après diag"
+              value={`${fmt(metrics.aovDiag, 2)} €`}
+              subtitle={`vs ${fmt(metrics.aovNonDiag, 2)} € sans`}
+              icon={ShoppingCart}
+              trend={{ value: Math.abs(pctChange(metrics.aovDiag, metrics.aovDiagPrev)), isPositive: pctChange(metrics.aovDiag, metrics.aovDiagPrev) >= 0 }}
+              comparison={{ period: "vs période précédente", value: `${fmt(metrics.aovDiagPrev, 2)} €` }}
+              index={2}
+            />
+            <MetricCard
+              title="Taux de conversion diag"
+              value={`${fmt(convRate, 1)}%`}
+              subtitle={`${metrics.orderCountDiag} commandes / ${metrics.completedSessions} sessions`}
+              icon={Users}
+              trend={{ value: Math.abs(pctChange(convRate, metrics.convRatePrev)), isPositive: pctChange(convRate, metrics.convRatePrev) >= 0 }}
+              comparison={{ period: "vs période précédente", value: `${fmt(metrics.convRatePrev, 1)}%` }}
+              index={3}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Charts */}
+      {/* Charts — kept as static/fictive */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Comparison */}
         <motion.div
@@ -145,54 +180,10 @@ export function BusinessMetrics() {
                   }}
                 />
                 <Legend />
-                {/* Lignes continues (Jan-Nov) */}
-                <Line
-                  type="monotone"
-                  dataKey="withDiag"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={3}
-                  name="Avec diagnostic"
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  connectNulls={false}
-                  animationDuration={1500}
-                  animationBegin={0}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="withoutDiag"
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth={2}
-                  name="Sans diagnostic"
-                  dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
-                  connectNulls={false}
-                  animationDuration={1500}
-                  animationBegin={0}
-                />
-                {/* Lignes pointillées (Nov-Déc) */}
-                <Line
-                  type="monotone"
-                  dataKey="withDiagDashed"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={3}
-                  strokeDasharray="5 5"
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  connectNulls={false}
-                  legendType="none"
-                  animationDuration={800}
-                  animationBegin={1400}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="withoutDiagDashed"
-                  stroke="hsl(var(--muted-foreground))"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }}
-                  connectNulls={false}
-                  legendType="none"
-                  animationDuration={800}
-                  animationBegin={1400}
-                />
+                <Line type="monotone" dataKey="withDiag" stroke="hsl(var(--primary))" strokeWidth={3} name="Avec diagnostic" dot={{ fill: "hsl(var(--primary))", r: 4 }} connectNulls={false} animationDuration={1500} animationBegin={0} />
+                <Line type="monotone" dataKey="withoutDiag" stroke="hsl(var(--muted-foreground))" strokeWidth={2} name="Sans diagnostic" dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }} connectNulls={false} animationDuration={1500} animationBegin={0} />
+                <Line type="monotone" dataKey="withDiagDashed" stroke="hsl(var(--primary))" strokeWidth={3} strokeDasharray="5 5" dot={{ fill: "hsl(var(--primary))", r: 4 }} connectNulls={false} legendType="none" animationDuration={800} animationBegin={1400} />
+                <Line type="monotone" dataKey="withoutDiagDashed" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: "hsl(var(--muted-foreground))", r: 3 }} connectNulls={false} legendType="none" animationDuration={800} animationBegin={1400} />
               </LineChart>
             </ResponsiveContainer>
             <p className="text-xs text-muted-foreground mt-2">
@@ -228,12 +219,7 @@ export function BusinessMetrics() {
                   ]}
                 />
                 <Legend />
-                <Bar
-                  dataKey="revenue"
-                  fill="hsl(var(--primary))"
-                  radius={[8, 8, 0, 0]}
-                  name="CA"
-                />
+                <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} name="CA" />
               </BarChart>
             </ResponsiveContainer>
             <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border/50">
@@ -243,15 +229,9 @@ export function BusinessMetrics() {
                     {persona.persona}
                     {persona.locked && <span className="text-xs">🔒</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {persona.typology}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    AOV: {persona.aov}€
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Conv: {persona.conversion}%
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{persona.typology}</p>
+                  <p className="text-xs text-muted-foreground mt-1">AOV: {persona.aov}€</p>
+                  <p className="text-xs text-muted-foreground">Conv: {persona.conversion}%</p>
                 </div>
               ))}
             </div>
@@ -259,7 +239,7 @@ export function BusinessMetrics() {
         </motion.div>
       </div>
 
-      {/* Additional Insights */}
+      {/* Additional Insights — kept as static */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -271,13 +251,9 @@ export function BusinessMetrics() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Réduction remboursements
-              </p>
+              <p className="text-sm text-muted-foreground">Réduction remboursements</p>
               <p className="text-3xl font-bold text-foreground">-23%</p>
-              <p className="text-xs text-green-600">
-                Meilleur match produit/besoin
-              </p>
+              <p className="text-xs text-green-600">Meilleur match produit/besoin</p>
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Upsells réussis</p>

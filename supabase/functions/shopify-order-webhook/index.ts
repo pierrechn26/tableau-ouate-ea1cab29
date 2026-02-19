@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // --- Step D: HMAC verification ---
+    // --- HMAC verification ---
     const webhookSecret = Deno.env.get("SHOPIFY_WEBHOOK_SECRET");
     if (!webhookSecret) {
       console.error("SHOPIFY_WEBHOOK_SECRET not configured");
@@ -59,19 +59,20 @@ Deno.serve(async (req) => {
       .join(", ");
     const validatedCartAmount = parseFloat(order.total_price);
 
-    // --- Step A: Look for _diag_session in line item properties ---
+    // --- Look for _diag_session in line item properties ---
     const diagSession = (order.line_items || [])
       .flatMap((item: { properties?: Array<{ name: string; value: string }> }) => item.properties || [])
       .find((prop: { name: string; value: string }) => prop.name === "_diag_session")
       ?.value;
 
     let matched = false;
+    let isFromDiagnostic = false;
 
-    // --- Step B: Direct match by session_code ---
+    // --- Direct match by session_code ---
     if (diagSession) {
       console.log(`Found _diag_session property: ${diagSession}`);
+      isFromDiagnostic = true;
 
-      // Check if session exists and is not already converted
       const { data: existingSession } = await supabase
         .from("diagnostic_sessions")
         .select("id, conversion")
@@ -82,7 +83,7 @@ Deno.serve(async (req) => {
       if (existingSession) {
         if (existingSession.conversion === true) {
           console.log(`Session ${diagSession} already converted, skipping`);
-          matched = true; // Already done, no update needed
+          matched = true;
         } else {
           const { error } = await supabase
             .from("diagnostic_sessions")
@@ -105,7 +106,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Step C: Fallback by email (5-day window) ---
+    // --- Fallback by email (5-day window) ---
     if (!matched && order.email) {
       console.log(`No direct match, trying email fallback: ${order.email}`);
 
@@ -139,10 +140,34 @@ Deno.serve(async (req) => {
         } else {
           console.log(`✅ Session ${session.session_code} marked as converted (email fallback)`);
           matched = true;
+          isFromDiagnostic = true;
         }
       } else {
         console.log(`No matching session found for email ${order.email} in the last 5 days`);
       }
+    }
+
+    // --- ALWAYS upsert order into shopify_orders ---
+    const { error: upsertError } = await supabase
+      .from("shopify_orders")
+      .upsert(
+        {
+          shopify_order_id: String(order.id),
+          order_number: order.name || String(order.order_number),
+          total_price: validatedCartAmount,
+          currency: order.currency || "EUR",
+          created_at: order.created_at || new Date().toISOString(),
+          is_from_diagnostic: isFromDiagnostic,
+          diagnostic_session_id: diagSession || null,
+          customer_email: order.email || null,
+        },
+        { onConflict: "shopify_order_id" }
+      );
+
+    if (upsertError) {
+      console.error("Error upserting shopify_order:", upsertError);
+    } else {
+      console.log(`✅ Order ${order.id} saved to shopify_orders (diag: ${isFromDiagnostic})`);
     }
 
     if (!matched) {
@@ -150,7 +175,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, matched }),
+      JSON.stringify({ success: true, matched, isFromDiagnostic }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
