@@ -46,11 +46,13 @@ export function useRevenueTimeseries(
         return;
       }
 
-      // Group orders by local date (browser timezone, should be Europe/Paris for FR users)
+      // Group orders by Europe/Paris date (explicit timezone)
+      const toParisDate = (iso: string) =>
+        new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+
       const dayMap = new Map<string, { withDiag: number; withoutDiag: number }>();
       for (const o of orders) {
-        const date = new Date(o.created_at!);
-        const dayKey = format(date, "yyyy-MM-dd");
+        const dayKey = toParisDate(o.created_at!);
         const existing = dayMap.get(dayKey) ?? { withDiag: 0, withoutDiag: 0 };
         const amount = Number(o.total_price) || 0;
         if (o.is_from_diagnostic) {
@@ -61,14 +63,14 @@ export function useRevenueTimeseries(
         dayMap.set(dayKey, existing);
       }
 
-      // Fill all days in range
+      // Fill all days in range (using Europe/Paris dates)
       const allDays: string[] = [];
       const cur = new Date(from);
-      cur.setHours(0, 0, 0, 0);
+      cur.setHours(12, 0, 0, 0); // noon to avoid DST edge cases
       const end = new Date(to);
-      end.setHours(0, 0, 0, 0);
+      end.setHours(12, 0, 0, 0);
       while (cur <= end) {
-        allDays.push(format(cur, "yyyy-MM-dd"));
+        allDays.push(toParisDate(cur.toISOString()));
         cur.setDate(cur.getDate() + 1);
       }
 

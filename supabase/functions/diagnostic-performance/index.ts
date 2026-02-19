@@ -201,27 +201,38 @@ Deno.serve(async (req) => {
     let funnelRecommendation = 0;
     let funnelAddToCart = 0;
     let funnelCheckout = 0;
-    let funnelConversion = 0;
     let funnelDurationSum = 0;
     let funnelDurationCount = 0;
-    let funnelOrderAmountSum = 0;
-    let funnelOrderAmountCount = 0;
 
     for (const s of sessions) {
       if (s.status === "termine" && s.optin_email) funnelOptinEmail++;
       if (s.recommended_products) funnelRecommendation++;
       if (s.selected_cart_amount != null || s.conversion) funnelAddToCart++;
       if (s.checkout_started || s.conversion) funnelCheckout++;
-      if (s.conversion) {
-        funnelConversion++;
-        if (s.validated_cart_amount != null) {
-          funnelOrderAmountSum += Number(s.validated_cart_amount);
-          funnelOrderAmountCount++;
-        }
-      }
       if (s.status === "termine" && s.duration_seconds != null) {
         funnelDurationSum += s.duration_seconds;
         funnelDurationCount++;
+      }
+    }
+
+    // Funnel purchase count & AOV from shopify_orders (single source of truth)
+    let funnelPurchaseCount = 0;
+    let funnelOrderAmountAvg: number | null = null;
+    {
+      let ordQ = supabase
+        .from("shopify_orders")
+        .select("total_price")
+        .eq("is_from_diagnostic", true)
+        .gt("total_price", 0);
+      if (from) ordQ = ordQ.gte("created_at", from.toISOString());
+      if (to) ordQ = ordQ.lte("created_at", to.toISOString());
+      const { data: diagOrders, error: diagOrdErr } = await ordQ;
+      if (diagOrdErr) console.error("[perf] Diag orders query error:", diagOrdErr);
+      const dOrders = diagOrders ?? [];
+      funnelPurchaseCount = dOrders.length;
+      if (funnelPurchaseCount > 0) {
+        const sum = dOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0);
+        funnelOrderAmountAvg = Math.round((sum / funnelPurchaseCount) * 100) / 100;
       }
     }
 
@@ -264,10 +275,10 @@ Deno.serve(async (req) => {
       if (ordersError) console.error("[perf] Orders timeseries error:", ordersError);
 
       const orders = ordersData ?? [];
-      // Group by day (YYYY-MM-DD)
+      // Group by day in Europe/Paris timezone
       const dayMap: Record<string, { withDiag: number; withoutDiag: number }> = {};
       for (const o of orders as any[]) {
-        const day = (o.created_at as string).substring(0, 10);
+        const day = new Date(o.created_at as string).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
         if (!dayMap[day]) dayMap[day] = { withDiag: 0, withoutDiag: 0 };
         const amount = Number(o.total_price) || 0;
         if (o.is_from_diagnostic) {
@@ -304,9 +315,9 @@ Deno.serve(async (req) => {
         recommendation: funnelRecommendation,
         addToCart: funnelAddToCart,
         checkout: funnelCheckout,
-        purchase: funnelConversion,
+        purchase: funnelPurchaseCount,
         avgDurationSeconds: funnelDurationCount > 0 ? Math.round(funnelDurationSum / funnelDurationCount) : null,
-        avgOrderAmount: funnelOrderAmountCount > 0 ? Math.round((funnelOrderAmountSum / funnelOrderAmountCount) * 100) / 100 : null,
+        avgOrderAmount: funnelOrderAmountAvg,
       },
       detailedFunnel,
       revenueTimeseries,
