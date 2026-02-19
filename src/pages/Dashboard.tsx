@@ -15,10 +15,12 @@ import { MarketingRecommendations } from "@/components/dashboard/MarketingRecomm
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytics";
 import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
+import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
+import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import personaEmma from "@/assets/persona-emma.png";
 import personaSophie from "@/assets/persona-sophie.png";
 import personaLea from "@/assets/persona-lea.png";
@@ -98,6 +100,8 @@ export default function Dashboard() {
   } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 6), to: new Date() });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
+  const businessMetrics = useBusinessMetrics(dateRange);
+  const diagnosticStats = useDiagnosticStats(dateRange);
   const sectionRefs: Record<string, React.RefObject<HTMLDivElement>> = {
     overview: overviewRef,
     personas: personasRef,
@@ -455,76 +459,59 @@ export default function Dashboard() {
             {/* Key Metrics */}
             <div className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard title="CA généré via diagnostic" value="127 450 €" subtitle="Cette période" icon={TrendingUp} trend={{
-                  value: 23,
-                  isPositive: true
-                }} comparison={{
-                  value: "103 720 €",
-                  period: "vs période précédente"
-                }} index={0} />
-                <MetricCard title="Taux de conversion" value="8.3%" subtitle="Diagnostic → Achat" icon={BarChart3} trend={{
-                  value: 18,
-                  isPositive: true
-                }} comparison={{
-                  value: "7.03%",
-                  period: "vs période précédente"
-                }} index={1} />
-                <MetricCard title="AOV après diagnostic" value="71.20 €" subtitle="vs 52.30 € sans" icon={TrendingUp} trend={{
-                  value: 36,
-                  isPositive: true
-                }} comparison={{
-                  value: "52.35 €",
-                  period: "vs période précédente"
-                }} index={2} />
-                <MetricCard title="Diagnostics complétés" value="7 100" subtitle="Ce mois" icon={Users} trend={{
-                  value: 14,
-                  isPositive: true
-                }} comparison={{
-                  value: "6 228",
-                  period: "vs période précédente"
-                }} index={3} />
-              </div>
+              {businessMetrics.isLoading || diagnosticStats.isLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Chargement des données...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <MetricCard
+                    title="CA via diagnostic"
+                    value={`${businessMetrics.revenueDiag.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
+                    subtitle={`${businessMetrics.orderCountDiag} commandes`}
+                    icon={DollarSign}
+                    index={0}
+                  />
+                  <MetricCard
+                    title="Taux de conversion diag"
+                    value={`${businessMetrics.diagnosticPageViews > 0 ? ((businessMetrics.orderCountDiag / businessMetrics.diagnosticPageViews) * 100).toFixed(1) : "0.0"}%`}
+                    subtitle={`${businessMetrics.orderCountDiag} achats / ${businessMetrics.diagnosticPageViews.toLocaleString()} vues diag`}
+                    icon={BarChart3}
+                    comparison={{
+                      period: "vs global",
+                      value: `${businessMetrics.siteSessions > 0 ? ((businessMetrics.orderCountNonDiag / businessMetrics.siteSessions) * 100).toFixed(2) : "0.00"}%`,
+                    }}
+                    index={1}
+                  />
+                  <MetricCard
+                    title="AOV après diagnostic"
+                    value={`${businessMetrics.aovDiag.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
+                    subtitle="Valeur moyenne par commande"
+                    icon={TrendingUp}
+                    comparison={{
+                      period: "vs sans diagnostic",
+                      value: `${businessMetrics.aovNonDiag.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
+                    }}
+                    index={2}
+                  />
+                  <MetricCard
+                    title="Diagnostics complétés"
+                    value={diagnosticStats.completedResponses.toLocaleString("fr-FR")}
+                    subtitle={`sur ${diagnosticStats.totalResponses.toLocaleString("fr-FR")} sessions`}
+                    icon={Users}
+                    index={3}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Personas Preview */}
             <div className="bg-gradient-to-br from-card via-card to-secondary/10 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {personas.map((persona, index) => <motion.div key={persona.name} initial={{
-                  opacity: 0,
-                  y: 20
-                }} animate={{
-                  opacity: 1,
-                  y: 0
-                }} transition={{
-                  duration: 0.5,
-                  delay: index * 0.1
-                }} className="bg-gradient-to-br from-card via-card to-secondary/5 rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all shadow-sm hover:shadow-md">
-                    <div className="flex items-start gap-4 mb-4">
-                      <img src={persona.image} alt={persona.name} className="w-16 h-16 rounded-full object-cover" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{persona.name}</h4>
-                        <p className="text-sm text-muted-foreground">{persona.tagline}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{persona.ageRange}</p>
-                        <p className="text-xs text-primary/80 font-medium mt-0.5">
-                          {persona.name === "Emma" ? "Enceinte" : persona.name === "Sophie" ? "Post-partum" : "Maman"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Part des prospects</span>
-                        <span className="text-lg font-bold text-primary">{persona.prospectPercentage}%</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{
-                        width: `${persona.prospectPercentage}%`
-                      }} />
-                      </div>
-                    </div>
-                  </motion.div>)}
-              </div>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Les personas seront disponibles prochainement.
+              </p>
             </div>
 
             {/* Diagnostic Performance - Real Data */}
