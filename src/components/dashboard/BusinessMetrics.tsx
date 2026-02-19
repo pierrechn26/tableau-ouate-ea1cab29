@@ -281,9 +281,9 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Clients existants / commandes diag</p>
+                <p className="text-sm text-muted-foreground">Nouveaux clients via diagnostic</p>
                 <p className="text-3xl font-bold text-blue-600">{fmt(insights.clientsExistantsPercent, 1)}%</p>
-                <p className="text-sm font-medium text-foreground">déjà clients Ouate parmi les acheteurs</p>
+                <p className="text-sm font-medium text-foreground">découvrent Ouate grâce au diagnostic</p>
               </div>
             </div>
           )}

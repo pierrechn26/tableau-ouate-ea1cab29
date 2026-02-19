@@ -100,17 +100,17 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
         }
       }
 
-      // 4. Clients existants parmi les commandes (converted sessions only)
+      // 4. Nouveaux clients parmi les commandes diagnostic
       const convertedSessions = list.filter((s) => s.conversion);
-      const existingCount = convertedSessions.filter((s) => s.is_existing_client).length;
-      const clientsExistantsPercent = convertedSessions.length > 0 ? (existingCount / convertedSessions.length) * 100 : 0;
+      const newClientsCount = convertedSessions.filter((s) => !s.is_existing_client).length;
+      const newClientsPercent = convertedSessions.length > 0 ? (newClientsCount / convertedSessions.length) * 100 : 0;
 
       setData({
         routineCompletePercent,
         ecartPanier,
         topProduct,
         topProductCount,
-        clientsExistantsPercent,
+        clientsExistantsPercent: newClientsPercent,
         isLoading: false,
       });
     };
