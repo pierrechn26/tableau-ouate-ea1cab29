@@ -37,6 +37,7 @@ export function DiagnosticPreview() {
 
   const handleRestart = useCallback(() => {
     // Send reset message to the diagnostic app via postMessage
+    // The diagnostic will clear storage and reload itself
     try {
       iframeRef.current?.contentWindow?.postMessage(
         { type: "ouate_diagnostic_reset" },
@@ -44,12 +45,15 @@ export function DiagnosticPreview() {
       );
     } catch (_) { /* cross-origin — ignored */ }
 
-    // Also remount the iframe after a short delay as fallback
-    setIsResetting(true);
+    // Fallback: after giving the diagnostic time to process the message
+    // and reload, remount a fresh iframe just in case
     setTimeout(() => {
-      setIframeKey((prev) => prev + 1);
-      setIsResetting(false);
-    }, 600);
+      setIsResetting(true);
+      setTimeout(() => {
+        setIframeKey((prev) => prev + 1);
+        setIsResetting(false);
+      }, 300);
+    }, 1000);
   }, []);
 
   const handleOpenExternal = () => {
