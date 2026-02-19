@@ -116,7 +116,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
             <MetricCard
               title="AOV après diag"
               value={`${fmt(metrics.aovDiag, 2)} €`}
-              subtitle={`${metrics.orderCountDiag} commandes`}
+              subtitle="Valeur moyenne par commande"
               icon={ShoppingCart}
               comparison={{
                 period: "vs sans diagnostic",
