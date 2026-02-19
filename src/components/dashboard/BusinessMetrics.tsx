@@ -17,6 +17,7 @@ import { DollarSign, TrendingUp, ShoppingCart, Users, Loader2 } from "lucide-rea
 import { MetricCard } from "./MetricCard";
 import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
+import { useInsightsMetrics } from "@/hooks/useInsightsMetrics";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -45,6 +46,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
   const [granularity, setGranularity] = useState<Granularity>("day");
   const metrics = useBusinessMetrics(dateRange);
   const revenue = useRevenueTimeseries(dateRange, granularity);
+  const insights = useInsightsMetrics(dateRange);
 
   const percentInfluenced = metrics.revenueTotal > 0
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
@@ -238,28 +240,53 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
           <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
             Insights Business
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Réduction remboursements</p>
-              <p className="text-3xl font-bold text-foreground">-23%</p>
-              <p className="text-xs text-green-600">Meilleur match produit/besoin</p>
+          {insights.isLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Chargement...</span>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Upsells réussis</p>
-              <p className="text-3xl font-bold text-foreground">34%</p>
-              <p className="text-xs text-green-600">panier moyen plus élevé</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Routine complète</p>
+                <p className="text-3xl font-bold text-foreground">{fmt(insights.routineCompletePercent, 1)}%</p>
+                <p className="text-xs text-muted-foreground">adoptent une routine 3+ produits</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Écart panier recommandé vs acheté</p>
+                {insights.ecartPanier != null ? (
+                  <>
+                    <p className={`text-3xl font-bold ${insights.ecartPanier >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {insights.ecartPanier >= 0 ? "+" : ""}{fmt(insights.ecartPanier, 2)} €
+                    </p>
+                    <p className="text-xs text-muted-foreground">panier réel vs recommandé</p>
+                    <p className={`text-xs ${insights.ecartPanier >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {insights.ecartPanier >= 0 ? "les clients achètent plus" : "les clients achètent moins"}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-3xl font-bold text-muted-foreground">—</p>
+                    <p className="text-xs text-muted-foreground">données insuffisantes</p>
+                  </>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Top produit recommandé</p>
+                <p className="text-2xl font-bold text-foreground truncate" title={insights.topProduct ?? ""}>
+                  {insights.topProduct ?? "—"}
+                </p>
+                {insights.topProduct && (
+                  <p className="text-xs text-muted-foreground">produit le + recommandé ({insights.topProductCount} fois)</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Clients existants</p>
+                <p className="text-3xl font-bold text-foreground">{fmt(insights.clientsExistantsPercent, 1)}%</p>
+                <p className="text-xs text-muted-foreground">utilisaient déjà Ouate</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Routine complète</p>
-              <p className="text-3xl font-bold text-foreground">28%</p>
-              <p className="text-xs text-green-600">adoptent 3+ produits</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Taux de réachat</p>
-              <p className="text-3xl font-bold text-foreground">47%</p>
-              <p className="text-xs text-green-600">à 90 jours</p>
-            </div>
-          </div>
+          )}
         </Card>
       </motion.div>
     </div>
