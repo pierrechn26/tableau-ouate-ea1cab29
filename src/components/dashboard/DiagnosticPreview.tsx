@@ -7,9 +7,16 @@ const DIAGNOSTIC_URL = "https://diagnostic-ouate.lovable.app";
 
 export function DiagnosticPreview() {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState(DIAGNOSTIC_URL);
   const [iframeKey, setIframeKey] = useState(0);
 
   const handleRefresh = () => {
+    setIframeKey((prev) => prev + 1);
+  };
+
+  const handleRestart = () => {
+    // Force a clean reload to the home page by busting cache
+    setIframeSrc(`${DIAGNOSTIC_URL}?reset=${Date.now()}`);
     setIframeKey((prev) => prev + 1);
   };
 
@@ -45,7 +52,7 @@ export function DiagnosticPreview() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Actualiser
           </Button>
-          <Button size="sm" onClick={() => setIframeKey((prev) => prev + 1)}>
+          <Button size="sm" onClick={handleRestart}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Recommencer
           </Button>
@@ -88,13 +95,15 @@ export function DiagnosticPreview() {
           </div>
         </div>
 
-        {/* Iframe */}
+        {/* Iframe — tabIndex -1 prevents auto-scroll on load */}
         <iframe
           key={iframeKey}
-          src={DIAGNOSTIC_URL}
+          src={iframeSrc}
           className="w-full h-[calc(100%-40px)] border-0"
           title="Diagnostic OUATE"
           allow="clipboard-write"
+          tabIndex={-1}
+          loading="lazy"
         />
       </div>
 
