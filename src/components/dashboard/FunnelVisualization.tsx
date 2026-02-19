@@ -145,6 +145,7 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
   const siteVisits = stepValues[0] || 0;
   const conversionRate = diagnosticViews > 1 ? ((funnel.purchase / diagnosticViews) * 100).toFixed(1) : "0.0";
   const visiteursPerdus = (stepValues[1] || 0) - funnel.purchase;
+  const avgOrderAmount = funnel.avgOrderAmount;
 
   return (
     <div className="space-y-8">
@@ -248,9 +249,9 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
-              className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/10 border border-primary/10"
+              className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-sky-500/5 to-sky-500/10 border border-sky-500/10"
             >
-              <p className="text-2xl md:text-3xl font-bold text-foreground">{conversionRate}%</p>
+              <p className="text-2xl md:text-3xl font-bold text-sky-600">{conversionRate}%</p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 Taux de conversion*
               </p>
@@ -273,11 +274,13 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.1 }}
-              className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-green-500/5 to-green-500/10 border border-green-500/10"
+              className="text-center p-4 md:p-6 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border border-emerald-500/10"
             >
-              <p className="text-2xl md:text-3xl font-bold text-green-600">—</p>
+              <p className="text-2xl md:text-3xl font-bold text-emerald-600">
+                {avgOrderAmount != null ? `${avgOrderAmount.toFixed(2)}€` : "—"}
+              </p>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                Potentiel d'optimisation
+                Panier moyen (commandes)
               </p>
             </motion.div>
             <motion.div 
