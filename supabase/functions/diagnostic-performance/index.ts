@@ -248,6 +248,43 @@ Deno.serve(async (req) => {
       return { label: step.label, count };
     });
 
+    /* ====== REVENUE TIMESERIES from shopify_orders ====== */
+    let revenueTimeseries: { date: string; withDiag: number; withoutDiag: number }[] = [];
+    {
+      let ordersQuery = supabase
+        .from("shopify_orders")
+        .select("created_at, total_price, is_from_diagnostic")
+        .gt("total_price", 0)
+        .order("created_at", { ascending: true });
+
+      if (from) ordersQuery = ordersQuery.gte("created_at", from.toISOString());
+      if (to) ordersQuery = ordersQuery.lte("created_at", to.toISOString());
+
+      const { data: ordersData, error: ordersError } = await ordersQuery;
+      if (ordersError) console.error("[perf] Orders timeseries error:", ordersError);
+
+      const orders = ordersData ?? [];
+      // Group by day (YYYY-MM-DD)
+      const dayMap: Record<string, { withDiag: number; withoutDiag: number }> = {};
+      for (const o of orders as any[]) {
+        const day = (o.created_at as string).substring(0, 10);
+        if (!dayMap[day]) dayMap[day] = { withDiag: 0, withoutDiag: 0 };
+        const amount = Number(o.total_price) || 0;
+        if (o.is_from_diagnostic) {
+          dayMap[day].withDiag += amount;
+        } else {
+          dayMap[day].withoutDiag += amount;
+        }
+      }
+      revenueTimeseries = Object.entries(dayMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, vals]) => ({
+          date,
+          withDiag: Math.round(vals.withDiag * 100) / 100,
+          withoutDiag: Math.round(vals.withoutDiag * 100) / 100,
+        }));
+    }
+
     /* ====== BUILD RESPONSE ====== */
     const result: Record<string, unknown> = {
       totalResponses,
@@ -272,6 +309,7 @@ Deno.serve(async (req) => {
         avgOrderAmount: funnelOrderAmountCount > 0 ? Math.round((funnelOrderAmountSum / funnelOrderAmountCount) * 100) / 100 : null,
       },
       detailedFunnel,
+      revenueTimeseries,
     };
 
     /* ====== DETAILED SESSIONS (for Réponses tab) ====== */
