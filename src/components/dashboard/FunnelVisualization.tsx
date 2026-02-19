@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { 
   Globe, 
   MousePointer, 
@@ -15,15 +17,26 @@ import {
   AlertTriangle,
   Lightbulb,
   TrendingDown,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  RotateCcw
 } from "lucide-react";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
 
-interface FunnelVisualizationProps {
-  dateRange?: DateRange;
+interface FunnelRecommendation {
+  id: string;
+  step: string;
+  issue: string;
+  recommendation: string;
+  applied: boolean;
+  applied_at: string | null;
+  kept_from_previous: boolean;
+  week_start: string;
 }
 
 const STEP_ICONS = [Globe, MousePointer, Play, CheckCircle, Mail, Package, ShoppingCart, CreditCard, Heart];
@@ -46,28 +59,85 @@ function formatDuration(seconds: number | null): string {
   return `${m}min ${s.toString().padStart(2, "0")}sec`;
 }
 
-const frictions = [
-  {
-    step: "Vues diagnostic",
-    issue: "Seulement 27,8% des visiteurs voient le diagnostic — le CTA est peu visible sur la homepage",
-    recommendation: "Repositionner le diagnostic en zone hero avec un design accrocheur et un message d'accroche personnalisé"
-  },
-  {
-    step: "Optin E-mail & SMS",
-    issue: "13% de perte entre diagnostic démarré et opt-in — l'obligation freine les utilisateurs",
-    recommendation: "Rendre l'opt-in optionnel pour réduire la friction"
-  },
-  {
-    step: "Ajout panier",
-    issue: "21% de perte entre recommandation et ajout panier — manque de confiance à l'achat",
-    recommendation: "Intégrer des avis clients, badges de garantie et livraison gratuite sur les recommandations"
-  }
-];
+interface FunnelVisualizationProps {
+  dateRange?: DateRange;
+}
 
 export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
   const stats = useDiagnosticStats(dateRange);
+  const { toast } = useToast();
   const [ga4Data, setGa4Data] = useState<{ site_sessions: number; diagnostic_page_sessions: number } | null>(null);
   const [ga4Loading, setGa4Loading] = useState(false);
+  const [recommendations, setRecommendations] = useState<FunnelRecommendation[]>([]);
+  const [recsLoading, setRecsLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+
+  // Fetch recommendations from DB
+  const fetchRecommendations = useCallback(async () => {
+    setRecsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("funnel_recommendations")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      if (!error && data) {
+        // Show latest 3 non-applied + any applied ones from current week
+        const nonApplied = data.filter((r: any) => !r.applied).slice(0, 3);
+        const applied = data.filter((r: any) => r.applied);
+        setRecommendations([...nonApplied, ...applied].slice(0, 6));
+      }
+    } catch (err) {
+      console.error("Failed to fetch recommendations:", err);
+    } finally {
+      setRecsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
+  // Toggle applied status
+  const toggleApplied = async (rec: FunnelRecommendation) => {
+    const newApplied = !rec.applied;
+    const { error } = await supabase
+      .from("funnel_recommendations")
+      .update({ 
+        applied: newApplied, 
+        applied_at: newApplied ? new Date().toISOString() : null 
+      })
+      .eq("id", rec.id);
+    
+    if (!error) {
+      setRecommendations(prev => prev.map(r => 
+        r.id === rec.id ? { ...r, applied: newApplied, applied_at: newApplied ? new Date().toISOString() : null } : r
+      ));
+      if (newApplied) {
+        toast({ title: "✅ Recommandation appliquée", description: "Bravo ! Cette recommandation a été marquée comme appliquée." });
+      }
+    }
+  };
+
+  // Manual trigger for generating recommendations
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke("generate-funnel-recommendations", { body: {} });
+      if (error) throw error;
+      await fetchRecommendations();
+      toast({ title: "Recommandations générées", description: "3 nouvelles recommandations IA ont été créées à partir de l'analyse du tunnel." });
+    } catch (err) {
+      console.error("Generation error:", err);
+      toast({ title: "Erreur", description: "Impossible de générer les recommandations.", variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const activeRecs = recommendations.filter(r => !r.applied);
+  const appliedRecs = recommendations.filter(r => r.applied);
 
   useEffect(() => {
     const fetchGA4 = async () => {
@@ -298,50 +368,156 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
         </CardContent>
       </Card>
 
-      {/* Frictions & Recommendations */}
+      {/* Frictions & Recommendations IA */}
       <Card className="border-border/50 shadow-lg">
         <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-heading font-semibold text-foreground flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-destructive" />
-            </div>
-            Frictions détectées & Recommandations IA
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-heading font-semibold text-foreground flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+              </div>
+              Frictions détectées & Recommandations IA
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="gap-2"
+            >
+              {generating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {generating ? "Analyse en cours..." : "Générer maintenant"}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Analyse automatique chaque lundi — Les recommandations non appliquées peuvent être conservées
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            {frictions.map((friction, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2 + index * 0.1 }}
-                className="p-5 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40 space-y-4 hover:shadow-lg hover:border-border/60 hover:from-muted/80 hover:to-muted/50 transition-all duration-300 cursor-default"
-              >
-                <Badge variant="secondary" className="text-xs font-semibold bg-background/80 text-foreground border border-border/50 hover:bg-background/80 hover:text-foreground">
-                  {friction.step}
-                </Badge>
+          {recsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : activeRecs.length === 0 && appliedRecs.length === 0 ? (
+            <div className="text-center py-12 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
+                <Sparkles className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Aucune recommandation générée</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cliquez sur "Générer maintenant" pour lancer la première analyse IA du tunnel
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Active recommendations */}
+              {activeRecs.length > 0 && (
+                <div className="grid md:grid-cols-3 gap-6">
+                  <AnimatePresence>
+                    {activeRecs.map((rec, index) => (
+                      <motion.div
+                        key={rec.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-5 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/30 border border-border/40 space-y-4 hover:shadow-lg hover:border-border/60 hover:from-muted/80 hover:to-muted/50 transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs font-semibold bg-background/80 text-foreground border border-border/50 hover:bg-background/80 hover:text-foreground">
+                            {rec.step}
+                          </Badge>
+                          {rec.kept_from_previous && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <RotateCcw className="w-3 h-3" />
+                              Conservée
+                            </Badge>
+                          )}
+                        </div>
 
-                <div className="flex gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/10">
-                  <div className="w-8 h-8 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-4 h-4 text-destructive" />
-                  </div>
-                  <p className="text-sm text-foreground font-medium leading-relaxed">
-                    {friction.issue}
-                  </p>
-                </div>
+                        <div className="flex gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/10">
+                          <div className="w-8 h-8 rounded-lg bg-destructive/15 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                          </div>
+                          <p className="text-sm text-foreground font-medium leading-relaxed">
+                            {rec.issue}
+                          </p>
+                        </div>
 
-                <div className="flex gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200/60">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {friction.recommendation}
-                  </p>
+                        <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Lightbulb className="w-4 h-4 text-primary" />
+                          </div>
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {rec.recommendation}
+                          </p>
+                        </div>
+
+                        <div
+                          className="flex items-center gap-3 pt-2 border-t border-border/30 cursor-pointer group"
+                          onClick={() => toggleApplied(rec)}
+                        >
+                          <Checkbox
+                            checked={false}
+                            className="h-5 w-5"
+                          />
+                          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                            Recommandation appliquée
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              )}
+
+              {/* Applied recommendations */}
+              {appliedRecs.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Recommandations appliquées
+                  </h4>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {appliedRecs.map((rec) => (
+                      <motion.div
+                        key={rec.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                            {rec.step}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {rec.applied_at ? format(new Date(rec.applied_at), "dd/MM") : ""}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-through">{rec.issue}</p>
+                        <p className="text-xs text-foreground">{rec.recommendation}</p>
+                        <div
+                          className="flex items-center gap-3 pt-1 cursor-pointer"
+                          onClick={() => toggleApplied(rec)}
+                        >
+                          <Checkbox checked={true} className="h-4 w-4" />
+                          <span className="text-xs text-primary font-medium">
+                            ✅ Appliquée
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
