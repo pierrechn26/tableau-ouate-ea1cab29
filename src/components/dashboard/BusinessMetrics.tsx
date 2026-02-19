@@ -95,6 +95,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               subtitle={`${metrics.orderCountDiag} commandes`}
               icon={DollarSign}
               index={0}
+              largeValue
             />
             <MetricCard
               title="% ventes influencées"
@@ -111,7 +112,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               icon={ShoppingCart}
               comparison={{
                 period: "vs sans diagnostic",
-                value: `${fmt(metrics.aovNonDiag, 2)} € ${aovDiff ? `(${aovDiff.value})` : ""}`,
+                value: `${fmt(metrics.aovNonDiag, 2)} €`,
+                diff: aovDiff ? aovDiff.value : undefined,
                 positive: aovDiff?.positive,
               }}
               index={2}
@@ -123,7 +125,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
               icon={Users}
               comparison={{
                 period: "vs global",
-                value: `${fmt(convRateGlobal, 2)}% ${convDiff ? `(${convDiff.value})` : ""}`,
+                value: `${fmt(convRateGlobal, 2)}%`,
+                diff: convDiff ? convDiff.value : undefined,
                 positive: convDiff?.positive,
               }}
               index={3}
