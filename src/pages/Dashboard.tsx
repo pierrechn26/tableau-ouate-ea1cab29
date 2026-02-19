@@ -466,42 +466,78 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MetricCard
-                    title="CA via diagnostic"
-                    value={`${businessMetrics.revenueDiag.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €`}
-                    subtitle={`${businessMetrics.orderCountDiag} commandes`}
-                    icon={DollarSign}
-                    index={0}
-                  />
-                  <MetricCard
-                    title="Taux de conversion diag"
-                    value={`${businessMetrics.diagnosticPageViews > 0 ? ((businessMetrics.orderCountDiag / businessMetrics.diagnosticPageViews) * 100).toFixed(1) : "0.0"}%`}
-                    subtitle={`${businessMetrics.orderCountDiag} achats / ${businessMetrics.diagnosticPageViews.toLocaleString()} vues diag`}
-                    icon={BarChart3}
-                    comparison={{
-                      period: "vs global",
-                      value: `${businessMetrics.siteSessions > 0 ? ((businessMetrics.orderCountNonDiag / businessMetrics.siteSessions) * 100).toFixed(2) : "0.00"}%`,
-                    }}
-                    index={1}
-                  />
-                  <MetricCard
-                    title="AOV après diagnostic"
-                    value={`${businessMetrics.aovDiag.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
-                    subtitle="Valeur moyenne par commande"
-                    icon={TrendingUp}
-                    comparison={{
-                      period: "vs sans diagnostic",
-                      value: `${businessMetrics.aovNonDiag.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
-                    }}
-                    index={2}
-                  />
-                  <MetricCard
-                    title="Diagnostics complétés"
-                    value={diagnosticStats.completedResponses.toLocaleString("fr-FR")}
-                    subtitle={`sur ${diagnosticStats.totalResponses.toLocaleString("fr-FR")} sessions`}
-                    icon={Users}
-                    index={3}
-                  />
+                  {(() => {
+                    const fmt = (n: number, d = 0) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+                    const pctDiff = (a: number, b: number) => {
+                      if (b === 0) return null;
+                      const diff = ((a - b) / b) * 100;
+                      return { value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`, positive: diff >= 0 };
+                    };
+                    const convRateDiag = businessMetrics.diagnosticPageViews > 0
+                      ? (businessMetrics.orderCountDiag / businessMetrics.diagnosticPageViews) * 100 : 0;
+                    const convRateGlobal = businessMetrics.siteSessions > 0
+                      ? (businessMetrics.orderCountNonDiag / businessMetrics.siteSessions) * 100 : 0;
+                    const convDiff = pctDiff(convRateDiag, convRateGlobal);
+                    const aovDiff = pctDiff(businessMetrics.aovDiag, businessMetrics.aovNonDiag);
+                    const caWithDiag = businessMetrics.revenueTotal;
+                    const caWithoutDiag = businessMetrics.revenueTotal - businessMetrics.revenueDiag;
+                    const caDiff = pctDiff(caWithDiag, caWithoutDiag);
+
+                    return (
+                      <>
+                        <MetricCard
+                          title="CA via diagnostic"
+                          value={`${fmt(businessMetrics.revenueDiag)} €`}
+                          subtitle={`${businessMetrics.orderCountDiag} commandes`}
+                          icon={DollarSign}
+                          comparison={{
+                            period: "CA total vs CA sans diagnostic",
+                            value: `${fmt(caWithDiag)} € vs ${fmt(caWithoutDiag)} €`,
+                            diff: caDiff ? caDiff.value : undefined,
+                            positive: caDiff?.positive,
+                          }}
+                          index={0}
+                        />
+                        <MetricCard
+                          title="Taux de conversion diag"
+                          value={`${fmt(convRateDiag, 1)}%`}
+                          subtitle={`${businessMetrics.orderCountDiag} achats / ${businessMetrics.diagnosticPageViews.toLocaleString()} vues diag`}
+                          icon={BarChart3}
+                          comparison={{
+                            period: "vs global",
+                            value: `${fmt(convRateGlobal, 2)}%`,
+                            diff: convDiff ? convDiff.value : undefined,
+                            positive: convDiff?.positive,
+                          }}
+                          index={1}
+                        />
+                        <MetricCard
+                          title="AOV après diagnostic"
+                          value={`${fmt(businessMetrics.aovDiag, 2)} €`}
+                          subtitle="Valeur moyenne par commande"
+                          icon={TrendingUp}
+                          comparison={{
+                            period: "vs sans diagnostic",
+                            value: `${fmt(businessMetrics.aovNonDiag, 2)} €`,
+                            diff: aovDiff ? aovDiff.value : undefined,
+                            positive: aovDiff?.positive,
+                          }}
+                          index={2}
+                        />
+                        <MetricCard
+                          title="Diagnostics complétés"
+                          value={diagnosticStats.completedResponses.toLocaleString("fr-FR")}
+                          subtitle={`sur ${diagnosticStats.totalResponses.toLocaleString("fr-FR")} sessions`}
+                          icon={Users}
+                          comparison={{
+                            period: "Taux de complétion",
+                            value: `${diagnosticStats.completionRate.toFixed(1)}%`,
+                          }}
+                          index={3}
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>
