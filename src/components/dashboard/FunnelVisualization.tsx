@@ -450,9 +450,9 @@ export function FunnelVisualization({ dateRange }: FunnelVisualizationProps) {
                           </p>
                         </div>
 
-                        <div className="flex gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Lightbulb className="w-4 h-4 text-primary" />
+                        <div className="flex gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                            <Lightbulb className="w-4 h-4 text-emerald-600" />
                           </div>
                           <p className="text-sm text-foreground leading-relaxed">
                             {rec.recommendation}
