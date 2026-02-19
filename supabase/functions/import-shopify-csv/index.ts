@@ -42,29 +42,103 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file");
-    if (!file || !(file instanceof File)) {
-      return new Response(
-        JSON.stringify({ error: "No CSV file provided" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let text: string;
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (body.csv_url) {
+        console.log(`[import-shopify-csv] Fetching CSV from URL: ${body.csv_url}`);
+        const csvResp = await fetch(body.csv_url);
+        if (!csvResp.ok) {
+          return new Response(
+            JSON.stringify({ error: `Failed to fetch CSV: ${csvResp.status}` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        text = await csvResp.text();
+      } else {
+        return new Response(
+          JSON.stringify({ error: "JSON body must contain csv_url" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file");
+      if (!file || !(file instanceof File)) {
+        return new Response(
+          JSON.stringify({ error: "No CSV file provided" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      text = await file.text();
+    } else {
+      text = await req.text();
+      if (!text || text.trim().length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No CSV data provided" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    // Parse CSV with multiline field support
+    function parseFullCsv(csvText: string): string[][] {
+      const rows: string[][] = [];
+      let currentRow: string[] = [];
+      let currentField = "";
+      let inQuotes = false;
+      
+      for (let i = 0; i < csvText.length; i++) {
+        const ch = csvText[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (csvText[i + 1] === '"') {
+              currentField += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            currentField += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            currentRow.push(currentField.trim());
+            currentField = "";
+          } else if (ch === '\n' || (ch === '\r' && csvText[i + 1] === '\n')) {
+            if (ch === '\r') i++; // skip \n
+            currentRow.push(currentField.trim());
+            currentField = "";
+            if (currentRow.length > 1 || currentRow[0] !== "") {
+              rows.push(currentRow);
+            }
+            currentRow = [];
+          } else {
+            currentField += ch;
+          }
+        }
+      }
+      // Last field/row
+      currentRow.push(currentField.trim());
+      if (currentRow.length > 1 || currentRow[0] !== "") {
+        rows.push(currentRow);
+      }
+      return rows;
     }
 
-    const text = await file.text();
-    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length < 2) {
+    const allRows = parseFullCsv(text);
+    if (allRows.length < 2) {
       return new Response(
         JSON.stringify({ error: "CSV file is empty or has no data rows" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const headers = parseCsvLine(lines[0]);
-    const colIndex = (name: string) => {
-      const idx = headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-      return idx;
-    };
+    const csvHeaders = allRows[0];
+    const colIndex = (name: string) =>
+      csvHeaders.findIndex((h) => h.toLowerCase() === name.toLowerCase());
 
     const iName = colIndex("Name");
     const iEmail = colIndex("Email");
@@ -77,7 +151,7 @@ Deno.serve(async (req) => {
 
     if (iName === -1 || iTotal === -1) {
       return new Response(
-        JSON.stringify({ error: "CSV must contain 'Name' and 'Total' columns", foundHeaders: headers }),
+        JSON.stringify({ error: "CSV must contain 'Name' and 'Total' columns", foundHeaders: csvHeaders }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -94,8 +168,8 @@ Deno.serve(async (req) => {
       refundedAmount: number;
     }>();
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCsvLine(lines[i]);
+    for (let i = 1; i < allRows.length; i++) {
+      const cols = allRows[i];
       const name = cols[iName] || "";
       if (!name) continue;
 
@@ -185,7 +259,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        totalLinesInCsv: lines.length - 1,
+        totalRowsInCsv: allRows.length - 1,
         uniqueOrders: orderMap.size,
         filteredOut: skipped,
         upserted: inserted,
