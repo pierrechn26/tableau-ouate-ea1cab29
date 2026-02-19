@@ -45,7 +45,10 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       setData((d) => ({ ...d, isLoading: true }));
 
       const from = dateRange?.from ?? subDays(new Date(), 29);
-      const to = dateRange?.to ?? new Date();
+      const toRaw = dateRange?.to ?? new Date();
+      // Align with useDiagnosticStats: include the full end day
+      const to = new Date(toRaw);
+      to.setHours(23, 59, 59, 999);
 
       const fromISO = from.toISOString();
       const toISO = to.toISOString();
@@ -58,11 +61,10 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         .gte("created_at", fromISO)
         .lte("created_at", toISO);
 
-      // 2. Non-diagnostic orders from shopify_orders (exclude 0€)
-      const { data: nonDiagOrders } = await supabase
+      // 2. All orders from shopify_orders (exclude 0€) for total revenue
+      const { data: allOrders } = await supabase
         .from("shopify_orders")
-        .select("total_price")
-        .eq("is_from_diagnostic", false)
+        .select("total_price, is_from_diagnostic")
         .gt("total_price", 0)
         .gte("created_at", fromISO)
         .lte("created_at", toISO);
@@ -94,14 +96,22 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       );
       const aovDiag = orderCountDiag > 0 ? revenueDiag / orderCountDiag : 0;
 
-      // Calculate non-diagnostic metrics
-      const nonDiag = nonDiagOrders || [];
+      // Calculate non-diagnostic metrics from allOrders
+      const nonDiag = (allOrders || []).filter((o: any) => !o.is_from_diagnostic);
       const orderCountNonDiag = nonDiag.length;
       const revenueNonDiag = nonDiag.reduce(
         (s, o) => s + (Number(o.total_price) || 0),
         0
       );
       const aovNonDiag = orderCountNonDiag > 0 ? revenueNonDiag / orderCountNonDiag : 0;
+
+      // Calculate total from shopify_orders (single source of truth for total)
+      const allOrdersList = allOrders || [];
+      const orderCountTotal = allOrdersList.length;
+      const revenueTotal = allOrdersList.reduce(
+        (s, o) => s + (Number(o.total_price) || 0),
+        0
+      );
 
       setData({
         revenueDiag,
@@ -110,8 +120,8 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         revenueNonDiag,
         aovNonDiag,
         orderCountNonDiag,
-        revenueTotal: revenueDiag + revenueNonDiag,
-        orderCountTotal: orderCountDiag + orderCountNonDiag,
+        revenueTotal,
+        orderCountTotal,
         siteSessions,
         diagnosticPageViews,
         isLoading: false,
