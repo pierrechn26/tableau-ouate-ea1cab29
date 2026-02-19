@@ -411,6 +411,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_orders: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          diagnostic_session_id: string | null
+          id: string
+          is_from_diagnostic: boolean | null
+          order_number: string | null
+          shopify_order_id: string
+          total_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          diagnostic_session_id?: string | null
+          id?: string
+          is_from_diagnostic?: boolean | null
+          order_number?: string | null
+          shopify_order_id: string
+          total_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          diagnostic_session_id?: string | null
+          id?: string
+          is_from_diagnostic?: boolean | null
+          order_number?: string | null
+          shopify_order_id?: string
+          total_price?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

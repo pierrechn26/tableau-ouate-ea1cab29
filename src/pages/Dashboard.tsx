@@ -643,7 +643,7 @@ export default function Dashboard() {
 
           <TabsContent value="business" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <div ref={businessRef}>
-              <BusinessMetrics />
+              <BusinessMetrics dateRange={dateRange} />
             </div>
           </TabsContent>
 
