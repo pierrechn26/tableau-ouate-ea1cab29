@@ -342,6 +342,42 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_recommendations: {
+        Row: {
+          applied: boolean
+          applied_at: string | null
+          created_at: string
+          id: string
+          issue: string
+          kept_from_previous: boolean
+          recommendation: string
+          step: string
+          week_start: string
+        }
+        Insert: {
+          applied?: boolean
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          issue: string
+          kept_from_previous?: boolean
+          recommendation: string
+          step: string
+          week_start: string
+        }
+        Update: {
+          applied?: boolean
+          applied_at?: string | null
+          created_at?: string
+          id?: string
+          issue?: string
+          kept_from_previous?: boolean
+          recommendation?: string
+          step?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       personas: {
         Row: {
           age_range: string | null
