@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.import-shopify-csv]
 verify_jwt = false
+
+[functions.persona-stats]
+verify_jwt = false
