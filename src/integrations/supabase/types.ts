@@ -212,6 +212,7 @@ export type Database = {
           id: string
           is_existing_client: boolean | null
           locale: string | null
+          matching_score: number | null
           number_of_children: number | null
           optin_email: boolean | null
           optin_sms: boolean | null
@@ -264,6 +265,7 @@ export type Database = {
           id?: string
           is_existing_client?: boolean | null
           locale?: string | null
+          matching_score?: number | null
           number_of_children?: number | null
           optin_email?: boolean | null
           optin_sms?: boolean | null
@@ -316,6 +318,7 @@ export type Database = {
           id?: string
           is_existing_client?: boolean | null
           locale?: string | null
+          matching_score?: number | null
           number_of_children?: number | null
           optin_email?: boolean | null
           optin_sms?: boolean | null
