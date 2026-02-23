@@ -37,6 +37,22 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     return fallback;
   };
 
+  // Helper: assign persona_code based on decision tree
+  // deno-lint-ignore no-explicit-any
+  function computePersonaCode(sData: Record<string, unknown>, children: any[]): string {
+    const c1 = children.find((c: any) => c.child_index === 0) || children[0];
+    const c2 = children.find((c: any) => c.child_index === 1);
+    if (!c1) return "P6";
+    if (sData.is_existing_client) return c1.skin_concern === "imperfections" ? "P8" : "P9";
+    if ((sData.number_of_children as number) >= 2 && c2 && c1.skin_concern !== c2.skin_concern) return "P5";
+    if (c1.has_routine === true) return "P7";
+    if (c1.skin_concern === "imperfections" && c1.age_range === "10-11") return "P2";
+    if (c1.skin_concern === "imperfections") return "P1";
+    if (c1.skin_concern === "atopique") return "P3";
+    if (c1.skin_concern === "sensible") return "P4";
+    return "P6";
+  }
+
   const sessionData: Record<string, unknown> = {
     session_code: payload.session_code,
     status: coalesce("status", "en_cours"),
@@ -156,6 +172,33 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
       "[diagnostic-webhook] Children saved:",
       payload.children.length
     );
+
+    // Assign persona_code if session is completed
+    if (sessionData.status === "termine") {
+      const personaCode = computePersonaCode(sessionData, payload.children);
+      await supabase
+        .from("diagnostic_sessions")
+        .update({ persona_code: personaCode })
+        .eq("id", session.id);
+      console.log("[diagnostic-webhook] Persona code assigned:", personaCode);
+    }
+  }
+
+  // Also assign persona_code if session is termine but no children in this payload
+  if (sessionData.status === "termine" && (!Array.isArray(payload.children) || payload.children.length === 0)) {
+    const { data: existingChildren } = await supabase
+      .from("diagnostic_children")
+      .select("*")
+      .eq("session_id", session.id)
+      .order("child_index", { ascending: true });
+    if (existingChildren && existingChildren.length > 0) {
+      const personaCode = computePersonaCode(sessionData, existingChildren);
+      await supabase
+        .from("diagnostic_sessions")
+        .update({ persona_code: personaCode })
+        .eq("id", session.id);
+      console.log("[diagnostic-webhook] Persona code assigned (existing children):", personaCode);
+    }
   }
 
   return jsonResponse(

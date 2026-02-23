@@ -1,13 +1,12 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, Lock, FileText, Loader2, ClipboardList } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, FileText, Loader2, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PersonaCard } from "@/components/dashboard/PersonaCard";
+import { PersonasTab } from "@/components/dashboard/PersonasTab";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { FunnelVisualization } from "@/components/dashboard/FunnelVisualization";
 import { DetailedFunnelVisualization } from "@/components/dashboard/DetailedFunnelVisualization";
@@ -21,9 +20,6 @@ import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
-import personaEmma from "@/assets/persona-emma.png";
-import personaSophie from "@/assets/persona-sophie.png";
-import personaLea from "@/assets/persona-lea.png";
 import askItLogo from "@/assets/ask-it-logo.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -31,46 +27,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-const personas = [{
-  name: "Emma",
-  tagline: "Anxieuse mais proactive",
-  image: personaEmma,
-  ageRange: "26-32 ans",
-  situation: "Enceinte 1er trimestre",
-  prospectPercentage: 25,
-  psychology: "Cherche réassurance, lit beaucoup, craint le 'mal faire', veut se sentir préparée.",
-  problems: ["Ne sait pas quels soins sont vraiment 'safe grossesse'", "Peur des vergetures → cherche prévention", "Sensible aux textures (nausées + odeurs)", "Redoute les achats inutiles"],
-  keyNeeds: ["Guide clair par étape (trimester checklist)", "Produits certifiés, explications simples", "Recommandations personnalisées selon ses symptômes"],
-  behaviors: ["Consulte beaucoup la FAQ", "Compare plusieurs produits", "Fait souvent des abandons de panier"],
-  topProducts: ["Huile anti-vergetures bio", "Crème hydratante sans parfum", "Guide 1er trimestre"],
-  aiInsights: ["78% des Emmas abandonnent si la composition n'est pas expliquée clairement", "Les recommandations \"routine 1er trimestre\" convertissent +32% sur ce profil", "Ce persona convertit 2,4x mieux lorsque la routine est présentée sous forme de pack complet"]
-}, {
-  name: "Sophie",
-  tagline: "Efficace et pressée",
-  image: personaSophie,
-  ageRange: "30-38 ans",
-  situation: "Jeune maman postpartum",
-  prospectPercentage: 22,
-  psychology: "Fatigue + besoin de retrouver confiance + simplicité. Forte charge mentale.",
-  problems: ["Pas le temps de lire → veut des informations directes et claires", "Vergétures / cicatrices / relâchement de peau", "Manque d'énergie pour comparer les produits"],
-  keyNeeds: ["Routine minimaliste en 2–3 produits max", "Explications rapides ('voici ce qu'il te faut')", "Recommandations selon symptômes (sécheresse, cicatrices, jambes lourdes)"],
-  behaviors: ["Très mobile-first (87% achètent sur smartphone)", "Achète souvent via recommandations personnalisées", "Convertit 2,4× mieux avec des packs complets"],
-  topProducts: ["Pack routine postpartum", "Sérum réparateur express", "Crème raffermissante"],
-  aiInsights: ["Les contenus \"avant/après\" augmentent fortement le taux de conversion sur ce profil", "Elle clique 3x plus sur les diagnostics courts que sur les longs", "Les offres \"routine post-partum\" génèrent +47% de CA sur ce segment"]
-}, {
-  name: "Léa",
-  tagline: "Nature et exigeante",
-  image: personaLea,
-  ageRange: "33-40 ans",
-  situation: "Maman de 2 enfants",
-  prospectPercentage: 18,
-  psychology: "Consommatrice exigeante, très attachée aux valeurs marque. Veut le meilleur mais déteste le bullshit.",
-  problems: ["Ne croit plus les promesses marketing trop vagues", "Besoin d'information scientifique vulgarisée", "Sensible au prix → cherche le rapport qualité/prix"],
-  keyNeeds: ["Fiches produits ultra-transparentes", "Comparaison rapide entre gammes", "Argumentaire clair sur les résultats"],
-  behaviors: ["Lit les avis + composition (liste INCI complète)", "Convertit mieux sur les bundles", "Clique 3× plus sur les diagnostics courts"],
-  topProducts: ["Gamme bio certifiée", "Huile végétale pure", "Pack transparence totale"],
-  aiInsights: ["Les vidéos explicatives augmentent son intention d'achat de +47%", "Elle passe 2,8x plus de temps sur les pages détaillant les certifications", "Comparaison rapide entre gammes = facteur déclencheur d'achat principal"]
-}];
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -545,8 +501,8 @@ export default function Dashboard() {
             {/* Personas Preview */}
             <div className="bg-gradient-to-br from-card via-card to-secondary/10 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Les personas seront disponibles prochainement.
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Consultez l'onglet <button onClick={() => setActiveTab("personas")} className="text-primary font-medium underline">Personas</button> pour voir les 9 profils basés sur vos données réelles.
               </p>
             </div>
 
@@ -559,102 +515,8 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="personas" className="space-y-6">
-            <div ref={personasRef} className="space-y-6">
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-foreground mb-2 font-heading">
-                Personas Intelligents
-              </h2>
-              <p className="text-muted-foreground">
-                Profils détaillés de vos clientes avec insights comportementaux
-              </p>
-            </div>
-            
-            {/* Separate persona cards with shadow depth */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-              <div className="h-full bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
-                <PersonaCard {...personas[0]} index={0} colorTheme="emma" />
-              </div>
-              <div className="h-full bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
-                <PersonaCard {...personas[1]} index={1} colorTheme="sophie" />
-              </div>
-              <div className="h-full bg-card rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] transition-shadow duration-300">
-                <PersonaCard {...personas[2]} index={2} colorTheme="lea" />
-              </div>
-            </div>
-
-            {/* Locked Premium Personas Teaser */}
-            <motion.div initial={{
-              opacity: 0,
-              y: 20
-            }} animate={{
-              opacity: 1,
-              y: 0
-            }} transition={{
-              delay: 0.4,
-              duration: 0.5
-            }} className="relative overflow-hidden rounded-xl border border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-              {/* Colorful blurred background simulating hidden data */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="grid grid-cols-3 gap-4 p-6 blur-md">
-                  {/* Simulated colorful persona cards */}
-                  <div className="bg-gradient-to-br from-persona-emma to-persona-emma/60 rounded-xl h-64 p-4">
-                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
-                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
-                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
-                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-3/4" />
-                  </div>
-                  <div className="bg-gradient-to-br from-persona-sophie to-persona-sophie/60 rounded-xl h-64 p-4">
-                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
-                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
-                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
-                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-3/4" />
-                  </div>
-                  <div className="bg-gradient-to-br from-persona-lea to-persona-lea/60 rounded-xl h-64 p-4">
-                    <div className="w-16 h-16 bg-white/30 rounded-full mb-4" />
-                    <div className="h-4 bg-white/40 rounded w-2/3 mb-3" />
-                    <div className="h-3 bg-white/30 rounded w-1/2 mb-6" />
-                    <div className="h-2 bg-white/20 rounded w-full mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-4/5 mb-2" />
-                    <div className="h-2 bg-white/20 rounded w-3/4" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Overlay content with proper spacing */}
-              <div className="relative z-10 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center py-16 pb-24 px-8">
-                <div className="bg-primary/15 p-5 rounded-full mb-6 shadow-lg">
-                  <Lock className="w-10 h-10 text-primary" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mb-3 text-center">
-                  Passer au niveau supérieur pour découvrir vos autres personas intelligents
-                </h3>
-                <p className="text-muted-foreground text-center max-w-lg mb-6">
-                  Débloquez une vue complète de tous vos profils clients pour une analyse encore plus profonde et précise
-                </p>
-                
-                {/* Progress bar showing remaining percentage */}
-                <div className="w-full max-w-sm space-y-2 mb-8">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Personas supplémentaires</span>
-                    <span className="font-semibold text-primary">35% de vos prospects</span>
-                  </div>
-                  <div className="h-3 bg-black/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500" style={{
-                      width: '35%'
-                    }} />
-                  </div>
-                </div>
-                
-                <Button className="shadow-lg hover:shadow-xl transition-shadow" size="lg">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Découvrir le plan Max
-                </Button>
-              </div>
-            </motion.div>
+            <div ref={personasRef}>
+              <PersonasTab dateRange={dateRange} />
             </div>
           </TabsContent>
 
