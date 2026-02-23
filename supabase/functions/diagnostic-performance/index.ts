@@ -406,6 +406,8 @@ Deno.serve(async (req) => {
           priorities_ordered: s.priorities_ordered,
           trust_triggers_ordered: s.trust_triggers_ordered,
           content_format_preference: s.content_format_preference,
+          persona_code: s.persona_code ?? null,
+          matching_score: s.matching_score ?? null,
           children,
           _source: "new",
         });

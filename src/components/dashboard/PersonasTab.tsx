@@ -1,298 +1,395 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Users, TrendingUp, ShoppingCart, Zap, ChevronDown, ChevronUp, BarChart3, Brain, Activity, Package, DollarSign, Lightbulb, Mail, MessageSquare } from "lucide-react";
-import { usePersonaStats, PersonaStat } from "@/hooks/usePersonaStats";
+import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
+import { usePersonaStats, PersonaStat, PersonaTopItem } from "@/hooks/usePersonaStats";
 import { DateRange } from "react-day-picker";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PersonasTabProps {
   dateRange?: DateRange;
 }
 
 const PERSONA_COLORS: Record<string, string> = {
-  P1: "348 83% 47%",  // primary red
-  P2: "330 81% 60%",  // secondary pink
-  P3: "15 85% 55%",   // accent orange
-  P4: "205 85% 55%",  // blue
-  P5: "155 65% 45%",  // green
-  P6: "270 60% 55%",  // purple
-  P7: "45 90% 50%",   // amber
-  P8: "348 70% 35%",  // dark red
-  P9: "195 70% 45%",  // teal
+  P1: "348 83% 47%",
+  P2: "330 81% 60%",
+  P3: "15 85% 55%",
+  P4: "205 85% 55%",
+  P5: "155 65% 45%",
+  P6: "270 60% 55%",
+  P7: "45 90% 50%",
+  P8: "348 70% 35%",
+  P9: "195 70% 45%",
 };
 
-function PersonaSummaryCard({ persona, isSelected, onClick }: { persona: PersonaStat; isSelected: boolean; onClick: () => void }) {
-  const color = PERSONA_COLORS[persona.code] || "0 0% 50%";
-  return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`flex-shrink-0 w-[140px] rounded-xl p-3 text-left transition-all border-2 ${
-        isSelected ? "border-current shadow-lg" : "border-transparent shadow-sm hover:shadow-md"
-      }`}
-      style={{
-        backgroundColor: `hsl(${color} / 0.08)`,
-        borderColor: isSelected ? `hsl(${color})` : "transparent",
-      }}
-    >
-      <p className="text-xs font-bold truncate" style={{ color: `hsl(${color})` }}>
-        {persona.code}
-      </p>
-      <p className="text-[10px] text-foreground/80 leading-tight mt-0.5 line-clamp-2 h-[26px]">
-        {persona.name}
-      </p>
-      <p className="text-lg font-bold mt-1" style={{ color: `hsl(${color})` }}>
-        {persona.percentage}%
-      </p>
-      <div className="h-1.5 rounded-full mt-1" style={{ backgroundColor: `hsl(${color} / 0.2)` }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${Math.min(persona.percentage * 2, 100)}%`, backgroundColor: `hsl(${color})` }}
-        />
-      </div>
-      <p className="text-[10px] text-muted-foreground mt-1">{persona.count} sessions</p>
-    </motion.button>
-  );
+const PERSONA_NAMES: Record<string, string> = {
+  P1: "La Novice Imperfections Enfant",
+  P2: "La Novice Imperfections Pré-ado",
+  P3: "La Novice Atopique",
+  P4: "La Novice Sensible",
+  P5: "La Multi-enfants Besoins Mixtes",
+  P6: "La Novice Découverte",
+  P7: "L'Insatisfaite",
+  P8: "La Fidèle Imperfections",
+  P9: "La Fidèle Exploratrice",
+};
+
+/* ── Translation maps ────────────────────────────────── */
+
+const PRIORITY_LABELS: Record<string, string> = {
+  efficacite: "Efficacité",
+  ludique: "Côté ludique",
+  clean: "Naturalité / Clean",
+  autonomie: "Autonomie de l'enfant",
+  science: "Validation scientifique",
+};
+
+const TRUST_LABELS: Record<string, string> = {
+  ingredient_transparency: "Transparence des ingrédients",
+  proof_results: "Preuves de résultats",
+  parent_testimonials: "Témoignages de parents",
+  scientific_validation: "Validation scientifique",
+};
+
+const FORMAT_LABELS: Record<string, string> = {
+  visual: "Contenu visuel",
+  short: "Contenu court et direct",
+  complete: "Contenu détaillé et complet",
+};
+
+const ROUTINE_LABELS: Record<string, string> = {
+  minimal: "Minimaliste (1-2 produits)",
+  simple: "Simple (2-3 produits)",
+  complete: "Complète (3+ produits)",
+};
+
+const REACTIVITY_LABELS: Record<string, string> = {
+  no: "Aucune réactivité",
+  environment: "Réactive à l'environnement",
+  products: "Réactive aux produits",
+};
+
+function tr(value: string, map: Record<string, string>): string {
+  return map[value] || value;
 }
 
-function CollapsibleSection({ title, icon: Icon, children, defaultOpen = false }: { title: string; icon: any; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex items-center justify-between w-full py-2 group">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-primary" />
-          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-        </div>
-        {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2 pb-4">
-        {children}
-      </CollapsibleContent>
-    </Collapsible>
-  );
+function trItem(item: PersonaTopItem, map: Record<string, string>): PersonaTopItem {
+  return { ...item, value: tr(item.value, map) };
 }
 
-function TopItemsList({ items, label }: { items: Array<{ value: string; pct: number }>; label?: string }) {
-  if (!items || items.length === 0) return <p className="text-xs text-muted-foreground">Aucune donnée</p>;
-  return (
-    <div className="space-y-1">
-      {label && <p className="text-xs text-muted-foreground mb-1">{label}</p>}
-      {items.map((item, i) => (
-        <div key={i} className="flex items-center justify-between text-xs">
-          <span className="text-foreground/80">{item.value}</span>
-          <Badge variant="secondary" className="text-[10px]">{item.pct}%</Badge>
-        </div>
-      ))}
-    </div>
-  );
+/* ── Psychology text generator ───────────────────────── */
+
+function generatePsychologyText(p: PersonaStat): string {
+  const priority = p.psychology?.priorityFirst?.value;
+  const trust = p.psychology?.trustFirst?.value;
+
+  const priorityTexts: Record<string, string> = {
+    efficacite: "Cherche avant tout des résultats visibles et prouvés.",
+    ludique: "Veut que le soin soit un moment agréable et ludique pour son enfant.",
+    clean: "Exigeante sur la naturalité et la composition des produits.",
+    autonomie: "Souhaite que son enfant devienne autonome dans sa routine de soin.",
+    science: "Accorde une grande importance aux validations scientifiques.",
+  };
+
+  const trustTexts: Record<string, string> = {
+    proof_results: "A besoin d'être convaincue par des preuves concrètes avant d'acheter.",
+    ingredient_transparency: "Très attentive à la composition et aux ingrédients.",
+    parent_testimonials: "Se fie beaucoup aux témoignages d'autres parents.",
+    scientific_validation: "Recherche des garanties dermatologiques et scientifiques.",
+  };
+
+  const parts: string[] = [];
+  if (priority && priorityTexts[priority]) parts.push(priorityTexts[priority]);
+  if (trust && trustTexts[trust]) parts.push(trustTexts[trust]);
+  if (parts.length === 0) return "Profil en cours d'analyse — pas encore assez de données pour caractériser la psychologie.";
+  return parts.join(" ");
 }
 
-function PersonaDetail({ persona }: { persona: PersonaStat }) {
+/* ── Key issues generator ────────────────────────────── */
+
+function generateKeyIssues(p: PersonaStat): string[] {
+  const issues: string[] = [];
+  const trust = p.psychology?.trustTop3 || [];
+  const reactivity = p.profile?.reactivityTop || [];
+  const fragrance = p.profile?.excludeFragrancePct ?? 0;
+
+  for (const t of trust.slice(0, 2)) {
+    const map: Record<string, string> = {
+      ingredient_transparency: "A besoin de connaître exactement la composition des produits",
+      proof_results: "Veut voir des résultats prouvés avant de s'engager",
+      parent_testimonials: "Cherche l'avis d'autres parents pour se rassurer",
+      scientific_validation: "Sensible aux validations scientifiques et dermatologiques",
+    };
+    if (map[t.value]) issues.push(map[t.value]);
+  }
+
+  const envReact = reactivity.find((r) => r.value === "environment");
+  if (envReact && envReact.pct > 50) {
+    issues.push("Peau de l'enfant réactive à l'environnement (froid, vent, pollution)");
+  }
+  const prodReact = reactivity.find((r) => r.value === "products");
+  if (prodReact && prodReact.pct > 10) {
+    issues.push("A déjà eu des réactions à certains produits cosmétiques");
+  }
+  if (fragrance > 10) {
+    issues.push("Préfère les produits sans parfum par précaution");
+  }
+
+  return issues.slice(0, 4);
+}
+
+/* ── Essential needs generator ───────────────────────── */
+
+function generateNeeds(p: PersonaStat): string[] {
+  const needs: string[] = [];
+  const routine = p.psychology?.routineSizeDist || [];
+  const priority = p.psychology?.priorityFirst?.value;
+
+  const minimal = routine.find((r) => r.value === "minimal");
+  const simple = routine.find((r) => r.value === "simple");
+  const complete = routine.find((r) => r.value === "complete");
+
+  if (minimal && minimal.pct > 40) needs.push("Routine minimaliste en 1-2 produits maximum");
+  if (simple && simple.pct > 40) needs.push("Routine simple et rapide, facile à intégrer au quotidien");
+  if (complete && complete.pct > 25) needs.push("Ouverte à une routine complète si elle comprend l'utilité de chaque produit");
+
+  const priorityNeeds: Record<string, string> = {
+    ludique: "Produits ludiques qui donnent envie à l'enfant",
+    clean: "Formulations clean et naturelles certifiées",
+    efficacite: "Résultats visibles rapidement sur la peau",
+    autonomie: "Produits que l'enfant peut utiliser seul",
+    science: "Formulations validées scientifiquement",
+  };
+  if (priority && priorityNeeds[priority]) needs.push(priorityNeeds[priority]);
+
+  return needs.slice(0, 4);
+}
+
+/* ── Behavior bullets generator ──────────────────────── */
+
+function generateBehaviors(p: PersonaStat, globalConvRate: number): string[] {
+  const bullets: string[] = [];
+  const device = p.profile?.deviceTop?.[0];
+  if (device) {
+    const pct = device.pct;
+    if (device.value === "mobile") bullets.push(`Mobile-first (${pct}% sur smartphone)`);
+    else if (device.value === "desktop") bullets.push(`Desktop-first (${pct}% sur ordinateur)`);
+    else bullets.push(`${device.value} (${pct}%)`);
+  }
+
+  const format = p.behavior?.formatTop?.[0];
+  if (format) {
+    const fmtMap: Record<string, string> = {
+      visual: "Réceptive aux contenus visuels (photos avant/après, vidéos)",
+      short: "Préfère les messages courts et directs",
+      complete: "Apprécie les contenus détaillés et complets",
+    };
+    bullets.push(fmtMap[format.value] || `Format préféré : ${format.value} (${format.pct}%)`);
+  }
+
+  const dur = p.behavior?.durationAvgSeconds;
+  if (dur != null) {
+    const min = Math.round(dur / 60);
+    if (min <= 4) bullets.push(`Décide rapidement (${min} min en moyenne)`);
+    else if (min >= 6) bullets.push(`Prend son temps pour comparer (${min} min en moyenne)`);
+    else bullets.push(`Durée moyenne de ${min} min`);
+  }
+
+  const convRate = p.business ? (p.business.conversions / Math.max(p.count, 1)) * 100 : 0;
+  if (globalConvRate > 0 && convRate > globalConvRate * 1.5) {
+    bullets.push(`Convertit ${(convRate / globalConvRate).toFixed(1)}× mieux que la moyenne`);
+  } else if (globalConvRate > 0 && convRate < globalConvRate * 0.5 && (p.behavior?.engagementAvg ?? 0) > 60) {
+    bullets.push("Faible conversion malgré un fort engagement — besoin de réassurance");
+  }
+
+  return bullets.slice(0, 4);
+}
+
+/* ── Persona Card ────────────────────────────────────── */
+
+function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number } }) {
   const color = PERSONA_COLORS[persona.code] || "0 0% 50%";
   const p = persona;
 
   if (!p.profile) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée pour ce persona sur cette période.</p>;
+    return (
+      <Card className="p-5 opacity-60">
+        <p className="text-sm font-bold" style={{ color: `hsl(${color})` }}>{p.code} — {p.name}</p>
+        <p className="text-xs text-muted-foreground mt-1">Aucune donnée sur cette période</p>
+      </Card>
+    );
   }
 
-  const formatDuration = (seconds: number | null) => {
-    if (seconds == null) return "–";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}min ${s}s`;
-  };
+  const convRate = p.business ? (p.business.conversions / Math.max(p.count, 1)) * 100 : 0;
+  const psychText = generatePsychologyText(p);
+  const keyIssues = generateKeyIssues(p);
+  const needs = generateNeeds(p);
+  const behaviors = generateBehaviors(p, globalAvg.conversionRate);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-1"
-    >
-      {/* Header */}
-      <div className="rounded-xl p-5" style={{ backgroundColor: `hsl(${color} / 0.06)`, borderLeft: `4px solid hsl(${color})` }}>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h3 className="text-xl font-bold text-foreground">{p.name}</h3>
-            <p className="text-sm text-muted-foreground">{p.subtitle}</p>
-            <Badge className="mt-2 text-white" style={{ backgroundColor: `hsl(${color})` }}>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <Card className="overflow-hidden h-full flex flex-col">
+        {/* Header */}
+        <div className="p-5 pb-3" style={{ borderBottom: `3px solid hsl(${color})` }}>
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className="text-xs font-bold" style={{ color: `hsl(${color})` }}>{p.code}</p>
+            <Badge className="text-[10px] text-white shrink-0" style={{ backgroundColor: `hsl(${color})` }}>
               {p.percentage}% de vos prospects
             </Badge>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <h3 className="text-base font-bold text-foreground leading-tight">{p.name}</h3>
+          <p className="text-xs italic text-muted-foreground mt-0.5">{p.subtitle}</p>
+          <Progress value={Math.min(p.percentage * 2, 100)} className="h-1.5 mt-3" />
+
+          {/* Mini KPIs */}
+          <div className="grid grid-cols-4 gap-2 mt-3">
             {[
-              { label: "Volume", value: p.count.toString(), icon: Users },
-              { label: "Conversion", value: p.business ? `${(p.business.conversions / Math.max(p.count, 1) * 100).toFixed(1)}%` : "–", icon: TrendingUp },
-              { label: "AOV", value: p.business?.aov ? `${p.business.aov.toFixed(0)}€` : "–", icon: ShoppingCart },
-              { label: "Engagement", value: p.behavior?.engagementAvg != null ? `${p.behavior.engagementAvg}` : "–", icon: Zap },
+              { icon: Users, label: "Volume", value: String(p.count) },
+              { icon: TrendingUp, label: "Conversion", value: `${convRate.toFixed(1)}%` },
+              { icon: ShoppingCart, label: "AOV", value: p.business?.aov ? `${p.business.aov.toFixed(0)}€` : "–" },
+              { icon: Zap, label: "Engagement", value: p.behavior?.engagementAvg != null ? `${p.behavior.engagementAvg}` : "–" },
             ].map((kpi, i) => (
-              <div key={i} className="bg-card rounded-lg p-3 text-center shadow-sm border border-border/50">
-                <kpi.icon className="w-4 h-4 mx-auto mb-1" style={{ color: `hsl(${color})` }} />
-                <p className="text-lg font-bold text-foreground">{kpi.value}</p>
-                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+              <div key={i} className="text-center bg-muted/40 rounded-md p-1.5">
+                <kpi.icon className="w-3 h-3 mx-auto mb-0.5" style={{ color: `hsl(${color})` }} />
+                <p className="text-xs font-bold text-foreground">{kpi.value}</p>
+                <p className="text-[9px] text-muted-foreground">{kpi.label}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Sections */}
-      <div className="space-y-0 divide-y divide-border/50">
-        <CollapsibleSection title="Profil Type" icon={BarChart3} defaultOpen>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <TopItemsList items={p.profile.ageRangeTop} label="Tranche d'âge enfant" />
-            <TopItemsList items={p.profile.childCountDist} label="Nombre d'enfants" />
-            <TopItemsList items={p.profile.reactivityTop} label="Réactivité peau" />
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Exclure parfum</span>
-              <Badge variant="outline">{p.profile.excludeFragrancePct}%</Badge>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Multi-enfants</span>
-              <Badge variant="outline">{p.profile.multiChildrenPct}%</Badge>
-            </div>
-            <TopItemsList items={p.profile.deviceTop} label="Device" />
+        {/* Body */}
+        <div className="p-5 pt-4 space-y-4 flex-1 text-xs">
+          {/* Psychology */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+              🧠 Psychologie
+            </h4>
+            <p className="text-muted-foreground leading-relaxed">{psychText}</p>
           </div>
-        </CollapsibleSection>
 
-        <CollapsibleSection title="Psychologie & Motivations" icon={Brain}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Key issues */}
+          {keyIssues.length > 0 && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Priorité #1</p>
-              {p.psychology?.priorityFirst ? (
-                <Badge style={{ backgroundColor: `hsl(${color} / 0.15)`, color: `hsl(${color})` }}>
-                  {p.psychology.priorityFirst.value} ({p.psychology.priorityFirst.pct}%)
-                </Badge>
-              ) : <span className="text-xs text-muted-foreground">–</span>}
-              <div className="mt-2">
-                <TopItemsList items={p.psychology?.priorityTop3 || []} label="Top 3 priorités" />
-              </div>
+              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Problématiques clés
+              </h4>
+              <ul className="space-y-1 text-muted-foreground">
+                {keyIssues.map((issue, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-amber-500 mt-0.5">•</span>
+                    <span>{issue}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
+          )}
+
+          {/* Essential needs */}
+          {needs.length > 0 && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Réassurance #1</p>
-              {p.psychology?.trustFirst ? (
-                <Badge style={{ backgroundColor: `hsl(${color} / 0.15)`, color: `hsl(${color})` }}>
-                  {p.psychology.trustFirst.value} ({p.psychology.trustFirst.pct}%)
-                </Badge>
-              ) : <span className="text-xs text-muted-foreground">–</span>}
-              <div className="mt-2">
-                <TopItemsList items={p.psychology?.trustTop3 || []} label="Top 3 réassurances" />
-              </div>
+              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> Besoins essentiels
+              </h4>
+              <ul className="space-y-1 text-muted-foreground">
+                {needs.map((need, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-green-500 mt-0.5">•</span>
+                    <span>{need}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <TopItemsList items={p.psychology?.routineSizeDist || []} label="Routine souhaitée" />
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Comportement" icon={Activity}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">{formatDuration(p.behavior?.durationAvgSeconds ?? null)}</p>
-              <p className="text-[10px] text-muted-foreground">Durée moyenne</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">{p.behavior?.engagementAvg ?? "–"}</p>
-              <p className="text-[10px] text-muted-foreground">Engagement moyen</p>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-foreground">{p.behavior?.formatTop[0]?.value || "–"}</p>
-              <p className="text-[10px] text-muted-foreground">Format préféré ({p.behavior?.formatTop[0]?.pct || 0}%)</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1">
-                <Mail className="w-3 h-3 text-primary" />
-                <p className="text-lg font-bold text-foreground">{p.behavior?.optinEmailPct ?? 0}%</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Opt-in email</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1">
-                <MessageSquare className="w-3 h-3 text-accent" />
-                <p className="text-lg font-bold text-foreground">{p.behavior?.optinSmsPct ?? 0}%</p>
-              </div>
-              <p className="text-[10px] text-muted-foreground">Opt-in SMS</p>
-            </div>
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Top Produits Recommandés" icon={Package}>
-          {p.topProducts.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {p.topProducts.map((prod, i) => (
-                <Badge key={i} variant="outline" className="text-xs py-1 px-3" style={{ borderColor: `hsl(${color} / 0.3)`, backgroundColor: `hsl(${color} / 0.05)` }}>
-                  {prod.name} ({prod.pct}%)
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Aucune donnée</p>
           )}
-        </CollapsibleSection>
 
-        <CollapsibleSection title="Performance Business" icon={DollarSign}>
-          {p.business ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-muted/30 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{p.business.conversions}</p>
-                <p className="text-[10px] text-muted-foreground">Conversions</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
-                <p className="text-[10px] text-muted-foreground">CA généré</p>
-              </div>
-              <div className="bg-muted/30 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-foreground">{p.business.aov.toFixed(0)}€</p>
-                <p className="text-[10px] text-muted-foreground">AOV</p>
-                {p.business.aovVsGlobal != null && (
-                  <p className={`text-[10px] font-medium ${p.business.aovVsGlobal >= 0 ? "text-green-600" : "text-red-500"}`}>
-                    {p.business.aovVsGlobal > 0 ? "+" : ""}{p.business.aovVsGlobal}% vs moyenne
-                  </p>
-                )}
-              </div>
-              <div className="bg-muted/30 rounded-lg p-3 text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {p.business.ecartPanier != null ? `${p.business.ecartPanier > 0 ? "+" : ""}${p.business.ecartPanier.toFixed(0)}€` : "–"}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Écart panier</p>
-                {p.business.ecartPanierPct != null && (
-                  <p className={`text-[10px] font-medium ${p.business.ecartPanierPct >= 0 ? "text-green-600" : "text-red-500"}`}>
-                    {p.business.ecartPanierPct > 0 ? "+" : ""}{p.business.ecartPanierPct}%
-                  </p>
-                )}
+          {/* Behaviors */}
+          {behaviors.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5 text-blue-500" /> Comportements
+              </h4>
+              <ul className="space-y-1 text-muted-foreground">
+                {behaviors.map((b, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Top products */}
+          {p.topProducts.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5" style={{ color: `hsl(${color})` }} /> Top produits recommandés
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {p.topProducts.slice(0, 5).map((prod, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] py-0.5 px-2" style={{ borderColor: `hsl(${color} / 0.3)`, backgroundColor: `hsl(${color} / 0.06)` }}>
+                    {prod.name} ({prod.pct}%)
+                  </Badge>
+                ))}
               </div>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Aucune donnée</p>
           )}
-        </CollapsibleSection>
 
-        <CollapsibleSection title="Insights IA" icon={Lightbulb}>
-          {p.insights.length > 0 ? (
-            <div className="space-y-2">
-              {p.insights.map((insight, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs rounded-lg p-2" style={{ backgroundColor: `hsl(${color} / 0.05)`, borderLeft: `3px solid hsl(${color})` }}>
-                  <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: `hsl(${color})` }} />
-                  <span className="text-foreground/80">{insight}</span>
+          {/* Insights IA */}
+          {p.insights.length > 0 && (
+            <div className="rounded-lg p-3" style={{ backgroundColor: `hsl(${color} / 0.05)` }}>
+              <h4 className="font-semibold mb-2 flex items-center gap-1.5" style={{ color: `hsl(${color})` }}>
+                <Lightbulb className="w-3.5 h-3.5" /> Insights IA
+              </h4>
+              <ul className="space-y-1.5">
+                {p.insights.map((insight, i) => (
+                  <li key={i} className="flex items-start gap-1.5" style={{ color: `hsl(${color})` }}>
+                    <span className="mt-0.5">→</span>
+                    <span className="text-[11px] leading-relaxed">{insight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Business footer */}
+        <div className="p-4 pt-0 mt-auto">
+          <div className="border-t border-border/50 pt-3">
+            {p.business && p.business.conversions > 0 ? (
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-sm font-bold text-foreground">{convRate.toFixed(1)}%</p>
+                  <p className="text-[9px] text-muted-foreground">Conversion</p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Pas assez de données pour générer des insights</p>
-          )}
-        </CollapsibleSection>
-      </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{p.business.aov.toFixed(0)}€</p>
+                  <p className="text-[9px] text-muted-foreground">AOV moyen</p>
+                  {p.business.aovVsGlobal != null && (
+                    <p className={`text-[9px] font-medium ${p.business.aovVsGlobal >= 0 ? "text-green-600" : "text-red-500"}`}>
+                      {p.business.aovVsGlobal > 0 ? "+" : ""}{p.business.aovVsGlobal}% vs moy.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
+                  <p className="text-[9px] text-muted-foreground">CA généré</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground text-center">0 conversion — segment à activer</p>
+            )}
+          </div>
+        </div>
+      </Card>
     </motion.div>
   );
 }
 
-export function PersonasTab({ dateRange }: PersonasTabProps) {
-  const { personas, isLoading, error, totalCompleted } = usePersonaStats(dateRange);
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+/* ── Main Tab ────────────────────────────────────────── */
 
-  const selectedPersona = personas.find((p) => p.code === selectedCode);
+export function PersonasTab({ dateRange }: PersonasTabProps) {
+  const { personas, isLoading, error, totalCompleted, globalAvg } = usePersonaStats(dateRange);
 
   if (isLoading) {
     return (
@@ -327,42 +424,12 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
         </p>
       </div>
 
-      {/* Summary bar - horizontally scrollable */}
-      <div className="overflow-x-auto pb-2 -mx-2 px-2">
-        <div className="flex gap-2 min-w-max">
-          {personas.map((p) => (
-            <PersonaSummaryCard
-              key={p.code}
-              persona={p}
-              isSelected={selectedCode === p.code}
-              onClick={() => setSelectedCode(selectedCode === p.code ? null : p.code)}
-            />
-          ))}
-        </div>
+      {/* Card grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {personas.map((p) => (
+          <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} />
+        ))}
       </div>
-
-      {/* Detail */}
-      <AnimatePresence mode="wait">
-        {selectedPersona && (
-          <motion.div
-            key={selectedPersona.code}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="p-6 border border-border/50 shadow-md">
-              <PersonaDetail persona={selectedPersona} />
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!selectedCode && (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          Cliquez sur un persona pour voir ses données détaillées
-        </p>
-      )}
     </div>
   );
 }

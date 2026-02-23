@@ -97,7 +97,21 @@ const IDENTIFICATION_COLS: ColumnDef[] = [
   { key: "result_url", label: "Result URL", category: "identification", getValue: (s) => fmt(s.result_url) },
 ];
 
+const PERSONA_CODE_NAMES: Record<string, string> = {
+  P1: "Novice Imperfections Enfant",
+  P2: "Novice Imperfections Pré-ado",
+  P3: "Novice Atopique",
+  P4: "Novice Sensible",
+  P5: "Multi-enfants Besoins Mixtes",
+  P6: "Novice Découverte",
+  P7: "L'Insatisfaite",
+  P8: "Fidèle Imperfections",
+  P9: "Fidèle Exploratrice",
+};
+
 const PERSONA_COLS: ColumnDef[] = [
+  { key: "persona_code_col", label: "Persona", category: "persona", getValue: (s) => s.persona_code ? `${s.persona_code} — ${PERSONA_CODE_NAMES[s.persona_code] || s.persona_code}` : "—" },
+  { key: "matching_score_col", label: "Matching %", category: "persona", getValue: (s) => s.matching_score != null ? `${s.matching_score}%` : "—" },
   { key: "persona_detected", label: "Persona détecté", category: "persona", getValue: (s) => fmt(s.persona_detected) },
   { key: "persona_score", label: "Matching score (%)", category: "persona", getValue: (s) => s.persona_matching_score != null ? `${s.persona_matching_score}%` : "—" },
   { key: "adapted_tone", label: "Tone adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },

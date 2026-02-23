@@ -66,6 +66,8 @@ export interface DiagnosticSession {
   priorities_ordered: string | null;
   trust_triggers_ordered: string | null;
   content_format_preference: string | null;
+  persona_code: string | null;
+  matching_score: number | null;
   children: DiagnosticChild[];
   _source: "new" | "legacy";
 }
