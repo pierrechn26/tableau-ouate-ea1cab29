@@ -393,10 +393,11 @@ PRIORITÉ OUATE = BEAUTÉ/SKINCARE : Prioriser Motion App, Billo (UGC skincare),
 
 === RÈGLES DE GÉNÉRATION ===
 
-- NOMENCLATURE OBLIGATOIRE : Dans le champ "nom" du persona_focus, utiliser TOUJOURS le format "Prénom — Titre" tel que défini ci-dessus (ex: "Clara — La Novice Imperfections", "Sandrine — L'Insatisfaite"). Ne JAMAIS inventer de noms ou titres.
-- Dans les champs "personas" des recommandations, utiliser les codes (P1, P2, etc.) car ils sont résolus côté frontend.
+- NOMENCLATURE OBLIGATOIRE : Dans TOUS les textes visibles (titres, descriptions, raisons, rationale, hooks, concepts), utiliser TOUJOURS le prénom du persona (Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine). Ne JAMAIS utiliser les codes P1, P2, P3, etc. dans aucun texte. Ne JAMAIS inventer de noms, titres ou personas qui n'existent pas dans la liste ci-dessus (ex: "Grands-Parents", "Papa Solo", etc. sont INTERDITS).
+- Dans le champ "nom" du persona_focus, utiliser TOUJOURS le format "Prénom — Titre" (ex: "Clara — La Novice Imperfections", "Sandrine — L'Insatisfaite").
+- Dans les champs "personas" (tableaux JSON), utiliser les codes (P1, P2, etc.) car ils sont résolus côté frontend en prénoms. Mais dans les titres et textes libres, utiliser UNIQUEMENT les prénoms.
 - Les recommandations doivent être ciblées sur un ou plusieurs personas selon la pertinence. Prioriser les 3 personas identifiés comme prioritaires cette semaine.
-- Ne recommander QUE des actions pertinentes pour des personas qui EXISTENT réellement dans les données. Si un persona a 0 session, ne pas créer de campagne pour lui.
+- Ne recommander QUE des actions pertinentes pour des personas qui EXISTENT réellement dans les données. Si un persona a 0 session, ne pas créer de campagne pour lui. Les 9 personas sont EXCLUSIVEMENT des mamans d'enfants de 4-11 ans. Il n'existe PAS de persona "Grands-Parents", "Papa", ou autre.
 - Chaque recommandation DOIT être justifiée par DEUX éléments : une donnée persona spécifique ET un framework/best practice issu des sources marketing.
 - Les hooks créatifs DOIVENT être en français, prêts à être utilisés tels quels dans Ads Manager.
 - Les flows email DOIVENT être compatibles Klaviyo avec des triggers précis.
