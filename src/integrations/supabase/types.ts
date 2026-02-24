@@ -384,6 +384,45 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_recommendations: {
+        Row: {
+          ads_recommendations: Json | null
+          checklist: Json | null
+          email_recommendations: Json | null
+          generated_at: string | null
+          id: string
+          offers_recommendations: Json | null
+          persona_focus: Json | null
+          sources_consulted: Json | null
+          status: string | null
+          week_start: string
+        }
+        Insert: {
+          ads_recommendations?: Json | null
+          checklist?: Json | null
+          email_recommendations?: Json | null
+          generated_at?: string | null
+          id?: string
+          offers_recommendations?: Json | null
+          persona_focus?: Json | null
+          sources_consulted?: Json | null
+          status?: string | null
+          week_start: string
+        }
+        Update: {
+          ads_recommendations?: Json | null
+          checklist?: Json | null
+          email_recommendations?: Json | null
+          generated_at?: string | null
+          id?: string
+          offers_recommendations?: Json | null
+          persona_focus?: Json | null
+          sources_consulted?: Json | null
+          status?: string | null
+          week_start?: string
+        }
+        Relationships: []
+      }
       personas: {
         Row: {
           age_range: string | null
