@@ -19,6 +19,7 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
+import { PersonasOverviewPreview } from "@/components/dashboard/PersonasOverviewPreview";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import askItLogo from "@/assets/ask-it-logo.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -498,13 +499,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Personas Preview */}
-            <div className="bg-gradient-to-br from-card via-card to-secondary/10 rounded-xl border border-border/50 p-6 shadow-md">
-              <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Aperçu des Personas</h3>
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Consultez l'onglet <button onClick={() => setActiveTab("personas")} className="text-primary font-medium underline">Personas</button> pour voir les 9 profils basés sur vos données réelles.
-              </p>
-            </div>
+            {/* Personas Preview — Top 3 */}
+            <PersonasOverviewPreview dateRange={dateRange} onViewAll={() => setActiveTab("personas")} />
 
             {/* Diagnostic Performance - Real Data */}
             <OverviewDiagnosticStats dateRange={dateRange} />
