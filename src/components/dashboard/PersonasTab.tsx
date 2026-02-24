@@ -1,10 +1,19 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
 import { usePersonaStats, PersonaStat, PersonaTopItem } from "@/hooks/usePersonaStats";
 import { DateRange } from "react-day-picker";
+
+import personaP1 from "@/assets/persona-p1.png";
+import personaP2 from "@/assets/persona-sophie.png";
+import personaP3 from "@/assets/persona-p3.png";
+import personaP4 from "@/assets/persona-lea.png";
+import personaP5 from "@/assets/persona-p5.png";
+import personaP6 from "@/assets/persona-p6.png";
+import personaP7 from "@/assets/persona-p7.png";
+import personaP8 from "@/assets/persona-p8.png";
+import personaP9 from "@/assets/persona-p9.png";
 
 interface PersonasTabProps {
   dateRange?: DateRange;
@@ -22,32 +31,29 @@ const PERSONA_COLORS: Record<string, string> = {
   P9: "195 70% 45%",
 };
 
-// Generate a deterministic color for unknown persona codes
 function getPersonaColor(code: string): string {
   if (PERSONA_COLORS[code]) return PERSONA_COLORS[code];
-  // Hash the code to produce a stable hue
   let hash = 0;
   for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash);
   const hue = ((hash % 360) + 360) % 360;
   return `${hue} 65% 50%`;
 }
 
+/* ── Persona definitions with names, taglines, ages, images ── */
+
+const PERSONA_PROFILES: Record<string, { displayName: string; age: number; tagline: string; situation: string; image: string }> = {
+  P1: { displayName: "Clara", age: 28, tagline: "Inquiète mais déterminée", situation: "Maman d'un enfant avec des imperfections cutanées", image: personaP1 },
+  P2: { displayName: "Nathalie", age: 35, tagline: "Pragmatique et informée", situation: "Maman d'un pré-ado avec des premiers boutons", image: personaP2 },
+  P3: { displayName: "Amandine", age: 30, tagline: "Protectrice et vigilante", situation: "Maman d'un enfant à peau atopique", image: personaP3 },
+  P4: { displayName: "Julie", age: 32, tagline: "Douce et précautionneuse", situation: "Maman d'un enfant à peau sensible et réactive", image: personaP4 },
+  P5: { displayName: "Stéphanie", age: 38, tagline: "Organisée et multi-tâches", situation: "Maman de plusieurs enfants aux besoins différents", image: personaP5 },
+  P6: { displayName: "Camille", age: 26, tagline: "Curieuse et enthousiaste", situation: "Jeune maman qui découvre les soins enfants", image: personaP6 },
+  P7: { displayName: "Sandrine", age: 34, tagline: "Exigeante et critique", situation: "A déjà essayé plusieurs marques sans satisfaction", image: personaP7 },
+  P8: { displayName: "Virginie", age: 36, tagline: "Fidèle et convaincue", situation: "Cliente Ouate qui cible les imperfections", image: personaP8 },
+  P9: { displayName: "Marine", age: 33, tagline: "Aventurière et ouverte", situation: "Cliente fidèle qui explore de nouveaux produits", image: personaP9 },
+};
+
 /* ── Translation maps ────────────────────────────────── */
-
-const PRIORITY_LABELS: Record<string, string> = {
-  efficacite: "Efficacité",
-  ludique: "Côté ludique",
-  clean: "Naturalité / Clean",
-  autonomie: "Autonomie de l'enfant",
-  science: "Validation scientifique",
-};
-
-const TRUST_LABELS: Record<string, string> = {
-  ingredient_transparency: "Transparence des ingrédients",
-  proof_results: "Preuves de résultats",
-  parent_testimonials: "Témoignages de parents",
-  scientific_validation: "Validation scientifique",
-};
 
 const FORMAT_LABELS: Record<string, string> = {
   visual: "Contenu visuel",
@@ -55,152 +61,261 @@ const FORMAT_LABELS: Record<string, string> = {
   complete: "Contenu détaillé et complet",
 };
 
-const ROUTINE_LABELS: Record<string, string> = {
-  minimal: "Minimaliste (1-2 produits)",
-  simple: "Simple (2-3 produits)",
-  complete: "Complète (3+ produits)",
-};
-
-const REACTIVITY_LABELS: Record<string, string> = {
-  no: "Aucune réactivité",
-  environment: "Réactive à l'environnement",
-  products: "Réactive aux produits",
-};
-
 function tr(value: string, map: Record<string, string>): string {
   return map[value] || value;
 }
 
-function trItem(item: PersonaTopItem, map: Record<string, string>): PersonaTopItem {
-  return { ...item, value: tr(item.value, map) };
-}
-
-/* ── Psychology text generator ───────────────────────── */
+/* ── Psychology text generator (enriched, unique per persona) ── */
 
 function generatePsychologyText(p: PersonaStat): string {
   const priority = p.psychology?.priorityFirst?.value;
   const trust = p.psychology?.trustFirst?.value;
+  const code = p.code;
 
+  const codeTexts: Record<string, string> = {
+    P1: "Maman attentive qui découvre les imperfections cutanées de son enfant pour la première fois. Elle ressent de la culpabilité et cherche des solutions efficaces immédiatement. Sa priorité est de trouver un produit qui fonctionne vite, avec des résultats visibles pour se rassurer.",
+    P2: "Maman d'un pré-adolescent qui voit apparaître les premiers boutons. Elle veut accompagner son enfant dans cette étape délicate sans le braquer. Elle valorise les produits qui respectent l'autonomie de l'enfant tout en étant adaptés à son jeune âge.",
+    P3: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Elle est devenue experte en lecture d'étiquettes et redoute les réactions allergiques. Elle ne fait confiance qu'aux produits cliniquement testés et sans parfum.",
+    P4: "Maman douce et précautionneuse face à la peau sensible de son enfant. Elle évite tout produit agressif et privilégie les formulations minimalistes. Elle prend son temps pour comparer et se renseigner avant d'acheter.",
+    P5: "Maman organisée qui gère les besoins cutanés différents de plusieurs enfants. Elle recherche la praticité avant tout : des routines simples, des produits polyvalents et un bon rapport qualité-prix pour toute la fratrie.",
+    P6: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Elle est réceptive aux nouveautés et se laisse guider par les recommandations. Elle apprécie les contenus éducatifs qui l'aident à comprendre les besoins de la peau de son enfant.",
+    P7: "Maman exigeante qui a déjà testé plusieurs marques sans trouver satisfaction. Elle est devenue sceptique et a besoin de preuves tangibles avant de faire confiance à un nouveau produit. Le moindre faux pas peut la faire décrocher.",
+    P8: "Cliente fidèle de Ouate qui connaît bien la marque et revient régulièrement. Elle fait confiance aux produits qu'elle utilise déjà et est ouverte aux recommandations complémentaires ciblées sur les imperfections de son enfant.",
+    P9: "Cliente fidèle et curieuse qui aime explorer de nouveaux produits Ouate. Elle est ambassadrice naturelle de la marque et partage volontiers son expérience. Elle recherche la nouveauté et les éditions limitées.",
+  };
+
+  if (codeTexts[code]) return codeTexts[code];
+
+  // Fallback for dynamic personas
   const priorityTexts: Record<string, string> = {
-    efficacite: "Cherche avant tout des résultats visibles et prouvés.",
-    ludique: "Veut que le soin soit un moment agréable et ludique pour son enfant.",
-    clean: "Exigeante sur la naturalité et la composition des produits.",
-    autonomie: "Souhaite que son enfant devienne autonome dans sa routine de soin.",
-    science: "Accorde une grande importance aux validations scientifiques.",
+    efficacite: "Cherche avant tout des résultats visibles et prouvés sur la peau de son enfant.",
+    ludique: "Veut que le soin soit un moment agréable et ludique qui motive l'enfant.",
+    clean: "Exigeante sur la naturalité et la transparence de chaque ingrédient.",
+    autonomie: "Souhaite rendre son enfant autonome dans sa routine de soin quotidienne.",
+    science: "Accorde une grande importance aux validations scientifiques et dermatologiques.",
   };
-
   const trustTexts: Record<string, string> = {
-    proof_results: "A besoin d'être convaincue par des preuves concrètes avant d'acheter.",
-    ingredient_transparency: "Très attentive à la composition et aux ingrédients.",
-    parent_testimonials: "Se fie beaucoup aux témoignages d'autres parents.",
-    scientific_validation: "Recherche des garanties dermatologiques et scientifiques.",
+    proof_results: "A besoin d'être convaincue par des preuves concrètes et des résultats avant/après.",
+    ingredient_transparency: "Très attentive à la composition, lit systématiquement les étiquettes.",
+    parent_testimonials: "Se fie aux témoignages d'autres parents pour valider ses choix.",
+    scientific_validation: "Recherche des garanties dermatologiques et des études cliniques.",
   };
-
   const parts: string[] = [];
   if (priority && priorityTexts[priority]) parts.push(priorityTexts[priority]);
   if (trust && trustTexts[trust]) parts.push(trustTexts[trust]);
-  if (parts.length === 0) return "Profil en cours d'analyse — pas encore assez de données pour caractériser la psychologie.";
-  return parts.join(" ");
+  return parts.length > 0 ? parts.join(" ") : "Profil en cours d'analyse — données insuffisantes pour le moment.";
 }
 
-/* ── Key issues generator ────────────────────────────── */
+/* ── Key issues generator (enriched) ─────────────────── */
 
 function generateKeyIssues(p: PersonaStat): string[] {
+  const code = p.code;
+  const codeIssues: Record<string, string[]> = {
+    P1: [
+      "Découvre les imperfections cutanées pour la première fois et ne sait pas comment réagir",
+      "Craint d'utiliser des produits inadaptés qui pourraient aggraver le problème",
+      "A besoin de résultats rapides pour se rassurer sur l'efficacité du traitement",
+    ],
+    P2: [
+      "Le pré-ado refuse parfois d'appliquer les soins, rendant la routine difficile",
+      "Hésite entre des produits adolescents classiques et des soins adaptés à son jeune âge",
+      "Veut éviter que les premiers boutons ne s'aggravent et n'impactent la confiance de l'enfant",
+    ],
+    P3: [
+      "Peau atopique qui réagit au moindre changement d'environnement ou de produit",
+      "A vécu des expériences négatives avec des produits contenant des allergènes",
+      "Doit gérer les crises d'eczéma en plus de la routine quotidienne",
+    ],
+    P4: [
+      "Peau qui rougit facilement au contact de produits même doux",
+      "Difficulté à trouver des formulations suffisamment douces et sans irritants",
+      "S'inquiète des effets à long terme des produits sur une peau fragile",
+    ],
+    P5: [
+      "Doit jongler entre les besoins cutanés très différents de chaque enfant",
+      "Le budget soins est multiplié par le nombre d'enfants",
+      "Manque de temps pour des routines individualisées à chaque enfant",
+    ],
+    P6: [
+      "Se sent perdue face à la multitude de produits disponibles sur le marché",
+      "N'a pas encore les repères pour évaluer la qualité d'un produit enfant",
+      "Influencée par les réseaux sociaux, risque de suivre des conseils inadaptés",
+    ],
+    P7: [
+      "Déçue par des promesses non tenues de marques précédentes",
+      "Devient très sceptique face aux arguments marketing classiques",
+      "Exige une transparence totale sur la composition et l'efficacité avant d'acheter",
+    ],
+    P8: [
+      "Cherche des solutions ciblées pour les imperfections qui évoluent avec l'âge de l'enfant",
+      "Souhaite compléter sa routine existante sans tout changer",
+      "A besoin de recommandations personnalisées plutôt que génériques",
+    ],
+    P9: [
+      "Veut découvrir les nouveautés avant tout le monde",
+      "Risque de lassitude si la marque ne propose pas régulièrement de l'innovation",
+      "Cherche une relation privilégiée avec la marque au-delà du simple achat",
+    ],
+  };
+
+  if (codeIssues[code]) return codeIssues[code];
+
+  // Fallback dynamic
   const issues: string[] = [];
   const trust = p.psychology?.trustTop3 || [];
-  const reactivity = p.profile?.reactivityTop || [];
-  const fragrance = p.profile?.excludeFragrancePct ?? 0;
-
   for (const t of trust.slice(0, 2)) {
     const map: Record<string, string> = {
-      ingredient_transparency: "A besoin de connaître exactement la composition des produits",
-      proof_results: "Veut voir des résultats prouvés avant de s'engager",
-      parent_testimonials: "Cherche l'avis d'autres parents pour se rassurer",
-      scientific_validation: "Sensible aux validations scientifiques et dermatologiques",
+      ingredient_transparency: "A besoin de connaître la composition exacte de chaque produit avant d'acheter",
+      proof_results: "Veut voir des résultats prouvés et documentés avant de s'engager",
+      parent_testimonials: "Cherche activement l'avis d'autres parents pour se rassurer",
+      scientific_validation: "Exige des validations scientifiques et dermatologiques complètes",
     };
     if (map[t.value]) issues.push(map[t.value]);
   }
-
-  const envReact = reactivity.find((r) => r.value === "environment");
-  if (envReact && envReact.pct > 50) {
-    issues.push("Peau de l'enfant réactive à l'environnement (froid, vent, pollution)");
-  }
-  const prodReact = reactivity.find((r) => r.value === "products");
-  if (prodReact && prodReact.pct > 10) {
-    issues.push("A déjà eu des réactions à certains produits cosmétiques");
-  }
-  if (fragrance > 10) {
-    issues.push("Préfère les produits sans parfum par précaution");
-  }
-
-  return issues.slice(0, 4);
+  const fragrance = p.profile?.excludeFragrancePct ?? 0;
+  if (fragrance > 10) issues.push("Préfère les produits sans parfum par mesure de précaution");
+  return issues.slice(0, 3);
 }
 
-/* ── Essential needs generator ───────────────────────── */
+/* ── Essential needs generator (enriched) ────────────── */
 
 function generateNeeds(p: PersonaStat): string[] {
+  const code = p.code;
+  const codeNeeds: Record<string, string[]> = {
+    P1: [
+      "Un diagnostic précis pour identifier le type d'imperfections de son enfant",
+      "Des résultats visibles dès les premières semaines d'utilisation",
+      "Un accompagnement pédagogique pour comprendre les causes et les solutions",
+    ],
+    P2: [
+      "Des produits adaptés à la peau jeune, ni trop agressifs ni trop enfantins",
+      "Un packaging et une expérience qui donnent envie au pré-ado de s'impliquer",
+      "Des conseils pour aborder le sujet des soins avec tact auprès de son enfant",
+    ],
+    P3: [
+      "Des formulations hypoallergéniques testées cliniquement et sans parfum",
+      "Une transparence totale sur les ingrédients et leur origine",
+      "Des produits qui apaisent sans déclencher de nouvelles réactions",
+    ],
+    P4: [
+      "Des textures ultra-douces et des formulations minimalistes",
+      "La garantie que chaque ingrédient est sûr pour les peaux sensibles",
+      "Une routine simple en 1-2 étapes pour ne pas surcharger la peau",
+    ],
+    P5: [
+      "Des packs ou routines modulables adaptés à chaque enfant",
+      "Un excellent rapport qualité-prix pour gérer le budget multi-enfants",
+      "Des produits polyvalents qui simplifient la logistique quotidienne",
+    ],
+    P6: [
+      "Des contenus éducatifs pour apprendre les bases des soins enfants",
+      "Un parcours guidé qui simplifie le premier achat",
+      "Des recommandations claires et rassurantes adaptées aux débutantes",
+    ],
+    P7: [
+      "Des preuves concrètes d'efficacité : études, avant/après, témoignages vérifiés",
+      "Une politique de satisfaction garantie pour lever les freins à l'achat",
+      "Une différenciation claire par rapport aux marques qu'elle a déjà testées",
+    ],
+    P8: [
+      "Des recommandations personnalisées qui complètent sa routine actuelle",
+      "Un programme de fidélité qui récompense son engagement",
+      "Des conseils évolutifs adaptés à l'âge changeant de son enfant",
+    ],
+    P9: [
+      "Un accès anticipé aux nouveautés et éditions limitées",
+      "Un programme ambassadeur pour partager son expérience",
+      "Des expériences exclusives qui renforcent son attachement à la marque",
+    ],
+  };
+
+  if (codeNeeds[code]) return codeNeeds[code];
+
+  // Fallback
   const needs: string[] = [];
   const routine = p.psychology?.routineSizeDist || [];
-  const priority = p.psychology?.priorityFirst?.value;
-
   const minimal = routine.find((r) => r.value === "minimal");
-  const simple = routine.find((r) => r.value === "simple");
   const complete = routine.find((r) => r.value === "complete");
-
-  if (minimal && minimal.pct > 40) needs.push("Routine minimaliste en 1-2 produits maximum");
-  if (simple && simple.pct > 40) needs.push("Routine simple et rapide, facile à intégrer au quotidien");
-  if (complete && complete.pct > 25) needs.push("Ouverte à une routine complète si elle comprend l'utilité de chaque produit");
-
+  if (minimal && minimal.pct > 40) needs.push("Routine minimaliste en 1-2 produits facile à adopter au quotidien");
+  if (complete && complete.pct > 25) needs.push("Ouverte à une routine complète si chaque étape est bien expliquée");
+  const priority = p.psychology?.priorityFirst?.value;
   const priorityNeeds: Record<string, string> = {
-    ludique: "Produits ludiques qui donnent envie à l'enfant",
-    clean: "Formulations clean et naturelles certifiées",
-    efficacite: "Résultats visibles rapidement sur la peau",
-    autonomie: "Produits que l'enfant peut utiliser seul",
-    science: "Formulations validées scientifiquement",
+    ludique: "Des produits ludiques qui transforment le soin en moment de plaisir",
+    clean: "Des formulations clean et naturelles avec des certifications reconnues",
+    efficacite: "Des résultats visibles et mesurables sur la peau dès les premières semaines",
+    autonomie: "Des produits conçus pour que l'enfant les utilise seul en toute sécurité",
+    science: "Des formulations validées par des études cliniques indépendantes",
   };
   if (priority && priorityNeeds[priority]) needs.push(priorityNeeds[priority]);
-
-  return needs.slice(0, 4);
+  return needs.slice(0, 3);
 }
 
-/* ── Behavior bullets generator ──────────────────────── */
+/* ── Behavior bullets generator (no mobile-first, 3 metrics) ── */
 
 function generateBehaviors(p: PersonaStat, globalConvRate: number): string[] {
   const bullets: string[] = [];
-  const device = p.profile?.deviceTop?.[0];
-  if (device) {
-    const pct = device.pct;
-    if (device.value === "mobile") bullets.push(`Mobile-first (${pct}% sur smartphone)`);
-    else if (device.value === "desktop") bullets.push(`Desktop-first (${pct}% sur ordinateur)`);
-    else bullets.push(`${device.value} (${pct}%)`);
-  }
 
+  // 1. Content format preference
   const format = p.behavior?.formatTop?.[0];
   if (format) {
     const fmtMap: Record<string, string> = {
-      visual: "Réceptive aux contenus visuels (photos avant/après, vidéos)",
-      short: "Préfère les messages courts et directs",
-      complete: "Apprécie les contenus détaillés et complets",
+      visual: "Réceptive aux contenus visuels (photos avant/après, vidéos tutoriels)",
+      short: "Préfère les messages courts, directs et facilement mémorisables",
+      complete: "Apprécie les contenus détaillés et documentés pour se forger un avis",
     };
     bullets.push(fmtMap[format.value] || `Format préféré : ${format.value} (${format.pct}%)`);
   }
 
+  // 2. Decision time
   const dur = p.behavior?.durationAvgSeconds;
   if (dur != null) {
     const min = Math.round(dur / 60);
-    if (min <= 4) bullets.push(`Décide rapidement (${min} min en moyenne)`);
-    else if (min >= 6) bullets.push(`Prend son temps pour comparer (${min} min en moyenne)`);
-    else bullets.push(`Durée moyenne de ${min} min`);
+    if (min <= 3) bullets.push(`Décision rapide : complète le diagnostic en ${min} min en moyenne`);
+    else if (min >= 6) bullets.push(`Profil réfléchi : prend ${min} min en moyenne pour comparer les options`);
+    else bullets.push(`Temps de réflexion modéré : ${min} min en moyenne sur le diagnostic`);
   }
 
+  // 3. Engagement score or opt-in behavior
+  const engagement = p.behavior?.engagementAvg;
+  if (engagement != null) {
+    if (engagement >= 70) bullets.push(`Fort engagement (score ${Math.round(engagement)}/100) — très impliquée dans le parcours`);
+    else if (engagement >= 40) bullets.push(`Engagement moyen (score ${Math.round(engagement)}/100) — explore sans approfondir`);
+    else bullets.push(`Engagement faible (score ${Math.round(engagement)}/100) — parcours express`);
+  }
+
+  return bullets.slice(0, 3);
+}
+
+/* ── AI Insights generator (enriched) ───────────────── */
+
+function generateInsightsText(p: PersonaStat, globalAvg: { conversionRate: number; aov: number }): string[] {
+  const insights: string[] = [];
   const convRate = p.business ? (p.business.conversions / Math.max(p.count, 1)) * 100 : 0;
-  if (globalConvRate > 0 && convRate > globalConvRate * 1.5) {
-    bullets.push(`Convertit ${(convRate / globalConvRate).toFixed(1)}× mieux que la moyenne`);
-  } else if (globalConvRate > 0 && convRate < globalConvRate * 0.5 && (p.behavior?.engagementAvg ?? 0) > 60) {
-    bullets.push("Faible conversion malgré un fort engagement — besoin de réassurance");
+
+  if (convRate > globalAvg.conversionRate * 1.3 && globalAvg.conversionRate > 0) {
+    insights.push(`Taux de conversion supérieur de ${Math.round((convRate / globalAvg.conversionRate - 1) * 100)}% à la moyenne globale. Ce segment est particulièrement réceptif au diagnostic — capitaliser dessus avec des campagnes ciblées.`);
+  } else if (convRate < globalAvg.conversionRate * 0.7 && globalAvg.conversionRate > 0 && p.count > 5) {
+    insights.push(`Conversion en dessous de la moyenne (${convRate.toFixed(1)}% vs ${globalAvg.conversionRate.toFixed(1)}%). Identifier les freins spécifiques : manque de réassurance, prix perçu trop élevé, ou produits mal ciblés.`);
   }
 
-  return bullets.slice(0, 4);
+  if (p.business?.aov && globalAvg.aov > 0) {
+    const diff = ((p.business.aov / globalAvg.aov) - 1) * 100;
+    if (diff > 15) {
+      insights.push(`Panier moyen ${Math.round(diff)}% au-dessus de la moyenne. Opportunité d'upsell : proposer des routines complètes ou des coffrets premium à ce segment.`);
+    } else if (diff < -15) {
+      insights.push(`Panier moyen inférieur de ${Math.abs(Math.round(diff))}% à la moyenne. Tester des bundles attractifs ou des offres de découverte pour augmenter la valeur du panier.`);
+    }
+  }
+
+  if (p.behavior?.optinEmailPct != null && p.behavior.optinEmailPct > 60) {
+    insights.push(`${p.behavior.optinEmailPct}% d'opt-in email — audience très engageable. Mettre en place des séquences de nurturing personnalisées pour ce profil.`);
+  }
+
+  if (insights.length === 0) {
+    insights.push("Segment à surveiller. Accumuler davantage de données pour dégager des tendances exploitables et affiner la stratégie marketing.");
+  }
+
+  return insights;
 }
 
 /* ── Persona Card ────────────────────────────────────── */
@@ -208,11 +323,17 @@ function generateBehaviors(p: PersonaStat, globalConvRate: number): string[] {
 function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number } }) {
   const color = getPersonaColor(persona.code);
   const p = persona;
+  const profile = PERSONA_PROFILES[p.code];
+  const displayName = profile?.displayName || p.name;
+  const age = profile?.age || 30;
+  const tagline = profile?.tagline || p.subtitle;
+  const situation = profile?.situation || p.subtitle;
+  const image = profile?.image;
 
   if (!p.profile) {
     return (
       <Card className="p-5 opacity-60">
-        <p className="text-sm font-bold" style={{ color: `hsl(${color})` }}>{p.code} — {p.name}</p>
+        <p className="text-sm font-bold" style={{ color: `hsl(${color})` }}>{displayName} ({p.code})</p>
         <p className="text-xs text-muted-foreground mt-1">Aucune donnée sur cette période</p>
       </Card>
     );
@@ -223,44 +344,67 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
   const keyIssues = generateKeyIssues(p);
   const needs = generateNeeds(p);
   const behaviors = generateBehaviors(p, globalAvg.conversionRate);
+  const aiInsights = generateInsightsText(p, globalAvg);
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <Card className="overflow-hidden h-full flex flex-col">
-        {/* Header */}
-        <div className="p-5 pb-3" style={{ borderBottom: `3px solid hsl(${color})` }}>
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <p className="text-xs font-bold" style={{ color: `hsl(${color})` }}>{p.code}</p>
-            <Badge className="text-[10px] text-white shrink-0" style={{ backgroundColor: `hsl(${color})` }}>
-              {p.percentage}% de vos prospects
-            </Badge>
+        {/* Header with avatar */}
+        <div className="p-5 pb-4 bg-card">
+          <div className="flex items-center gap-4 mb-4">
+            {image && (
+              <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-offset-2" style={{ borderColor: `hsl(${color})` }}>
+                <img src={image} alt={displayName} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-foreground leading-tight">{displayName}, {age} ans</h3>
+              <p className="text-sm italic" style={{ color: `hsl(${color})` }}>{tagline}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{situation}</p>
+            </div>
           </div>
-          <h3 className="text-base font-bold text-foreground leading-tight">{p.name}</h3>
-          <p className="text-xs italic text-muted-foreground mt-0.5">{p.subtitle}</p>
-          <Progress value={Math.min(p.percentage * 2, 100)} className="h-1.5 mt-3" />
 
-          {/* Mini KPIs */}
-          <div className="grid grid-cols-4 gap-2 mt-3">
+          {/* Progress bar — prospect percentage */}
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-foreground">Représente {p.percentage}% de vos prospects</p>
+            <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: "hsl(348 83% 47%)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(p.percentage * 2, 100)}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+
+          {/* KPIs — 2 per row */}
+          <div className="grid grid-cols-2 gap-2.5 mt-4">
             {[
               { icon: Users, label: "Volume", value: String(p.count) },
-              { icon: TrendingUp, label: "Conversion", value: `${convRate.toFixed(1)}%` },
-              { icon: ShoppingCart, label: "AOV", value: p.business?.aov ? `${p.business.aov.toFixed(0)}€` : "–" },
-              { icon: Zap, label: "Engagement", value: p.behavior?.engagementAvg != null ? `${p.behavior.engagementAvg}` : "–" },
+              { icon: TrendingUp, label: "Taux de conversion", value: `${convRate.toFixed(1)}%` },
+              { icon: ShoppingCart, label: "AOV", value: p.business?.aov ? `${p.business.aov.toFixed(0)}€` : "–", sub: p.business?.aovVsGlobal != null ? `${p.business.aovVsGlobal > 0 ? "+" : ""}${p.business.aovVsGlobal}% vs moy.` : undefined, subColor: p.business?.aovVsGlobal != null ? (p.business.aovVsGlobal >= 0 ? "text-green-600" : "text-red-500") : "" },
+              { icon: Zap, label: "Engagement", value: p.behavior?.engagementAvg != null ? `${Math.round(p.behavior.engagementAvg)}/100` : "–" },
             ].map((kpi, i) => (
-              <div key={i} className="text-center bg-muted/40 rounded-md p-1.5">
-                <kpi.icon className="w-3 h-3 mx-auto mb-0.5" style={{ color: `hsl(${color})` }} />
-                <p className="text-xs font-bold text-foreground">{kpi.value}</p>
-                <p className="text-[9px] text-muted-foreground">{kpi.label}</p>
+              <div key={i} className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
+                <kpi.icon className="w-5 h-5 shrink-0" style={{ color: `hsl(${color})` }} />
+                <div>
+                  <p className="text-base font-bold text-foreground">{kpi.value}</p>
+                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  {"sub" in kpi && kpi.sub && (
+                    <p className={`text-xs font-medium ${kpi.subColor}`}>{kpi.sub}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Body */}
-        <div className="p-5 pt-4 space-y-4 flex-1 text-xs">
+        <div className="p-5 pt-4 space-y-5 flex-1 text-sm">
           {/* Psychology */}
           <div>
-            <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+            <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
               🧠 Psychologie
             </h4>
             <p className="text-muted-foreground leading-relaxed">{psychText}</p>
@@ -269,12 +413,12 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
           {/* Key issues */}
           {keyIssues.length > 0 && (
             <div>
-              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Problématiques clés
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-500" /> Problématiques clés
               </h4>
-              <ul className="space-y-1 text-muted-foreground">
+              <ul className="space-y-1.5 text-muted-foreground">
                 {keyIssues.map((issue, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
+                  <li key={i} className="flex items-start gap-2">
                     <span className="text-amber-500 mt-0.5">•</span>
                     <span>{issue}</span>
                   </li>
@@ -286,12 +430,12 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
           {/* Essential needs */}
           {needs.length > 0 && (
             <div>
-              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-green-500" /> Besoins essentiels
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
+                <CheckCircle className="w-4 h-4 text-green-500" /> Besoins essentiels
               </h4>
-              <ul className="space-y-1 text-muted-foreground">
+              <ul className="space-y-1.5 text-muted-foreground">
                 {needs.map((need, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
+                  <li key={i} className="flex items-start gap-2">
                     <span className="text-green-500 mt-0.5">•</span>
                     <span>{need}</span>
                   </li>
@@ -303,12 +447,12 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
           {/* Behaviors */}
           {behaviors.length > 0 && (
             <div>
-              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5 text-blue-500" /> Comportements
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
+                <BarChart3 className="w-4 h-4 text-blue-500" /> Comportements
               </h4>
-              <ul className="space-y-1 text-muted-foreground">
+              <ul className="space-y-1.5 text-muted-foreground">
                 {behaviors.map((b, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
+                  <li key={i} className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
                     <span>{b}</span>
                   </li>
@@ -317,65 +461,60 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
             </div>
           )}
 
-          {/* Top products */}
+          {/* Top products — max 3 */}
           {p.topProducts.length > 0 && (
             <div>
-              <h4 className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5" style={{ color: `hsl(${color})` }} /> Top produits recommandés
+              <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
+                <Package className="w-4 h-4" style={{ color: `hsl(${color})` }} /> Top produits recommandés
               </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {p.topProducts.slice(0, 5).map((prod, i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] py-0.5 px-2" style={{ borderColor: `hsl(${color} / 0.3)`, backgroundColor: `hsl(${color} / 0.06)` }}>
+              <div className="flex flex-wrap gap-2">
+                {p.topProducts.slice(0, 3).map((prod, i) => (
+                  <Badge key={i} variant="outline" className="text-xs py-1 px-2.5" style={{ borderColor: `hsl(${color} / 0.3)`, backgroundColor: `hsl(${color} / 0.06)` }}>
                     {prod.name} ({prod.pct}%)
                   </Badge>
                 ))}
               </div>
             </div>
           )}
+        </div>
 
-          {/* Insights IA */}
-          {p.insights.length > 0 && (
-            <div className="rounded-lg p-3" style={{ backgroundColor: `hsl(${color} / 0.05)` }}>
-              <h4 className="font-semibold mb-2 flex items-center gap-1.5" style={{ color: `hsl(${color})` }}>
-                <Lightbulb className="w-3.5 h-3.5" /> Insights IA
-              </h4>
-              <ul className="space-y-1.5">
-                {p.insights.map((insight, i) => (
-                  <li key={i} className="flex items-start gap-1.5" style={{ color: `hsl(${color})` }}>
-                    <span className="mt-0.5">→</span>
-                    <span className="text-[11px] leading-relaxed">{insight}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        {/* AI Insights */}
+        <div className="p-5 pt-0 mt-auto">
+          <div className="rounded-lg p-4" style={{ backgroundColor: `hsl(${color} / 0.06)`, borderLeft: `3px solid hsl(${color})` }}>
+            <h4 className="font-semibold mb-2.5 flex items-center gap-1.5 text-sm" style={{ color: `hsl(${color})` }}>
+              <Lightbulb className="w-4 h-4" /> Insights IA
+            </h4>
+            <ul className="space-y-2">
+              {aiInsights.map((insight, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: `hsl(${color} / 0.85)` }}>
+                  <span className="mt-0.5">→</span>
+                  <span>{insight}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         {/* Business footer */}
-        <div className="p-4 pt-0 mt-auto">
+        <div className="p-4 pt-0">
           <div className="border-t border-border/50 pt-3">
             {p.business && p.business.conversions > 0 ? (
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <p className="text-sm font-bold text-foreground">{convRate.toFixed(1)}%</p>
-                  <p className="text-[9px] text-muted-foreground">Conversion</p>
+                  <p className="text-base font-bold text-foreground">{convRate.toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">Conversion</p>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{p.business.aov.toFixed(0)}€</p>
-                  <p className="text-[9px] text-muted-foreground">AOV moyen</p>
-                  {p.business.aovVsGlobal != null && (
-                    <p className={`text-[9px] font-medium ${p.business.aovVsGlobal >= 0 ? "text-green-600" : "text-red-500"}`}>
-                      {p.business.aovVsGlobal > 0 ? "+" : ""}{p.business.aovVsGlobal}% vs moy.
-                    </p>
-                  )}
+                  <p className="text-base font-bold text-foreground">{p.business.aov.toFixed(0)}€</p>
+                  <p className="text-xs text-muted-foreground">AOV moyen</p>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
-                  <p className="text-[9px] text-muted-foreground">CA généré</p>
+                  <p className="text-base font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
+                  <p className="text-xs text-muted-foreground">CA généré</p>
                 </div>
               </div>
             ) : (
-              <p className="text-[10px] text-muted-foreground text-center">0 conversion — segment à activer</p>
+              <p className="text-xs text-muted-foreground text-center">0 conversion — segment à activer</p>
             )}
           </div>
         </div>
@@ -418,11 +557,10 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
           Personas — {totalCompleted} sessions terminées
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {personas.length} profils basés sur l'arbre de décision diagnostic
+          {personas.length} profils identifiés dynamiquement
         </p>
       </div>
 
-      {/* Card grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {personas.map((p) => (
           <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} />
