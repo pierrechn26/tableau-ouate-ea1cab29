@@ -244,66 +244,80 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
             ) : personaData.personas.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-12">Aucune donnée persona disponible.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={personaData.personas
-                    .filter(p => p.business && p.business.revenue > 0)
-                    .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0))
-                    .map(p => ({
-                      name: PERSONA_DISPLAY_NAMES[p.code] || p.code,
-                      revenue: p.business?.revenue ?? 0,
-                      aov: p.business?.aov ?? 0,
-                      convRate: p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0,
-                      conversions: p.business?.conversions ?? 0,
-                      sessions: p.count,
-                      color: PERSONA_COLORS[p.code] || "hsl(var(--primary))",
-                    }))}
-                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
-                  <YAxis
-                    yAxisId="revenue"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v: number) => `${v}€`}
-                  />
-                  <YAxis
-                    yAxisId="conv"
-                    orientation="right"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v: number) => `${v}%`}
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (!active || !payload?.length) return null;
-                      const d = payload[0]?.payload;
-                      return (
-                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-sm">
-                          <p className="font-semibold text-foreground mb-1.5">{label}</p>
-                          <div className="space-y-1 text-muted-foreground">
-                            <p>CA : <span className="font-medium text-foreground">{fmtEuro(d.revenue)}</span></p>
-                            <p>AOV : <span className="font-medium text-foreground">{fmt(d.aov, 2)} €</span></p>
-                            <p>Conversions : <span className="font-medium text-foreground">{d.conversions} / {d.sessions} sessions</span></p>
-                            <p>Taux conv. : <span className="font-medium text-foreground">{fmt(d.convRate, 1)}%</span></p>
+              (() => {
+                const sortedPersonas = personaData.personas
+                  .filter(p => p.business && p.business.revenue > 0)
+                  .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0));
+                const chartData = sortedPersonas.map(p => ({
+                  name: PERSONA_DISPLAY_NAMES[p.code] || p.code,
+                  revenue: p.business?.revenue ?? 0,
+                  aov: p.business?.aov ?? 0,
+                  convRate: p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0,
+                  conversions: p.business?.conversions ?? 0,
+                  sessions: p.count,
+                  color: PERSONA_COLORS[p.code] || "hsl(var(--primary))",
+                }));
+                return (
+                  <>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                        <YAxis
+                          yAxisId="revenue"
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(v: number) => `${v}€`}
+                        />
+                        <YAxis
+                          yAxisId="conv"
+                          orientation="right"
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(v: number) => `${v}%`}
+                        />
+                        <Tooltip
+                          content={({ active, payload, label }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0]?.payload;
+                            return (
+                              <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-sm">
+                                <p className="font-semibold text-foreground mb-1.5">{label}</p>
+                                <div className="space-y-1 text-muted-foreground">
+                                  <p>CA : <span className="font-medium text-foreground">{fmtEuro(d.revenue)}</span></p>
+                                  <p>AOV : <span className="font-medium text-foreground">{fmt(d.aov, 2)} €</span></p>
+                                  <p>Conversions : <span className="font-medium text-foreground">{d.conversions} / {d.sessions} sessions</span></p>
+                                  <p>Taux conv. : <span className="font-medium text-foreground">{fmt(d.convRate, 1)}%</span></p>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Legend />
+                        <Bar yAxisId="revenue" dataKey="revenue" name="CA (€)" radius={[4, 4, 0, 0]} animationDuration={1000}>
+                          {sortedPersonas.map((p) => (
+                            <Cell key={p.code} fill={PERSONA_COLORS[p.code] || "hsl(var(--primary))"} />
+                          ))}
+                        </Bar>
+                        <Line yAxisId="conv" type="monotone" dataKey="convRate" stroke="hsl(var(--foreground))" strokeWidth={2} name="Taux conv. (%)" dot={{ r: 4, fill: "hsl(var(--foreground))" }} animationDuration={1000} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-border">
+                      {sortedPersonas.map(p => {
+                        const convRate = p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0;
+                        return (
+                          <div key={p.code} className="text-center space-y-0.5">
+                            <p className="font-bold text-foreground text-sm">{PERSONA_DISPLAY_NAMES[p.code] || p.code}</p>
+                            <p className="text-xs text-muted-foreground leading-tight">{p.subtitle}</p>
+                            <p className="text-xs text-muted-foreground">AOV: <span className="font-medium text-foreground">{fmt(p.business?.aov ?? 0, 1)}€</span></p>
+                            <p className="text-xs text-muted-foreground">Conv: <span className="font-medium text-foreground">{fmt(convRate, 1)}%</span></p>
                           </div>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Legend />
-                  <Bar yAxisId="revenue" dataKey="revenue" name="CA (€)" radius={[4, 4, 0, 0]} animationDuration={1000}>
-                    {personaData.personas
-                      .filter(p => p.business && p.business.revenue > 0)
-                      .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0))
-                      .map((p) => (
-                        <Cell key={p.code} fill={PERSONA_COLORS[p.code] || "hsl(var(--primary))"} />
-                      ))}
-                  </Bar>
-                  <Line yAxisId="conv" type="monotone" dataKey="convRate" stroke="hsl(var(--foreground))" strokeWidth={2} name="Taux conv. (%)" dot={{ r: 4, fill: "hsl(var(--foreground))" }} animationDuration={1000} />
-                </BarChart>
-              </ResponsiveContainer>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()
             )}
           </Card>
         </motion.div>
