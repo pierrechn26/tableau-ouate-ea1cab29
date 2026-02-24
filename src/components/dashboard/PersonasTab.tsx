@@ -584,6 +584,9 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
     );
   }
 
+  const MIN_VOLUME = 20;
+  const visiblePersonas = [...personas].filter(p => p.count >= MIN_VOLUME).sort((a, b) => b.count - a.count);
+  const hiddenCount = personas.filter(p => p.count > 0 && p.count < MIN_VOLUME).length;
   const globalRevenue = personas.reduce((sum, p) => sum + (p.business?.revenue || 0), 0);
 
   return (
@@ -593,12 +596,13 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
           Personas — {totalCompleted} sessions terminées
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {personas.length} profils identifiés dynamiquement
+          {visiblePersonas.length} profils affichés (seuil minimum : {MIN_VOLUME} sessions)
+          {hiddenCount > 0 && ` · ${hiddenCount} profil${hiddenCount > 1 ? "s" : ""} masqué${hiddenCount > 1 ? "s" : ""} (volume insuffisant)`}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {[...personas].sort((a, b) => b.count - a.count).map((p) => (
+        {visiblePersonas.map((p) => (
           <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} globalRevenue={globalRevenue} />
         ))}
       </div>
