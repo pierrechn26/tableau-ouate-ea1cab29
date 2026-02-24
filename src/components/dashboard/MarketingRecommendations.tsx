@@ -30,6 +30,7 @@ import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getPersonaBadgeLabel } from "@/constants/personas";
 
 // Hook for animated counter
 function useAnimatedCounter(value: number, duration: number = 400) {
@@ -73,14 +74,14 @@ function PersonaBadges({ personas }: { personas?: string[] }) {
     P9: "bg-accent/20 text-accent-foreground border-accent/30",
   };
   return (
-    <span className="inline-flex gap-1 ml-2">
+    <span className="inline-flex gap-1 ml-2 flex-wrap">
       {personas.map((p) => (
         <Badge
           key={p}
           variant="outline"
           className={`text-[10px] px-1.5 py-0 h-5 font-bold ${colors[p] || "bg-muted text-muted-foreground"}`}
         >
-          {p}
+          {getPersonaBadgeLabel(p)}
         </Badge>
       ))}
     </span>

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
 import { usePersonaStats, PersonaStat, PersonaTopItem } from "@/hooks/usePersonaStats";
 import { DateRange } from "react-day-picker";
+import { PERSONA_PROFILES as SHARED_PERSONA_PROFILES } from "@/constants/personas";
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
@@ -42,15 +43,15 @@ function getPersonaColor(code: string): string {
 /* ── Persona definitions with names, taglines, ages, images ── */
 
 const PERSONA_PROFILES: Record<string, { displayName: string; title: string; description: string; image: string }> = {
-  P1: { displayName: "Clara", title: "La Novice Imperfections", description: "Nouvelle cliente dont l'enfant de 4-9 ans présente des imperfections cutanées. Elle découvre ce sujet pour la première fois et cherche une solution efficace, rassurante et adaptée à la peau jeune.", image: personaP1 },
-  P2: { displayName: "Nathalie", title: "La Novice Pré-ado", description: "Maman d'un pré-ado de 10-11 ans qui voit apparaître les premiers boutons. Elle veut des soins adaptés à cet âge charnière, ni trop enfantins ni trop agressifs, pour accompagner son enfant avec tact.", image: personaP2 },
-  P3: { displayName: "Amandine", title: "La Novice Atopique", description: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Experte en lecture d'étiquettes, elle ne fait confiance qu'aux produits cliniquement testés, hypoallergéniques et sans parfum.", image: personaP3 },
-  P4: { displayName: "Julie", title: "La Novice Sensible", description: "Maman précautionneuse face à la peau sensible et réactive de son enfant. Elle privilégie les formulations minimalistes et douces, prend le temps de comparer avant chaque achat.", image: personaP4 },
-  P5: { displayName: "Stéphanie", title: "La Multi-enfants", description: "Maman de plusieurs enfants aux types de peau différents. Elle cherche des routines simples, des produits polyvalents et un bon rapport qualité-prix pour gérer toute la fratrie.", image: personaP5 },
-  P6: { displayName: "Camille", title: "La Novice Découverte", description: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Réceptive aux conseils et aux nouveautés, elle apprécie les parcours guidés et les contenus éducatifs.", image: personaP6 },
-  P7: { displayName: "Sandrine", title: "L'Insatisfaite", description: "Maman exigeante qui a déjà testé plusieurs marques sans satisfaction. Devenue sceptique, elle a besoin de preuves concrètes d'efficacité et de transparence totale avant de refaire confiance.", image: personaP7 },
-  P8: { displayName: "Virginie", title: "La Fidèle Imperfections", description: "Cliente fidèle de Ouate qui revient régulièrement pour cibler les imperfections de son enfant. Elle fait confiance à la marque et est ouverte aux recommandations complémentaires personnalisées.", image: personaP8 },
-  P9: { displayName: "Marine", title: "La Fidèle Exploratrice", description: "Cliente fidèle et curieuse qui aime explorer les nouveautés Ouate. Ambassadrice naturelle, elle partage son expérience et recherche l'innovation et les éditions limitées.", image: personaP9 },
+  P1: { displayName: SHARED_PERSONA_PROFILES.P1.displayName, title: SHARED_PERSONA_PROFILES.P1.title, description: SHARED_PERSONA_PROFILES.P1.description, image: personaP1 },
+  P2: { displayName: SHARED_PERSONA_PROFILES.P2.displayName, title: SHARED_PERSONA_PROFILES.P2.title, description: SHARED_PERSONA_PROFILES.P2.description, image: personaP2 },
+  P3: { displayName: SHARED_PERSONA_PROFILES.P3.displayName, title: SHARED_PERSONA_PROFILES.P3.title, description: SHARED_PERSONA_PROFILES.P3.description, image: personaP3 },
+  P4: { displayName: SHARED_PERSONA_PROFILES.P4.displayName, title: SHARED_PERSONA_PROFILES.P4.title, description: SHARED_PERSONA_PROFILES.P4.description, image: personaP4 },
+  P5: { displayName: SHARED_PERSONA_PROFILES.P5.displayName, title: SHARED_PERSONA_PROFILES.P5.title, description: SHARED_PERSONA_PROFILES.P5.description, image: personaP5 },
+  P6: { displayName: SHARED_PERSONA_PROFILES.P6.displayName, title: SHARED_PERSONA_PROFILES.P6.title, description: SHARED_PERSONA_PROFILES.P6.description, image: personaP6 },
+  P7: { displayName: SHARED_PERSONA_PROFILES.P7.displayName, title: SHARED_PERSONA_PROFILES.P7.title, description: SHARED_PERSONA_PROFILES.P7.description, image: personaP7 },
+  P8: { displayName: SHARED_PERSONA_PROFILES.P8.displayName, title: SHARED_PERSONA_PROFILES.P8.title, description: SHARED_PERSONA_PROFILES.P8.description, image: personaP8 },
+  P9: { displayName: SHARED_PERSONA_PROFILES.P9.displayName, title: SHARED_PERSONA_PROFILES.P9.title, description: SHARED_PERSONA_PROFILES.P9.description, image: personaP9 },
 };
 
 /* ── Translation maps ────────────────────────────────── */
