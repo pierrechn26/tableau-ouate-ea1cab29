@@ -20,7 +20,7 @@ import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
 import { useInsightsMetrics } from "@/hooks/useInsightsMetrics";
 import { usePersonaStats } from "@/hooks/usePersonaStats";
-import { getPersonaDisplayName } from "@/constants/personas";
+import { PERSONA_PROFILES, getPersonaDisplayName } from "@/constants/personas";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -304,7 +304,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                         return (
                           <div key={p.code} className="text-center space-y-0.5">
                             <p className="font-bold text-foreground text-sm">{getPersonaDisplayName(p.code)}</p>
-                            <p className="text-xs text-muted-foreground leading-tight italic">{p.name}</p>
+                            <p className="text-xs text-muted-foreground leading-tight italic">{PERSONA_PROFILES[p.code]?.title ?? p.name}</p>
                             <p className="text-xs text-muted-foreground">AOV: <span className="font-medium text-foreground">{fmt(p.business?.aov ?? 0, 1)}€</span></p>
                             <p className="text-xs text-muted-foreground">Conv: <span className="font-medium text-foreground">{fmt(convRate, 1)}%</span></p>
                           </div>
