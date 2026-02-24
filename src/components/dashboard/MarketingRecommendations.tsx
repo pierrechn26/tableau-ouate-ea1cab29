@@ -564,17 +564,28 @@ function RecoSection({
             className="text-xs text-foreground bg-background/80 rounded-lg p-3 border border-border/50 leading-relaxed shadow-sm"
           >
             <div className="flex items-start gap-1">
-              <span className="flex-1">{item.text}</span>
+              <span className="flex-1">{safeString(item.text)}</span>
               <PersonaBadges personas={item.personas} />
             </div>
             {item.sub && (
-              <p className="text-[11px] text-muted-foreground mt-1.5 italic">{item.sub}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 italic">{safeString(item.sub)}</p>
             )}
           </li>
         ))}
       </ul>
     </div>
   );
+}
+
+function safeString(val: any): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number" || typeof val === "boolean") return String(val);
+  if (Array.isArray(val)) return val.map(safeString).join(", ");
+  if (typeof val === "object") {
+    return Object.entries(val).map(([k, v]) => `${k}: ${safeString(v)}`).join(" — ");
+  }
+  return String(val);
 }
 
 function renderChecklistDetail(detail: any, category: string) {
@@ -630,8 +641,8 @@ function renderChecklistDetail(detail: any, category: string) {
     const fallback = Object.entries(detail)
       .filter(([, v]) => typeof v === "string" || Array.isArray(v))
       .map(([k, v]) => ({
-        label: k,
-        items: Array.isArray(v) ? (v as string[]) : [v as string],
+        label: String(k),
+        items: Array.isArray(v) ? (v as any[]).map(safeString) : [safeString(v)],
       }));
     sections.push(...fallback);
   }
@@ -648,7 +659,7 @@ function renderChecklistDetail(detail: any, category: string) {
             key={itemIdx}
             className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
           >
-            {item}
+            {safeString(item)}
           </li>
         ))}
       </ul>
