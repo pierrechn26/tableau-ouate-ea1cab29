@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
+  Cell,
   LineChart,
   Line,
   XAxis,
@@ -18,10 +19,22 @@ import { MetricCard } from "./MetricCard";
 import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
 import { useInsightsMetrics } from "@/hooks/useInsightsMetrics";
+import { usePersonaStats } from "@/hooks/usePersonaStats";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+
+const PERSONA_DISPLAY_NAMES: Record<string, string> = {
+  P1: "Clara", P2: "Nathalie", P3: "Inès", P4: "Julie",
+  P5: "Camille", P6: "Sophie", P7: "Emma", P8: "Léa", P9: "Marie",
+};
+
+const PERSONA_COLORS: Record<string, string> = {
+  P1: "hsl(348, 83%, 47%)", P2: "hsl(330, 81%, 60%)", P3: "hsl(15, 85%, 55%)",
+  P4: "hsl(205, 85%, 55%)", P5: "hsl(155, 65%, 45%)", P6: "hsl(270, 60%, 55%)",
+  P7: "hsl(45, 90%, 50%)", P8: "hsl(348, 70%, 35%)", P9: "hsl(195, 70%, 45%)",
+};
 
 interface BusinessMetricsProps {
   dateRange?: DateRange;
@@ -47,7 +60,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
   const metrics = useBusinessMetrics(dateRange);
   const revenue = useRevenueTimeseries(dateRange, granularity);
   const insights = useInsightsMetrics(dateRange);
-
+  const personaData = usePersonaStats(dateRange);
   const percentInfluenced = metrics.revenueTotal > 0
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
     : 0;
@@ -213,19 +226,85 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
           </Card>
         </motion.div>
 
-        {/* Performance by Persona — à venir */}
+        {/* CA & Conversion par Persona */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md flex flex-col items-center justify-center h-full min-h-[380px]">
+          <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md h-full min-h-[380px]">
             <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
-              CA par Persona
+              CA & Conversion par Persona
             </h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Les données par persona seront disponibles prochainement.
-            </p>
+            {personaData.isLoading ? (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Chargement...</span>
+              </div>
+            ) : personaData.personas.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-12">Aucune donnée persona disponible.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={personaData.personas
+                    .filter(p => p.business && p.business.revenue > 0)
+                    .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0))
+                    .map(p => ({
+                      name: PERSONA_DISPLAY_NAMES[p.code] || p.code,
+                      revenue: p.business?.revenue ?? 0,
+                      aov: p.business?.aov ?? 0,
+                      convRate: p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0,
+                      conversions: p.business?.conversions ?? 0,
+                      sessions: p.count,
+                      color: PERSONA_COLORS[p.code] || "hsl(var(--primary))",
+                    }))}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    yAxisId="revenue"
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => `${v}€`}
+                  />
+                  <YAxis
+                    yAxisId="conv"
+                    orientation="right"
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => `${v}%`}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      return (
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg text-sm">
+                          <p className="font-semibold text-foreground mb-1.5">{label}</p>
+                          <div className="space-y-1 text-muted-foreground">
+                            <p>CA : <span className="font-medium text-foreground">{fmtEuro(d.revenue)}</span></p>
+                            <p>AOV : <span className="font-medium text-foreground">{fmt(d.aov, 2)} €</span></p>
+                            <p>Conversions : <span className="font-medium text-foreground">{d.conversions} / {d.sessions} sessions</span></p>
+                            <p>Taux conv. : <span className="font-medium text-foreground">{fmt(d.convRate, 1)}%</span></p>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Legend />
+                  <Bar yAxisId="revenue" dataKey="revenue" name="CA (€)" radius={[4, 4, 0, 0]} animationDuration={1000}>
+                    {personaData.personas
+                      .filter(p => p.business && p.business.revenue > 0)
+                      .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0))
+                      .map((p) => (
+                        <Cell key={p.code} fill={PERSONA_COLORS[p.code] || "hsl(var(--primary))"} />
+                      ))}
+                  </Bar>
+                  <Line yAxisId="conv" type="monotone" dataKey="convRate" stroke="hsl(var(--foreground))" strokeWidth={2} name="Taux conv. (%)" dot={{ r: 4, fill: "hsl(var(--foreground))" }} animationDuration={1000} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </motion.div>
       </div>
