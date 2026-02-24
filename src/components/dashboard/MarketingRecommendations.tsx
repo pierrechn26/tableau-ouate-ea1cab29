@@ -325,7 +325,7 @@ export function MarketingRecommendations() {
                           : "text-foreground"
                       }`}
                     >
-                      {action.title}
+                      {safeString(action.title)}
                       <PersonaBadges personas={action.personas} />
                     </span>
                     <div className="flex items-center gap-2 text-primary">
@@ -578,15 +578,26 @@ function RecoSection({
   );
 }
 
+/** Strip persona codes like (P1), (P8), P1, P7 etc. from any displayed text */
+function stripPersonaCodes(text: string): string {
+  return text
+    .replace(/\s*\(P\d+\)/gi, "")   // " (P8)"
+    .replace(/\s*\[P\d+\]/gi, "")   // " [P8]"
+    .replace(/\bP\d+\s*[-–—:]\s*/gi, "") // "P8 — " or "P8: "
+    .replace(/,?\s*P\d+(?=\s|,|$)/gi, "") // trailing ", P8" or standalone "P8"
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function safeString(val: any): string {
   if (val === null || val === undefined) return "";
-  if (typeof val === "string") return val;
+  if (typeof val === "string") return stripPersonaCodes(val);
   if (typeof val === "number" || typeof val === "boolean") return String(val);
   if (Array.isArray(val)) return val.map(safeString).join(", ");
   if (typeof val === "object") {
     return Object.entries(val).map(([k, v]) => `${k}: ${safeString(v)}`).join(" — ");
   }
-  return String(val);
+  return stripPersonaCodes(String(val));
 }
 
 function renderChecklistDetail(detail: any, category: string) {
