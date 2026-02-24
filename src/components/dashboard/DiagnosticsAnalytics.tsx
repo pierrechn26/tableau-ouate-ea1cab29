@@ -191,18 +191,23 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                           borderRadius: "10px",
                           padding: "10px 14px",
                           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                          zIndex: 50,
+                          position: "relative",
                         }}
                         formatter={(value: number, _name: string, props: any) => [
                           `${props.payload.count} sessions · ${value}%`,
                           `${props.payload.displayName} — ${props.payload.title}`
                         ]}
                       />
+                      {/* Center label inside SVG so it never overlaps the tooltip */}
+                      <text x="50%" y="46%" textAnchor="middle" dominantBaseline="central" className="fill-foreground" style={{ fontSize: "24px", fontWeight: 700 }}>
+                        {personaData.totalCompleted}
+                      </text>
+                      <text x="50%" y="58%" textAnchor="middle" dominantBaseline="central" className="fill-muted-foreground" style={{ fontSize: "12px" }}>
+                        sessions
+                      </text>
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0">
-                    <p className="text-2xl font-bold text-foreground">{personaData.totalCompleted}</p>
-                    <p className="text-xs text-muted-foreground">sessions</p>
-                  </div>
                 </div>
                 <div className="w-full space-y-1.5 mt-4">
                   {personaChartData.map((persona) => (
