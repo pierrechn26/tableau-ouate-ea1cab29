@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.generate-funnel-recommendations]
 verify_jwt = false
 
+[functions.generate-marketing-recommendations]
+verify_jwt = false
+
 [functions.import-shopify-csv]
 verify_jwt = false
 
