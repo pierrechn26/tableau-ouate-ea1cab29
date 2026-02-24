@@ -41,16 +41,16 @@ function getPersonaColor(code: string): string {
 
 /* ── Persona definitions with names, taglines, ages, images ── */
 
-const PERSONA_PROFILES: Record<string, { displayName: string; age: number; tagline: string; situation: string; image: string }> = {
-  P1: { displayName: "Clara", age: 28, tagline: "Inquiète mais déterminée", situation: "Maman d'un enfant avec des imperfections cutanées", image: personaP1 },
-  P2: { displayName: "Nathalie", age: 35, tagline: "Pragmatique et informée", situation: "Maman d'un pré-ado avec des premiers boutons", image: personaP2 },
-  P3: { displayName: "Amandine", age: 30, tagline: "Protectrice et vigilante", situation: "Maman d'un enfant à peau atopique", image: personaP3 },
-  P4: { displayName: "Julie", age: 32, tagline: "Douce et précautionneuse", situation: "Maman d'un enfant à peau sensible et réactive", image: personaP4 },
-  P5: { displayName: "Stéphanie", age: 38, tagline: "Organisée et multi-tâches", situation: "Maman de plusieurs enfants aux besoins différents", image: personaP5 },
-  P6: { displayName: "Camille", age: 26, tagline: "Curieuse et enthousiaste", situation: "Jeune maman qui découvre les soins enfants", image: personaP6 },
-  P7: { displayName: "Sandrine", age: 34, tagline: "Exigeante et critique", situation: "A déjà essayé plusieurs marques sans satisfaction", image: personaP7 },
-  P8: { displayName: "Virginie", age: 36, tagline: "Fidèle et convaincue", situation: "Cliente Ouate qui cible les imperfections", image: personaP8 },
-  P9: { displayName: "Marine", age: 33, tagline: "Aventurière et ouverte", situation: "Cliente fidèle qui explore de nouveaux produits", image: personaP9 },
+const PERSONA_PROFILES: Record<string, { displayName: string; age: number; description: string; image: string }> = {
+  P1: { displayName: "Clara", age: 28, description: "Nouvelle cliente dont l'enfant de 4-9 ans présente des imperfections cutanées. Elle découvre ce sujet pour la première fois et cherche une solution efficace, rassurante et adaptée à la peau jeune.", image: personaP1 },
+  P2: { displayName: "Nathalie", age: 35, description: "Maman d'un pré-ado de 10-11 ans qui voit apparaître les premiers boutons. Elle veut des soins adaptés à cet âge charnière, ni trop enfantins ni trop agressifs, pour accompagner son enfant avec tact.", image: personaP2 },
+  P3: { displayName: "Amandine", age: 30, description: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Experte en lecture d'étiquettes, elle ne fait confiance qu'aux produits cliniquement testés, hypoallergéniques et sans parfum.", image: personaP3 },
+  P4: { displayName: "Julie", age: 32, description: "Maman précautionneuse face à la peau sensible et réactive de son enfant. Elle privilégie les formulations minimalistes et douces, prend le temps de comparer avant chaque achat.", image: personaP4 },
+  P5: { displayName: "Stéphanie", age: 38, description: "Maman de plusieurs enfants aux types de peau différents. Elle cherche des routines simples, des produits polyvalents et un bon rapport qualité-prix pour gérer toute la fratrie.", image: personaP5 },
+  P6: { displayName: "Camille", age: 26, description: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Réceptive aux conseils et aux nouveautés, elle apprécie les parcours guidés et les contenus éducatifs.", image: personaP6 },
+  P7: { displayName: "Sandrine", age: 34, description: "Maman exigeante qui a déjà testé plusieurs marques sans satisfaction. Devenue sceptique, elle a besoin de preuves concrètes d'efficacité et de transparence totale avant de refaire confiance.", image: personaP7 },
+  P8: { displayName: "Virginie", age: 36, description: "Cliente fidèle de Ouate qui revient régulièrement pour cibler les imperfections de son enfant. Elle fait confiance à la marque et est ouverte aux recommandations complémentaires personnalisées.", image: personaP8 },
+  P9: { displayName: "Marine", age: 33, description: "Cliente fidèle et curieuse qui aime explorer les nouveautés Ouate. Ambassadrice naturelle, elle partage son expérience et recherche l'innovation et les éditions limitées.", image: personaP9 },
 };
 
 /* ── Translation maps ────────────────────────────────── */
@@ -63,6 +63,28 @@ const FORMAT_LABELS: Record<string, string> = {
 
 function tr(value: string, map: Record<string, string>): string {
   return map[value] || value;
+}
+
+/* ── Bold key phrases in text ────────────────────────── */
+
+function boldKeyPhrases(text: string): string {
+  const keywords = [
+    "résultats visibles", "résultats rapides", "preuves concrètes", "confiance", "fidèle",
+    "transparence totale", "cliniquement testés", "sans parfum", "hypoallergéniques",
+    "conversion", "AOV", "panier moyen", "upsell", "opt-in", "nurturing",
+    "engagement", "réceptif", "capitaliser", "campagnes ciblées", "freins",
+    "imperfections", "peau atopique", "peau sensible", "réactive",
+    "multi-enfants", "routine", "premier achat", "sceptique", "ambassadrice",
+    "autonomie", "efficacité", "rapport qualité-prix", "polyvalents",
+    "avant/après", "études cliniques", "formulations minimalistes",
+    "score", "express", "contenu visuel", "contenu court", "contenu détaillé",
+  ];
+  let result = text;
+  for (const kw of keywords) {
+    const regex = new RegExp(`(${kw})`, "gi");
+    result = result.replace(regex, "<strong>$1</strong>");
+  }
+  return result;
 }
 
 /* ── Psychology text generator (enriched, unique per persona) ── */
@@ -326,8 +348,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
   const profile = PERSONA_PROFILES[p.code];
   const displayName = profile?.displayName || p.name;
   const age = profile?.age || 30;
-  const tagline = profile?.tagline || p.subtitle;
-  const situation = profile?.situation || p.subtitle;
+  const description = profile?.description || p.subtitle;
   const image = profile?.image;
 
   if (!p.profile) {
@@ -359,8 +380,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
             )}
             <div className="min-w-0">
               <h3 className="text-lg font-bold text-foreground leading-tight">{displayName}, {age} ans</h3>
-              <p className="text-sm italic" style={{ color: `hsl(${color})` }}>{tagline}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{situation}</p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
             </div>
           </div>
 
@@ -379,25 +399,31 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
           </div>
 
           {/* KPIs — 2 per row */}
-          <div className="grid grid-cols-2 gap-2.5 mt-4">
-            {[
+          {(() => {
+            const convVsGlobal = globalAvg.conversionRate > 0 ? Math.round(((convRate / globalAvg.conversionRate) - 1) * 1000) / 10 : null;
+            const kpis = [
               { icon: Users, label: "Volume", value: String(p.count) },
-              { icon: TrendingUp, label: "Taux de conversion", value: `${convRate.toFixed(1)}%` },
+              { icon: TrendingUp, label: "Taux de conversion", value: `${convRate.toFixed(1)}%`, sub: convVsGlobal != null ? `${convVsGlobal > 0 ? "+" : ""}${convVsGlobal}% vs moy.` : undefined, subColor: convVsGlobal != null ? (convVsGlobal >= 0 ? "text-green-600" : "text-red-500") : "" },
               { icon: ShoppingCart, label: "AOV", value: p.business?.aov ? `${p.business.aov.toFixed(0)}€` : "–", sub: p.business?.aovVsGlobal != null ? `${p.business.aovVsGlobal > 0 ? "+" : ""}${p.business.aovVsGlobal}% vs moy.` : undefined, subColor: p.business?.aovVsGlobal != null ? (p.business.aovVsGlobal >= 0 ? "text-green-600" : "text-red-500") : "" },
               { icon: Zap, label: "Engagement", value: p.behavior?.engagementAvg != null ? `${Math.round(p.behavior.engagementAvg)}/100` : "–" },
-            ].map((kpi, i) => (
-              <div key={i} className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
-                <kpi.icon className="w-5 h-5 shrink-0" style={{ color: `hsl(${color})` }} />
-                <div>
-                  <p className="text-base font-bold text-foreground">{kpi.value}</p>
-                  <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                  {"sub" in kpi && kpi.sub && (
-                    <p className={`text-xs font-medium ${kpi.subColor}`}>{kpi.sub}</p>
-                  )}
-                </div>
+            ];
+            return (
+              <div className="grid grid-cols-2 gap-2.5 mt-4">
+                {kpis.map((kpi, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
+                    <kpi.icon className="w-5 h-5 shrink-0" style={{ color: `hsl(${color})` }} />
+                    <div>
+                      <p className="text-base font-bold text-foreground">{kpi.value}</p>
+                      <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                      {kpi.sub && (
+                        <p className={`text-xs font-medium ${kpi.subColor}`}>{kpi.sub}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
 
         {/* Body */}
@@ -407,7 +433,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
             <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
               🧠 Psychologie
             </h4>
-            <p className="text-muted-foreground leading-relaxed">{psychText}</p>
+            <p className="text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: boldKeyPhrases(psychText) }} />
           </div>
 
           {/* Key issues */}
@@ -420,7 +446,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
                 {keyIssues.map((issue, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-amber-500 mt-0.5">•</span>
-                    <span>{issue}</span>
+                    <span dangerouslySetInnerHTML={{ __html: boldKeyPhrases(issue) }} />
                   </li>
                 ))}
               </ul>
@@ -437,7 +463,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
                 {needs.map((need, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-green-500 mt-0.5">•</span>
-                    <span>{need}</span>
+                    <span dangerouslySetInnerHTML={{ __html: boldKeyPhrases(need) }} />
                   </li>
                 ))}
               </ul>
@@ -454,7 +480,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
                 {behaviors.map((b, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span>{b}</span>
+                    <span dangerouslySetInnerHTML={{ __html: boldKeyPhrases(b) }} />
                   </li>
                 ))}
               </ul>
@@ -467,13 +493,14 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
               <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
                 <Package className="w-4 h-4" style={{ color: `hsl(${color})` }} /> Top produits recommandés
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <ul className="space-y-1.5">
                 {p.topProducts.slice(0, 3).map((prod, i) => (
-                  <Badge key={i} variant="outline" className="text-xs py-1 px-2.5" style={{ borderColor: `hsl(${color} / 0.3)`, backgroundColor: `hsl(${color} / 0.06)` }}>
-                    {prod.name} ({prod.pct}%)
-                  </Badge>
+                  <li key={i} className="flex items-start gap-2 text-muted-foreground">
+                    <span style={{ color: `hsl(${color})` }} className="mt-0.5 font-bold">{i + 1}.</span>
+                    <span><strong>{prod.name}</strong> — recommandé dans {prod.pct}% des cas</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
         </div>
@@ -488,30 +515,20 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
               {aiInsights.map((insight, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: `hsl(${color} / 0.85)` }}>
                   <span className="mt-0.5">→</span>
-                  <span>{insight}</span>
+                  <span dangerouslySetInnerHTML={{ __html: boldKeyPhrases(insight) }} />
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        {/* Business footer */}
+        {/* Business footer — CA only */}
         <div className="p-4 pt-0">
           <div className="border-t border-border/50 pt-3">
             {p.business && p.business.conversions > 0 ? (
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-base font-bold text-foreground">{convRate.toFixed(1)}%</p>
-                  <p className="text-xs text-muted-foreground">Conversion</p>
-                </div>
-                <div>
-                  <p className="text-base font-bold text-foreground">{p.business.aov.toFixed(0)}€</p>
-                  <p className="text-xs text-muted-foreground">AOV moyen</p>
-                </div>
-                <div>
-                  <p className="text-base font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
-                  <p className="text-xs text-muted-foreground">CA généré</p>
-                </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
+                <p className="text-xs text-muted-foreground">CA généré</p>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground text-center">0 conversion — segment à activer</p>
@@ -562,7 +579,7 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {personas.map((p) => (
+        {[...personas].sort((a, b) => b.count - a.count).map((p) => (
           <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} />
         ))}
       </div>
