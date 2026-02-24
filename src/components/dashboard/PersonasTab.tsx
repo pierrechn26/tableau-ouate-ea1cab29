@@ -493,9 +493,9 @@ function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaSt
               <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
                 <Package className="w-4 h-4" style={{ color: `hsl(${color})` }} /> Top produits recommandés
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2">
                 {p.topProducts.slice(0, 3).map((prod, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium" style={{ backgroundColor: `hsl(${color} / 0.12)`, color: `hsl(${color})` }}>
+                  <span key={i} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium w-fit" style={{ backgroundColor: `hsl(${color} / 0.12)`, color: `hsl(${color})` }}>
                     {prod.name} ({prod.pct}%)
                   </span>
                 ))}
