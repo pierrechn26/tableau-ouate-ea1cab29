@@ -155,13 +155,13 @@ Deno.serve(async (req) => {
     const { data: orders } = await ordQ;
     const ordersList = orders ?? [];
 
-    // Build session_id -> order mapping
-    const orderBySession: Record<string, { total_price: number }[]> = {};
+    // Build session_code -> order mapping (diagnostic_session_id stores session_code, not UUID)
+    const orderBySessionCode: Record<string, { total_price: number }[]> = {};
     for (const o of ordersList as any[]) {
       const sid = o.diagnostic_session_id;
       if (sid) {
-        if (!orderBySession[sid]) orderBySession[sid] = [];
-        orderBySession[sid].push({ total_price: Number(o.total_price) || 0 });
+        if (!orderBySessionCode[sid]) orderBySessionCode[sid] = [];
+        orderBySessionCode[sid].push({ total_price: Number(o.total_price) || 0 });
       }
     }
 
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
     let globalEngagementCount = 0;
 
     for (const s of allSessions) {
-      const sOrders = orderBySession[s.id] || [];
+      const sOrders = orderBySessionCode[s.session_code] || [];
       if (sOrders.length > 0) {
         globalConversions++;
         globalRevenue += sOrders.reduce((sum: number, o: any) => sum + o.total_price, 0);
@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
       let recommendedCartCount = 0;
 
       for (const s of sessions) {
-        const sOrders = orderBySession[s.id] || [];
+        const sOrders = orderBySessionCode[s.session_code] || [];
         if (sOrders.length > 0) {
           conversions++;
           revenue += sOrders.reduce((sum: number, o: any) => sum + o.total_price, 0);
