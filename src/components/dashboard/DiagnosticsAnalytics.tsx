@@ -10,6 +10,7 @@ import {
 import { Eye, PlayCircle, CheckCircle, Mail, Clock, MessageSquare, Loader2, RefreshCw, Users } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
+import { usePersonaStats } from "@/hooks/usePersonaStats";
 import { DateRange } from "react-day-picker";
 
 interface DiagnosticsAnalyticsProps {
@@ -17,44 +18,54 @@ interface DiagnosticsAnalyticsProps {
 }
 
 const PERSONA_COLORS: Record<string, string> = {
-  emma: "hsl(200, 70%, 60%)",
-  sophie: "hsl(330, 70%, 65%)",
-  lea: "hsl(140, 60%, 55%)",
-  léa: "hsl(140, 60%, 55%)",
+  P1: "hsl(348, 83%, 47%)",
+  P2: "hsl(330, 81%, 60%)",
+  P3: "hsl(15, 85%, 55%)",
+  P4: "hsl(205, 85%, 55%)",
+  P5: "hsl(155, 65%, 45%)",
+  P6: "hsl(270, 60%, 55%)",
+  P7: "hsl(45, 90%, 50%)",
+  P8: "hsl(348, 70%, 35%)",
+  P9: "hsl(195, 70%, 45%)",
 };
 
-const PERSONA_TYPOLOGIES: Record<string, string> = {
-  emma: "Enceinte 1er trimestre",
-  sophie: "Jeune maman postpartum",
-  lea: "Maman de 2 enfants",
-  léa: "Maman de 2 enfants",
+const PERSONA_NAMES: Record<string, string> = {
+  P1: "Clara — La Novice Imperfections",
+  P2: "Nathalie — La Novice Pré-ado",
+  P3: "Amandine — La Novice Atopique",
+  P4: "Julie — La Novice Sensible",
+  P5: "Stéphanie — La Multi-enfants",
+  P6: "Camille — La Novice Découverte",
+  P7: "Sandrine — L'Insatisfaite",
+  P8: "Virginie — La Fidèle Imperfections",
+  P9: "Marine — La Fidèle Exploratrice",
 };
 
 const DEFAULT_COLOR = "hsl(0, 0%, 60%)";
 
+function getPersonaChartColor(code: string): string {
+  if (PERSONA_COLORS[code]) return PERSONA_COLORS[code];
+  let hash = 0;
+  for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue}, 65%, 50%)`;
+}
+
 export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
   const stats = useDiagnosticStats(dateRange);
+  const personaData = usePersonaStats(dateRange);
 
-  // Préparer les données pour le graphique en camembert
-  const personaChartData = stats.personaDistribution.map((p) => ({
-    name: p.name.charAt(0).toUpperCase() + p.name.slice(1).toLowerCase(),
-    value: Math.round(p.percentage * 10) / 10,
-    count: p.count,
-    typology: PERSONA_TYPOLOGIES[p.name.toLowerCase()] || "Profil en découverte",
-    color: PERSONA_COLORS[p.name.toLowerCase()] || DEFAULT_COLOR,
-  }));
-
-  // Ajouter "Autre" pour les réponses sans persona
-  const responsesWithoutPersona = stats.responses.filter((r) => !r.detected_persona).length;
-  if (responsesWithoutPersona > 0) {
-    personaChartData.push({
-      name: "Non défini",
-      value: Math.round((responsesWithoutPersona / stats.totalResponses) * 1000) / 10,
-      count: responsesWithoutPersona,
-      typology: "Diagnostic incomplet",
-      color: DEFAULT_COLOR,
-    });
-  }
+  // Build pie chart from persona-stats (real persona_code distribution)
+  const personaChartData = personaData.personas
+    .filter(p => p.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .map(p => ({
+      name: PERSONA_NAMES[p.code] || `Persona ${p.code}`,
+      shortName: p.code,
+      value: p.percentage,
+      count: p.count,
+      color: getPersonaChartColor(p.code),
+    }));
 
   if (stats.isLoading) {
     return (
@@ -151,7 +162,7 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, value }) => `${name} ${value}%`}
+                      label={({ shortName, value }) => `${shortName} ${value}%`}
                       outerRadius={100}
                       fill="hsl(var(--primary))"
                       dataKey="value"
@@ -166,8 +177,8 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                       }}
-                      formatter={(value: number, name: string, props: any) => [
-                        `${props.payload.count} réponses (${value}%)`,
+                      formatter={(value: number, _name: string, props: any) => [
+                        `${props.payload.count} sessions (${value}%)`,
                         props.payload.name
                       ]}
                     />
@@ -182,10 +193,10 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                       />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-foreground">
-                          {persona.name} ({persona.count})
+                          {persona.shortName} — {persona.name.split(" — ")[1] || persona.name} ({persona.count})
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {persona.typology}
+                          {persona.value}% des sessions
                         </span>
                       </div>
                     </div>
