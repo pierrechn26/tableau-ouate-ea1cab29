@@ -199,18 +199,32 @@ Deno.serve(async (req) => {
     const globalAov = globalConversions > 0 ? globalRevenue / globalConversions : 0;
     const globalEngagement = globalEngagementCount > 0 ? globalEngagementSum / globalEngagementCount : 0;
 
-    // Build per-persona stats
+    // Build per-persona stats — dynamic: include ALL codes found in data
     const personaStats: any[] = [];
 
-    for (const code of ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]) {
+    // Start with known P1-P9, then add any new codes found in data
+    const knownCodes = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
+    const allCodes = new Set([...knownCodes, ...Object.keys(personaGroups)]);
+    // Sort: known codes first in order, then new codes sorted naturally
+    const sortedCodes = [...allCodes].sort((a, b) => {
+      const ai = knownCodes.indexOf(a);
+      const bi = knownCodes.indexOf(b);
+      if (ai >= 0 && bi >= 0) return ai - bi;
+      if (ai >= 0) return -1;
+      if (bi >= 0) return 1;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
+
+    for (const code of sortedCodes) {
       const sessions = personaGroups[code] || [];
       const count = sessions.length;
       const pct = totalCompleted > 0 ? Math.round((count / totalCompleted) * 1000) / 10 : 0;
+      const def = PERSONA_DEFINITIONS[code] || { name: `Persona ${code}`, subtitle: "Nouveau profil détecté automatiquement" };
 
       if (count === 0) {
         personaStats.push({
           code,
-          ...PERSONA_DEFINITIONS[code],
+          ...def,
           count: 0,
           percentage: 0,
           profile: null,
@@ -348,7 +362,7 @@ Deno.serve(async (req) => {
 
       personaStats.push({
         code,
-        ...PERSONA_DEFINITIONS[code],
+        ...def,
         count,
         percentage: pct,
         profile: {

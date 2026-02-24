@@ -22,17 +22,15 @@ const PERSONA_COLORS: Record<string, string> = {
   P9: "195 70% 45%",
 };
 
-const PERSONA_NAMES: Record<string, string> = {
-  P1: "La Novice Imperfections Enfant",
-  P2: "La Novice Imperfections Pré-ado",
-  P3: "La Novice Atopique",
-  P4: "La Novice Sensible",
-  P5: "La Multi-enfants Besoins Mixtes",
-  P6: "La Novice Découverte",
-  P7: "L'Insatisfaite",
-  P8: "La Fidèle Imperfections",
-  P9: "La Fidèle Exploratrice",
-};
+// Generate a deterministic color for unknown persona codes
+function getPersonaColor(code: string): string {
+  if (PERSONA_COLORS[code]) return PERSONA_COLORS[code];
+  // Hash the code to produce a stable hue
+  let hash = 0;
+  for (let i = 0; i < code.length; i++) hash = code.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = ((hash % 360) + 360) % 360;
+  return `${hue} 65% 50%`;
+}
 
 /* ── Translation maps ────────────────────────────────── */
 
@@ -208,7 +206,7 @@ function generateBehaviors(p: PersonaStat, globalConvRate: number): string[] {
 /* ── Persona Card ────────────────────────────────────── */
 
 function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number } }) {
-  const color = PERSONA_COLORS[persona.code] || "0 0% 50%";
+  const color = getPersonaColor(persona.code);
   const p = persona;
 
   if (!p.profile) {
@@ -420,7 +418,7 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
           Personas — {totalCompleted} sessions terminées
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          9 profils basés sur l'arbre de décision diagnostic
+          {personas.length} profils basés sur l'arbre de décision diagnostic
         </p>
       </div>
 
