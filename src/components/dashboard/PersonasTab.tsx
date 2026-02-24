@@ -41,16 +41,16 @@ function getPersonaColor(code: string): string {
 
 /* ── Persona definitions with names, taglines, ages, images ── */
 
-const PERSONA_PROFILES: Record<string, { displayName: string; age: number; description: string; image: string }> = {
-  P1: { displayName: "Clara", age: 28, description: "Nouvelle cliente dont l'enfant de 4-9 ans présente des imperfections cutanées. Elle découvre ce sujet pour la première fois et cherche une solution efficace, rassurante et adaptée à la peau jeune.", image: personaP1 },
-  P2: { displayName: "Nathalie", age: 35, description: "Maman d'un pré-ado de 10-11 ans qui voit apparaître les premiers boutons. Elle veut des soins adaptés à cet âge charnière, ni trop enfantins ni trop agressifs, pour accompagner son enfant avec tact.", image: personaP2 },
-  P3: { displayName: "Amandine", age: 30, description: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Experte en lecture d'étiquettes, elle ne fait confiance qu'aux produits cliniquement testés, hypoallergéniques et sans parfum.", image: personaP3 },
-  P4: { displayName: "Julie", age: 32, description: "Maman précautionneuse face à la peau sensible et réactive de son enfant. Elle privilégie les formulations minimalistes et douces, prend le temps de comparer avant chaque achat.", image: personaP4 },
-  P5: { displayName: "Stéphanie", age: 38, description: "Maman de plusieurs enfants aux types de peau différents. Elle cherche des routines simples, des produits polyvalents et un bon rapport qualité-prix pour gérer toute la fratrie.", image: personaP5 },
-  P6: { displayName: "Camille", age: 26, description: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Réceptive aux conseils et aux nouveautés, elle apprécie les parcours guidés et les contenus éducatifs.", image: personaP6 },
-  P7: { displayName: "Sandrine", age: 34, description: "Maman exigeante qui a déjà testé plusieurs marques sans satisfaction. Devenue sceptique, elle a besoin de preuves concrètes d'efficacité et de transparence totale avant de refaire confiance.", image: personaP7 },
-  P8: { displayName: "Virginie", age: 36, description: "Cliente fidèle de Ouate qui revient régulièrement pour cibler les imperfections de son enfant. Elle fait confiance à la marque et est ouverte aux recommandations complémentaires personnalisées.", image: personaP8 },
-  P9: { displayName: "Marine", age: 33, description: "Cliente fidèle et curieuse qui aime explorer les nouveautés Ouate. Ambassadrice naturelle, elle partage son expérience et recherche l'innovation et les éditions limitées.", image: personaP9 },
+const PERSONA_PROFILES: Record<string, { displayName: string; title: string; description: string; image: string }> = {
+  P1: { displayName: "Clara", title: "La Novice Imperfections", description: "Nouvelle cliente dont l'enfant de 4-9 ans présente des imperfections cutanées. Elle découvre ce sujet pour la première fois et cherche une solution efficace, rassurante et adaptée à la peau jeune.", image: personaP1 },
+  P2: { displayName: "Nathalie", title: "La Novice Pré-ado", description: "Maman d'un pré-ado de 10-11 ans qui voit apparaître les premiers boutons. Elle veut des soins adaptés à cet âge charnière, ni trop enfantins ni trop agressifs, pour accompagner son enfant avec tact.", image: personaP2 },
+  P3: { displayName: "Amandine", title: "La Novice Atopique", description: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Experte en lecture d'étiquettes, elle ne fait confiance qu'aux produits cliniquement testés, hypoallergéniques et sans parfum.", image: personaP3 },
+  P4: { displayName: "Julie", title: "La Novice Sensible", description: "Maman précautionneuse face à la peau sensible et réactive de son enfant. Elle privilégie les formulations minimalistes et douces, prend le temps de comparer avant chaque achat.", image: personaP4 },
+  P5: { displayName: "Stéphanie", title: "La Multi-enfants", description: "Maman de plusieurs enfants aux types de peau différents. Elle cherche des routines simples, des produits polyvalents et un bon rapport qualité-prix pour gérer toute la fratrie.", image: personaP5 },
+  P6: { displayName: "Camille", title: "La Novice Découverte", description: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Réceptive aux conseils et aux nouveautés, elle apprécie les parcours guidés et les contenus éducatifs.", image: personaP6 },
+  P7: { displayName: "Sandrine", title: "L'Insatisfaite", description: "Maman exigeante qui a déjà testé plusieurs marques sans satisfaction. Devenue sceptique, elle a besoin de preuves concrètes d'efficacité et de transparence totale avant de refaire confiance.", image: personaP7 },
+  P8: { displayName: "Virginie", title: "La Fidèle Imperfections", description: "Cliente fidèle de Ouate qui revient régulièrement pour cibler les imperfections de son enfant. Elle fait confiance à la marque et est ouverte aux recommandations complémentaires personnalisées.", image: personaP8 },
+  P9: { displayName: "Marine", title: "La Fidèle Exploratrice", description: "Cliente fidèle et curieuse qui aime explorer les nouveautés Ouate. Ambassadrice naturelle, elle partage son expérience et recherche l'innovation et les éditions limitées.", image: personaP9 },
 };
 
 /* ── Translation maps ────────────────────────────────── */
@@ -342,12 +342,12 @@ function generateInsightsText(p: PersonaStat, globalAvg: { conversionRate: numbe
 
 /* ── Persona Card ────────────────────────────────────── */
 
-function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number } }) {
+function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number }; globalRevenue: number }) {
   const color = getPersonaColor(persona.code);
   const p = persona;
   const profile = PERSONA_PROFILES[p.code];
   const displayName = profile?.displayName || p.name;
-  const age = profile?.age || 30;
+  const title = profile?.title || p.subtitle;
   const description = profile?.description || p.subtitle;
   const image = profile?.image;
 
@@ -379,7 +379,7 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
               </div>
             )}
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-foreground leading-tight">{displayName}, {age} ans</h3>
+              <h3 className="text-lg font-bold text-foreground leading-tight">{displayName} <span className="font-medium text-muted-foreground">— {title}</span></h3>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
             </div>
           </div>
@@ -493,14 +493,13 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
               <h4 className="font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
                 <Package className="w-4 h-4" style={{ color: `hsl(${color})` }} /> Top produits recommandés
               </h4>
-              <ul className="space-y-1.5">
+              <div className="flex flex-wrap gap-2">
                 {p.topProducts.slice(0, 3).map((prod, i) => (
-                  <li key={i} className="flex items-start gap-2 text-muted-foreground">
-                    <span style={{ color: `hsl(${color})` }} className="mt-0.5 font-bold">{i + 1}.</span>
-                    <span><strong>{prod.name}</strong> — recommandé dans {prod.pct}% des cas</span>
-                  </li>
+                  <span key={i} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium" style={{ backgroundColor: `hsl(${color} / 0.12)`, color: `hsl(${color})` }}>
+                    {prod.name} ({prod.pct}%)
+                  </span>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
@@ -522,13 +521,31 @@ function PersonaCard({ persona, globalAvg }: { persona: PersonaStat; globalAvg: 
           </div>
         </div>
 
-        {/* Business footer — CA only */}
+        {/* Business footer — CA + % circle */}
         <div className="p-4 pt-0">
           <div className="border-t border-border/50 pt-3">
             {p.business && p.business.conversions > 0 ? (
-              <div className="text-center">
-                <p className="text-lg font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
-                <p className="text-xs text-muted-foreground">CA généré</p>
+              <div className="flex items-center justify-center gap-5">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
+                  <p className="text-xs text-muted-foreground">CA généré</p>
+                </div>
+                {globalRevenue > 0 && (() => {
+                  const pct = Math.round((p.business.revenue / globalRevenue) * 1000) / 10;
+                  const r = 20;
+                  const circ = 2 * Math.PI * r;
+                  const offset = circ - (circ * Math.min(pct, 100)) / 100;
+                  return (
+                    <div className="flex flex-col items-center">
+                      <svg width="52" height="52" viewBox="0 0 52 52" className="-rotate-90">
+                        <circle cx="26" cy="26" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
+                        <circle cx="26" cy="26" r={r} fill="none" stroke={`hsl(${color})`} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+                      </svg>
+                      <p className="text-xs font-semibold text-foreground -mt-[34px]">{pct}%</p>
+                      <p className="text-[10px] text-muted-foreground mt-4">du CA global</p>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground text-center">0 conversion — segment à activer</p>
@@ -567,6 +584,8 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
     );
   }
 
+  const globalRevenue = personas.reduce((sum, p) => sum + (p.business?.revenue || 0), 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -580,7 +599,7 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {[...personas].sort((a, b) => b.count - a.count).map((p) => (
-          <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} />
+          <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} globalRevenue={globalRevenue} />
         ))}
       </div>
     </div>
