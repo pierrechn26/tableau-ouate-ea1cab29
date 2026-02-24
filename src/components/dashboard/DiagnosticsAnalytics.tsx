@@ -56,12 +56,23 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
   const personaData = usePersonaStats(dateRange);
 
   // Build pie chart from persona-stats (real persona_code distribution)
+  const DISPLAY_NAMES: Record<string, string> = {
+    P1: "Clara", P2: "Nathalie", P3: "Amandine", P4: "Julie", P5: "Stéphanie",
+    P6: "Camille", P7: "Sandrine", P8: "Virginie", P9: "Marine",
+  };
+  const TITLES: Record<string, string> = {
+    P1: "La Novice Imperfections", P2: "La Novice Pré-ado", P3: "La Novice Atopique",
+    P4: "La Novice Sensible", P5: "La Multi-enfants", P6: "La Novice Découverte",
+    P7: "L'Insatisfaite", P8: "La Fidèle Imperfections", P9: "La Fidèle Exploratrice",
+  };
   const personaChartData = personaData.personas
     .filter(p => p.count > 0)
     .sort((a, b) => b.count - a.count)
     .map(p => ({
       name: PERSONA_NAMES[p.code] || `Persona ${p.code}`,
       shortName: p.code,
+      displayName: DISPLAY_NAMES[p.code] || p.code,
+      title: TITLES[p.code] || p.subtitle,
       value: p.percentage,
       count: p.count,
       color: getPersonaChartColor(p.code),
@@ -150,59 +161,66 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
           transition={{ delay: 0.2 }}
         >
           <Card className="p-6 bg-gradient-to-br from-card via-card to-secondary/10 border border-border/50 shadow-md">
-            <h3 className="text-lg font-bold text-foreground mb-4 font-heading">
+            <h3 className="text-lg font-bold text-foreground mb-6 font-heading">
               Répartition des Personas
             </h3>
             {personaChartData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={personaChartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ shortName, value }) => `${shortName} ${value}%`}
-                      outerRadius={100}
-                      fill="hsl(var(--primary))"
-                      dataKey="value"
-                    >
-                      {personaChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value: number, _name: string, props: any) => [
-                        `${props.payload.count} sessions (${value}%)`,
-                        props.payload.name
-                      ]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  {personaChartData.map((persona) => (
-                    <div key={persona.name} className="flex items-start gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-                        style={{ backgroundColor: persona.color }}
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <ResponsiveContainer width={260} height={260}>
+                    <PieChart>
+                      <Pie
+                        data={personaChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={120}
+                        paddingAngle={3}
+                        cornerRadius={6}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {personaChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "10px",
+                          padding: "10px 14px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        }}
+                        formatter={(value: number, _name: string, props: any) => [
+                          `${props.payload.count} sessions · ${value}%`,
+                          `${props.payload.displayName} — ${props.payload.title}`
+                        ]}
                       />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">
-                          {persona.shortName} — {persona.name.split(" — ")[1] || persona.name} ({persona.count})
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-2xl font-bold text-foreground">{personaData.totalCompleted}</p>
+                    <p className="text-xs text-muted-foreground">sessions</p>
+                  </div>
+                </div>
+                <div className="w-full space-y-1.5 mt-4">
+                  {personaChartData.map((persona) => (
+                    <div key={persona.shortName} className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: persona.color }} />
+                        <span className="text-sm text-foreground truncate">
+                          <strong>{persona.displayName}</strong> <span className="text-muted-foreground">— {persona.title}</span>
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {persona.value}% des sessions
-                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-sm font-bold text-foreground">{persona.value}%</span>
+                        <span className="text-xs text-muted-foreground">({persona.count})</span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             ) : (
               <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                 Aucune donnée de persona disponible
