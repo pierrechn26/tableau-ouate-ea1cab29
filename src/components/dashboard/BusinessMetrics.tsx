@@ -20,15 +20,11 @@ import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
 import { useInsightsMetrics } from "@/hooks/useInsightsMetrics";
 import { usePersonaStats } from "@/hooks/usePersonaStats";
+import { getPersonaDisplayName } from "@/constants/personas";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-
-const PERSONA_DISPLAY_NAMES: Record<string, string> = {
-  P1: "Clara", P2: "Nathalie", P3: "Inès", P4: "Julie",
-  P5: "Camille", P6: "Sophie", P7: "Emma", P8: "Léa", P9: "Marie",
-};
 
 const PERSONA_COLORS: Record<string, string> = {
   P1: "hsl(348, 83%, 47%)", P2: "hsl(330, 81%, 60%)", P3: "hsl(15, 85%, 55%)",
@@ -249,7 +245,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                   .filter(p => p.business && p.business.revenue > 0)
                   .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0));
                 const chartData = sortedPersonas.map(p => ({
-                  name: PERSONA_DISPLAY_NAMES[p.code] || p.code,
+                  name: getPersonaDisplayName(p.code),
                   revenue: p.business?.revenue ?? 0,
                   aov: p.business?.aov ?? 0,
                   convRate: p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0,
@@ -307,7 +303,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                         const convRate = p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0;
                         return (
                           <div key={p.code} className="text-center space-y-0.5">
-                            <p className="font-bold text-foreground text-sm">{PERSONA_DISPLAY_NAMES[p.code] || p.code}</p>
+                            <p className="font-bold text-foreground text-sm">{getPersonaDisplayName(p.code)}</p>
                             <p className="text-xs text-muted-foreground leading-tight italic">{p.name}</p>
                             <p className="text-xs text-muted-foreground">AOV: <span className="font-medium text-foreground">{fmt(p.business?.aov ?? 0, 1)}€</span></p>
                             <p className="text-xs text-muted-foreground">Conv: <span className="font-medium text-foreground">{fmt(convRate, 1)}%</span></p>
