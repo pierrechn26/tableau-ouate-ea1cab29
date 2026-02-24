@@ -63,16 +63,21 @@ const FORMAT_LABELS: Record<string, string> = {
   complete: "Contenu détaillé",
 };
 
-const PERSONA_NAMES: Record<string, string> = {
-  P1: "La Maman Soucieuse",
-  P2: "La Maman Efficace",
-  P3: "La Maman Naturelle",
-  P4: "La Maman Connectée",
-  P5: "La Maman Experte",
-  P6: "Le Papa Impliqué",
-  P7: "Les Grands-Parents Gâteau",
-  P8: "La Maman Minimaliste",
-  P9: "La Maman Premium",
+const PERSONA_PROFILES: Record<string, { displayName: string; title: string; description: string }> = {
+  P1: { displayName: "Clara", title: "La Novice Imperfections", description: "Nouvelle cliente dont l'enfant de 4-9 ans présente des imperfections cutanées. Elle découvre ce sujet pour la première fois et cherche une solution efficace, rassurante et adaptée à la peau jeune." },
+  P2: { displayName: "Nathalie", title: "La Novice Pré-ado", description: "Maman d'un pré-ado de 10-11 ans qui voit apparaître les premiers boutons. Elle veut des soins adaptés à cet âge charnière, ni trop enfantins ni trop agressifs." },
+  P3: { displayName: "Amandine", title: "La Novice Atopique", description: "Maman très protectrice dont l'enfant a une peau atopique diagnostiquée. Experte en lecture d'étiquettes, elle ne fait confiance qu'aux produits cliniquement testés, hypoallergéniques et sans parfum." },
+  P4: { displayName: "Julie", title: "La Novice Sensible", description: "Maman précautionneuse face à la peau sensible et réactive de son enfant. Elle privilégie les formulations minimalistes et douces." },
+  P5: { displayName: "Stéphanie", title: "La Multi-enfants", description: "Maman de plusieurs enfants aux types de peau différents. Elle cherche des routines simples, des produits polyvalents et un bon rapport qualité-prix." },
+  P6: { displayName: "Camille", title: "La Novice Découverte", description: "Jeune maman enthousiaste qui découvre l'univers des soins pour enfants. Réceptive aux conseils et aux nouveautés, elle apprécie les parcours guidés." },
+  P7: { displayName: "Sandrine", title: "L'Insatisfaite", description: "Maman exigeante qui a déjà testé plusieurs marques sans satisfaction. Devenue sceptique, elle a besoin de preuves concrètes d'efficacité et de transparence totale." },
+  P8: { displayName: "Virginie", title: "La Fidèle Imperfections", description: "Cliente fidèle de Ouate qui revient régulièrement pour cibler les imperfections de son enfant. Elle fait confiance à la marque et est ouverte aux recommandations complémentaires." },
+  P9: { displayName: "Marine", title: "La Fidèle Exploratrice", description: "Cliente fidèle et curieuse qui aime explorer les nouveautés Ouate. Ambassadrice naturelle, elle partage son expérience et recherche l'innovation." },
+};
+
+const getPersonaFullLabel = (code: string) => {
+  const p = PERSONA_PROFILES[code];
+  return p ? `${p.displayName} — ${p.title}` : code;
 };
 
 const SOURCES_CONSULTED = [
@@ -237,7 +242,7 @@ async function collectPersonaData(supabase: any) {
 
     personaData[code] = {
       code,
-      name: PERSONA_NAMES[code] || code,
+      name: getPersonaFullLabel(code),
       business: {
         volume,
         conversions,
@@ -338,6 +343,18 @@ Gamme de produits avec prix :
 
 Positionnement marque : Made in France, dermatologiquement testé sur peaux d'enfants, 0% ingrédients controversés, formulations développées avec des pédiatres et dermatologues, packaging ludique et éco-responsable, marque premium accessible.
 
+=== LES 9 PERSONAS OUATE (DÉFINITIONS OFFICIELLES) ===
+
+IMPORTANT : Tu DOIS utiliser EXACTEMENT ces noms et descriptions. Ne JAMAIS inventer de nouveaux personas ou renommer ceux-ci.
+
+${Object.entries(PERSONA_PROFILES).map(([code, p]) => `- ${code} : ${p.displayName} — ${p.title} : ${p.description}`).join("\n")}
+
+Attribution des personas :
+1. Clients existants → P8 (Virginie, si imperfections) ou P9 (Marine, exploratrice)
+2. Multi-enfants avec besoins mixtes → P5 (Stéphanie)
+3. Routine existante mais insatisfaite → P7 (Sandrine)
+4. Novices : P2 (Nathalie, pré-ado), P1 (Clara, imperfections enfant), P3 (Amandine, atopique), P4 (Julie, sensible), P6 (Camille, découverte)
+
 Canaux marketing actuels :
 - Ads : Meta (Instagram + Facebook principalement), audiences mamans 25-45 ans intéressées beauté/enfants/parentalité
 - Email/SMS : Klaviyo (flows post-diagnostic, welcome series, abandoned cart)
@@ -376,7 +393,10 @@ PRIORITÉ OUATE = BEAUTÉ/SKINCARE : Prioriser Motion App, Billo (UGC skincare),
 
 === RÈGLES DE GÉNÉRATION ===
 
+- NOMENCLATURE OBLIGATOIRE : Dans le champ "nom" du persona_focus, utiliser TOUJOURS le format "Prénom — Titre" tel que défini ci-dessus (ex: "Clara — La Novice Imperfections", "Sandrine — L'Insatisfaite"). Ne JAMAIS inventer de noms ou titres.
+- Dans les champs "personas" des recommandations, utiliser les codes (P1, P2, etc.) car ils sont résolus côté frontend.
 - Les recommandations doivent être ciblées sur un ou plusieurs personas selon la pertinence. Prioriser les 3 personas identifiés comme prioritaires cette semaine.
+- Ne recommander QUE des actions pertinentes pour des personas qui EXISTENT réellement dans les données. Si un persona a 0 session, ne pas créer de campagne pour lui.
 - Chaque recommandation DOIT être justifiée par DEUX éléments : une donnée persona spécifique ET un framework/best practice issu des sources marketing.
 - Les hooks créatifs DOIVENT être en français, prêts à être utilisés tels quels dans Ads Manager.
 - Les flows email DOIVENT être compatibles Klaviyo avec des triggers précis.
