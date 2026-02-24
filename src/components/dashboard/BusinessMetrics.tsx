@@ -302,13 +302,13 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                         <Line yAxisId="conv" type="monotone" dataKey="convRate" stroke="hsl(var(--foreground))" strokeWidth={2} name="Taux conv. (%)" dot={{ r: 4, fill: "hsl(var(--foreground))" }} animationDuration={1000} />
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-border">
+                    <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
                       {sortedPersonas.map(p => {
                         const convRate = p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0;
                         return (
                           <div key={p.code} className="text-center space-y-0.5">
                             <p className="font-bold text-foreground text-sm">{PERSONA_DISPLAY_NAMES[p.code] || p.code}</p>
-                            <p className="text-xs text-muted-foreground leading-tight">{p.subtitle}</p>
+                            <p className="text-xs text-muted-foreground leading-tight italic">{p.name}</p>
                             <p className="text-xs text-muted-foreground">AOV: <span className="font-medium text-foreground">{fmt(p.business?.aov ?? 0, 1)}€</span></p>
                             <p className="text-xs text-muted-foreground">Conv: <span className="font-medium text-foreground">{fmt(convRate, 1)}%</span></p>
                           </div>
