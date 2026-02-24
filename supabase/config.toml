@@ -21,5 +21,3 @@ verify_jwt = false
 [functions.persona-stats]
 verify_jwt = false
 
-[functions.test-gemini]
-verify_jwt = false
