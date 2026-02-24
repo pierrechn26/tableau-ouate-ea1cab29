@@ -199,7 +199,7 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0">
                     <p className="text-2xl font-bold text-foreground">{personaData.totalCompleted}</p>
                     <p className="text-xs text-muted-foreground">sessions</p>
                   </div>
