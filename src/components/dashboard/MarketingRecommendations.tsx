@@ -99,7 +99,11 @@ function formatWeekStart(dateStr: string) {
 function formatGeneratedAt(dateStr: string | null) {
   if (!dateStr) return "";
   try {
-    return format(parseISO(dateStr), "d MMM yyyy 'à' HH:mm", { locale: fr });
+    const utcDate = parseISO(dateStr);
+    // Convert to Europe/Paris timezone
+    const parisStr = utcDate.toLocaleString("sv-SE", { timeZone: "Europe/Paris" });
+    const parisDate = new Date(parisStr.replace(" ", "T"));
+    return format(parisDate, "d MMM yyyy 'à' HH:mm", { locale: fr });
   } catch {
     return dateStr;
   }
