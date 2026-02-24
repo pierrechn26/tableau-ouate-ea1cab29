@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Megaphone,
   Mail,
@@ -15,8 +16,9 @@ import {
   Users,
   TrendingUp,
   Tag,
-  Percent,
   ShoppingCart,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -24,258 +26,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-
-interface ChecklistAction {
-  id: string;
-  title: string;
-  completed: boolean;
-  details: {
-    section: string;
-    items: string[];
-  }[];
-}
-
-interface RecommendationCategory {
-  id: string;
-  title: string;
-  icon: any;
-  color: string;
-  bgColor: string;
-  sections: {
-    title: string;
-    items: string[];
-  }[];
-}
-
-const checklistActions: ChecklistAction[] = [
-  {
-    id: "action-1",
-    title: 'Lancer campagne Meta "Peur vergetures 1er trimestre"',
-    completed: false,
-    details: [
-      {
-        section: "Hooks créatifs",
-        items: [
-          "Tester une créa type UGC : \"Enceinte j'étais terrifiée par les vergetures... Voici la routine que j'ai utilisée pour les éviter\"",
-          "\"Voici ce que ton dermatologue ne te dira jamais pour éviter les vergetures quand t'es enceinte\"",
-          "\"78% des mamans regrettent de ne pas avoir fait ça pendant leur grossesse\"",
-        ],
-      },
-      {
-        section: "Concepts vidéo",
-        items: [
-          "Avant/après vergetures postpartum - témoignage authentique",
-          "Routine 1er trimestre expliquée par une sage-femme",
-          "ASMR application huile anti-vergetures",
-        ],
-      },
-      {
-        section: "Ciblage",
-        items: [
-          "Femmes 25-35 ans, intérêts grossesse/maternité",
-          "Lookalike acheteurs crème vergetures",
-          "Retargeting visiteurs page diagnostic",
-        ],
-      },
-    ],
-  },
-  {
-    id: "action-2",
-    title: "Créer vidéo UGC routine postpartum Sophie",
-    completed: false,
-    details: [
-      {
-        section: "Brief créatif",
-        items: [
-          "Jeune maman épuisée : sa routine soin en 2 minutes chrono",
-          "Montrer le manque de temps + solution rapide",
-          "Ton empathique et réaliste",
-        ],
-      },
-      {
-        section: "Points clés à inclure",
-        items: [
-          "Mention des 2 produits essentiels seulement",
-          "Résultats visibles en 2 semaines",
-          "Témoignage authentique et émotionnel",
-        ],
-      },
-    ],
-  },
-  {
-    id: "action-3",
-    title: 'Envoyer flow email "Emma anxieuse" aux nouvelles inscrites',
-    completed: false,
-    details: [
-      {
-        section: "Structure du flow",
-        items: [
-          "J1 : Email de bienvenue réassurant + guide 1er trimestre",
-          "J3 : Éducation ingrédients safe pour bébé",
-          "J5 : Routine personnalisée selon trimestre",
-          "J7 : Témoignage maman + offre spéciale",
-        ],
-      },
-      {
-        section: "Lignes d'objet suggérées",
-        items: [
-          "\"Emma, voici ta routine 1er trimestre personnalisée\"",
-          "\"Ces ingrédients sont-ils safe pour bébé ? La réponse\"",
-          "\"Une maman comme toi partage son expérience 💕\"",
-        ],
-      },
-    ],
-  },
-  {
-    id: "action-4",
-    title: 'Tester bundle "Pack 1er trimestre" à 89€',
-    completed: false,
-    details: [
-      {
-        section: "Composition du pack",
-        items: [
-          "Crème anti-vergetures 200ml",
-          "Huile douce massage 100ml",
-          "Gel nettoyant doux 150ml",
-          "Valeur totale : 112€ → Prix pack : 89€ (-20%)",
-        ],
-      },
-      {
-        section: "Arguments de vente",
-        items: [
-          "Tout ce qu'il faut pour le 1er trimestre",
-          "Routine complète validée par des sages-femmes",
-          "Économie de 23€ vs achat séparé",
-        ],
-      },
-    ],
-  },
-  {
-    id: "action-5",
-    title: 'Optimiser page produit avec badge "safe grossesse"',
-    completed: false,
-    details: [
-      {
-        section: "Éléments à ajouter",
-        items: [
-          "Badge vert \"Validé safe grossesse\" bien visible",
-          "Section réassurance ingrédients en haut de page",
-          "Avis filtrés de mamans enceintes",
-        ],
-      },
-      {
-        section: "Tests A/B suggérés",
-        items: [
-          "Position du badge : sous le prix vs sous le titre",
-          "Couleur du badge : vert vs bleu pastel",
-          "Texte : \"Safe grossesse\" vs \"Approuvé par des mamans\"",
-        ],
-      },
-    ],
-  },
-];
-
-const recommendationCategories: RecommendationCategory[] = [
-  {
-    id: "ads",
-    title: "Ads (Meta / TikTok)",
-    icon: Megaphone,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    sections: [
-      {
-        title: "Hooks créatifs",
-        items: [
-          "\"Enceinte et terrifiée par les vergetures ? Voici ce que les dermatologues recommandent vraiment\"",
-          "\"Jeune maman épuisée : ta routine soin en 2 minutes chrono\"",
-          "\"Pourquoi 78% des mamans regrettent d'avoir acheté ces produits grossesse\"",
-        ],
-      },
-      {
-        title: "Concepts vidéo",
-        items: [
-          "Avant/après vergetures postpartum - témoignage Sophie",
-          "Routine 1er trimestre expliquée par sage-femme",
-          "Composition décryptée : ce qui est vraiment safe",
-        ],
-      },
-      {
-        title: "Angles psychologiques",
-        items: [
-          "Fear of missing out : \"Ne faites pas ces 5 erreurs pendant votre grossesse\"",
-          "Réassurance scientifique : \"Approuvé par 340 dermatologues\"",
-          "Simplicité : \"3 produits. C'est tout ce dont tu as besoin.\"",
-        ],
-      },
-    ],
-  },
-  {
-    id: "email",
-    title: "Email Marketing",
-    icon: Mail,
-    color: "text-secondary",
-    bgColor: "bg-secondary/10",
-    sections: [
-      {
-        title: "Flows automatisés",
-        items: [
-          "Flow Emma : J1 éducation ingrédients → J3 routine trimestre → J7 testimonial",
-          "Flow Sophie : J1 bénéfices rapides → J3 avant/après → J5 bundle postpartum",
-          "Flow Léa : J1 transparence composition → J4 vidéo scientifique → J8 offre loyauté",
-        ],
-      },
-      {
-        title: "Lignes d'objet",
-        items: [
-          "\"Emma, voici ta routine 1er trimestre personnalisée\"",
-          "\"Sophie : 3 produits pour retrouver confiance en 2 min/jour\"",
-          "\"Les 2 ingrédients que Léa vérifie toujours (et vous ?)\"",
-        ],
-      },
-      {
-        title: "Segmentation optimisée",
-        items: [
-          "Tag \"postpartum 0-6 mois\" → routine Sophie en 2 produits",
-          "Tag \"1er trimestre\" → contenu éducatif composition",
-          "Tag \"multipare\" → offres bundles + argumentaire scientifique",
-        ],
-      },
-    ],
-  },
-  {
-    id: "bundles",
-    title: "Offres & Bundles",
-    icon: Gift,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-    sections: [
-      {
-        title: "Bundles personnalisés",
-        items: [
-          "Pack Emma \"1er trimestre serein\" : Crème vergetures + huile douce + gel nettoyant → 89€",
-          "Pack Sophie \"Routine express\" : Sérum réparateur + crème raffermissante → 59€",
-          "Pack Léa \"Pure & Clean\" : Gamme bio complète + analyse composition → 129€",
-        ],
-      },
-      {
-        title: "Prix psychologiques",
-        items: [
-          "Seuil 89€ (sous les 90€) pour pack découverte",
-          "Offre \"-20% sur le 2e produit\" vs \"-10% sur tout\"",
-          "Livraison offerte dès 65€ (panier moyen actuel : 58€)",
-        ],
-      },
-      {
-        title: "Upsells intelligents",
-        items: [
-          "Après ajout crème visage → proposer sérum (taux acceptation : 23%)",
-          "Post-achat J+7 → email routine complète avec -15%",
-          "Panier > 80€ → mini-format offert (coût 3€, valeur perçue 12€)",
-        ],
-      },
-    ],
-  },
-];
+import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations";
+import { Badge } from "@/components/ui/badge";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 
 // Hook for animated counter
 function useAnimatedCounter(value: number, duration: number = 400) {
@@ -290,13 +44,9 @@ function useAnimatedCounter(value: number, duration: number = 400) {
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function for smooth animation
       const easeOutQuart = 1 - Math.pow(1 - progress, 4);
       const currentValue = startValue + (endValue - startValue) * easeOutQuart;
-      
       setDisplayValue(Math.round(currentValue));
-
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
@@ -309,40 +59,80 @@ function useAnimatedCounter(value: number, duration: number = 400) {
   return displayValue;
 }
 
-const CHECKLIST_STORAGE_KEY = "marketing-checklist-state";
+function PersonaBadges({ personas }: { personas?: string[] }) {
+  if (!personas || personas.length === 0) return null;
+  const colors: Record<string, string> = {
+    P1: "bg-primary/20 text-primary border-primary/30",
+    P2: "bg-secondary/20 text-secondary border-secondary/30",
+    P3: "bg-accent/20 text-accent-foreground border-accent/30",
+    P4: "bg-primary/20 text-primary border-primary/30",
+    P5: "bg-secondary/20 text-secondary border-secondary/30",
+    P6: "bg-accent/20 text-accent-foreground border-accent/30",
+    P7: "bg-primary/20 text-primary border-primary/30",
+    P8: "bg-secondary/20 text-secondary border-secondary/30",
+    P9: "bg-accent/20 text-accent-foreground border-accent/30",
+  };
+  return (
+    <span className="inline-flex gap-1 ml-2">
+      {personas.map((p) => (
+        <Badge
+          key={p}
+          variant="outline"
+          className={`text-[10px] px-1.5 py-0 h-5 font-bold ${colors[p] || "bg-muted text-muted-foreground"}`}
+        >
+          {p}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
+function formatWeekStart(dateStr: string) {
+  try {
+    return format(parseISO(dateStr), "d MMMM yyyy", { locale: fr });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatGeneratedAt(dateStr: string | null) {
+  if (!dateStr) return "";
+  try {
+    return format(parseISO(dateStr), "d MMM yyyy 'à' HH:mm", { locale: fr });
+  } catch {
+    return dateStr;
+  }
+}
 
 export function MarketingRecommendations() {
-  const [items, setItems] = useState<ChecklistAction[]>(() => {
-    const saved = localStorage.getItem(CHECKLIST_STORAGE_KEY);
-    if (saved) {
-      try {
-        const savedState = JSON.parse(saved) as Record<string, boolean>;
-        return checklistActions.map((action) => ({
-          ...action,
-          completed: savedState[action.id] ?? action.completed,
-        }));
-      } catch {
-        return checklistActions;
-      }
-    }
-    return checklistActions;
-  });
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const {
+    data,
+    isLoading,
+    isGenerating,
+    isOutdated,
+    generateRecommendations,
+    updateChecklistItem,
+  } = useMarketingRecommendations();
 
-  const toggleItem = (id: string) => {
-    setItems((prev) => {
-      const newItems = prev.map((item) =>
-        item.id === id ? { ...item, completed: !item.completed } : item
-      );
-      // Save to localStorage
-      const stateToSave = newItems.reduce((acc, item) => {
-        acc[item.id] = item.completed;
-        return acc;
-      }, {} as Record<string, boolean>);
-      localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(stateToSave));
-      return newItems;
-    });
-  };
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [initialExpanded, setInitialExpanded] = useState(false);
+
+  // Auto-generate on first load if no data
+  const [autoGenerateTriggered, setAutoGenerateTriggered] = useState(false);
+  useEffect(() => {
+    if (!isLoading && !data && !isGenerating && !autoGenerateTriggered) {
+      setAutoGenerateTriggered(true);
+      generateRecommendations();
+    }
+  }, [isLoading, data, isGenerating, autoGenerateTriggered, generateRecommendations]);
+
+  // Expand first checklist item by default
+  useEffect(() => {
+    if (data?.checklist?.length && !initialExpanded) {
+      setExpandedItems([data.checklist[0].id]);
+      setInitialExpanded(true);
+    }
+  }, [data, initialExpanded]);
 
   const toggleExpanded = (id: string) => {
     setExpandedItems((prev) =>
@@ -350,21 +140,114 @@ export function MarketingRecommendations() {
     );
   };
 
-  const completedCount = items.filter((item) => item.completed).length;
-  const progress = (completedCount / items.length) * 100;
+  const checklist = (data?.checklist || []) as any[];
+  const completedCount = checklist.filter((item) => item.completed).length;
+  const progress = checklist.length > 0 ? (completedCount / checklist.length) * 100 : 0;
   const animatedProgress = useAnimatedCounter(Math.round(progress), 500);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <span>Chargement des recommandations...</span>
+      </div>
+    );
+  }
+
+  // Generating state
+  if (isGenerating) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <p className="text-lg font-medium text-foreground">Génération en cours... (~2 min)</p>
+        <p className="text-sm text-muted-foreground">
+          L'IA analyse vos données personas et génère des recommandations personnalisées
+        </p>
+      </div>
+    );
+  }
+
+  // No data and not auto-generating
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Sparkles className="w-12 h-12 text-primary/40" />
+        <p className="text-lg font-medium text-foreground">Aucune recommandation générée</p>
+        <Button onClick={generateRecommendations} disabled={isGenerating}>
+          <Sparkles className="w-4 h-4 mr-2" />
+          Générer les premières recommandations
+        </Button>
+      </div>
+    );
+  }
+
+  const ads = data.ads_recommendations || {};
+  const email = data.email_recommendations || {};
+  const offers = data.offers_recommendations || {};
+
+  const getSectionIcon = (title: string) => {
+    if (title.includes("Hook") || title.includes("hook")) return Lightbulb;
+    if (title.includes("Concept") || title.includes("vidéo")) return Video;
+    if (title.includes("Angle")) return Target;
+    if (title.includes("Flow") || title.includes("flow")) return TrendingUp;
+    if (title.includes("Ligne") || title.includes("objet")) return Mail;
+    if (title.includes("Segment")) return Users;
+    if (title.includes("Bundle") || title.includes("bundle")) return Gift;
+    if (title.includes("Prix") || title.includes("prix")) return Tag;
+    if (title.includes("Upsell") || title.includes("upsell")) return ShoppingCart;
+    return Zap;
+  };
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground font-heading">
-          Marketing IA Hub
-        </h2>
-        <p className="text-muted-foreground">
-          Recommandations actionnables basées sur vos personas
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground font-heading">
+            Marketing IA Hub
+          </h2>
+          <p className="text-muted-foreground">
+            Recommandations de la semaine du {formatWeekStart(data.week_start)}
+            {data.generated_at && (
+              <span className="text-xs ml-2">
+                — Générées le {formatGeneratedAt(data.generated_at)}
+              </span>
+            )}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={generateRecommendations}
+          disabled={isGenerating}
+          className="text-xs"
+        >
+          <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
+          Régénérer
+        </Button>
       </div>
+
+      {/* Outdated banner */}
+      {isOutdated && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm"
+        >
+          <span className="text-foreground">
+            📅 Recommandations de la semaine du {formatWeekStart(data.week_start)} — Nouvelles recommandations disponibles
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={generateRecommendations}
+            disabled={isGenerating}
+          >
+            Mettre à jour
+          </Button>
+        </motion.div>
+      )}
 
       {/* Section 1: Checklist hebdomadaire */}
       <Card className="p-6 bg-gradient-to-br from-primary/5 via-card to-accent/5 border-2 border-primary/20 shadow-lg">
@@ -378,7 +261,7 @@ export function MarketingRecommendations() {
                 Checklist hebdomadaire
               </h3>
               <p className="text-sm text-muted-foreground">
-                {completedCount}/{items.length} actions complétées
+                {completedCount}/{checklist.length} actions complétées
               </p>
             </div>
           </div>
@@ -410,7 +293,7 @@ export function MarketingRecommendations() {
         </div>
 
         <div className="space-y-3">
-          {items.map((action) => (
+          {checklist.map((action: any) => (
             <Collapsible
               key={action.id}
               open={expandedItems.includes(action.id)}
@@ -428,7 +311,9 @@ export function MarketingRecommendations() {
                     <div onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={action.completed}
-                        onCheckedChange={() => toggleItem(action.id)}
+                        onCheckedChange={() =>
+                          updateChecklistItem(action.id, !action.completed)
+                        }
                         className="h-5 w-5"
                       />
                     </div>
@@ -440,6 +325,7 @@ export function MarketingRecommendations() {
                       }`}
                     >
                       {action.title}
+                      <PersonaBadges personas={action.personas} />
                     </span>
                     <div className="flex items-center gap-2 text-primary">
                       <span className="text-xs font-medium">Voir le détail</span>
@@ -461,24 +347,7 @@ export function MarketingRecommendations() {
                       className="px-4 pb-4 pt-0"
                     >
                       <div className="pl-8 space-y-4 border-t border-border/50 pt-4 mt-1">
-                        {action.details.map((detail, idx) => (
-                          <div key={idx} className="space-y-2">
-                            <h5 className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-2">
-                              <Zap className="w-3 h-3" />
-                              {detail.section}
-                            </h5>
-                            <ul className="space-y-2">
-                              {detail.items.map((item, itemIdx) => (
-                                <li
-                                  key={itemIdx}
-                                  className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
-                                >
-                                  {item}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
+                        {renderChecklistDetail(action.detail, action.category)}
                       </div>
                     </motion.div>
                   </AnimatePresence>
@@ -495,84 +364,294 @@ export function MarketingRecommendations() {
           Recommandations complètes
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {recommendationCategories.map((category, index) => {
-            const Icon = category.icon;
-            const isFullWidth = category.id === "bundles";
-            
-            const getSectionIcon = (title: string) => {
-              if (title.includes("Hook")) return Lightbulb;
-              if (title.includes("Concept") || title.includes("vidéo")) return Video;
-              if (title.includes("Angle")) return Target;
-              if (title.includes("Flow")) return TrendingUp;
-              if (title.includes("Ligne") || title.includes("objet")) return Mail;
-              if (title.includes("Segmentation")) return Users;
-              if (title.includes("Bundle")) return Gift;
-              if (title.includes("Prix")) return Tag;
-              if (title.includes("Upsell")) return ShoppingCart;
-              return Zap;
-            };
-            
-            const getSectionColor = (categoryId: string, sectionIdx: number) => {
-              const colors = {
-                ads: ["bg-primary/10 border-primary/30", "bg-accent/10 border-accent/30", "bg-secondary/10 border-secondary/30"],
-                email: ["bg-secondary/10 border-secondary/30", "bg-primary/10 border-primary/30", "bg-accent/10 border-accent/30"],
-                bundles: ["bg-accent/10 border-accent/30", "bg-secondary/10 border-secondary/30", "bg-primary/10 border-primary/30"],
-              };
-              return colors[categoryId as keyof typeof colors]?.[sectionIdx] || "bg-muted/30 border-border/30";
-            };
-            
-            return (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={isFullWidth ? "lg:col-span-2" : ""}
-              >
-                <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className={`p-3 rounded-xl ${category.bgColor} shadow-sm`}>
-                      <Icon className={`w-6 h-6 ${category.color}`} />
-                    </div>
-                    <h3 className={`text-lg font-bold ${category.color}`}>
-                      {category.title}
-                    </h3>
-                  </div>
+          {/* Ads */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0 }}
+          >
+            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-3 rounded-xl bg-primary/10 shadow-sm">
+                  <Megaphone className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-bold text-primary">Ads (Meta / TikTok)</h3>
+              </div>
+              <div className="space-y-4">
+                {/* Hooks créatifs */}
+                <RecoSection
+                  title="Hooks créatifs"
+                  icon={Lightbulb}
+                  color="bg-primary/10 border-primary/30"
+                  items={(ads.hooks_creatifs || []).map((h: any) => ({
+                    text: `"${h.text}"`,
+                    personas: h.personas,
+                    sub: h.rationale,
+                  }))}
+                />
+                {/* Concepts vidéo */}
+                <RecoSection
+                  title="Concepts vidéo"
+                  icon={Video}
+                  color="bg-accent/10 border-accent/30"
+                  items={(ads.concepts_video || []).map((c: any) => ({
+                    text: c.title,
+                    personas: c.personas,
+                    sub: c.description,
+                  }))}
+                />
+                {/* Angles psychologiques */}
+                <RecoSection
+                  title="Angles psychologiques"
+                  icon={Target}
+                  color="bg-secondary/10 border-secondary/30"
+                  items={(ads.angles_psychologiques || []).map((a: any) => ({
+                    text: a.angle,
+                    personas: a.personas,
+                    sub: a.source,
+                  }))}
+                />
+                {/* Ciblage */}
+                <RecoSection
+                  title="Ciblage"
+                  icon={Users}
+                  color="bg-primary/10 border-primary/30"
+                  items={(ads.ciblage || []).map((c: any) => ({
+                    text: c.audience,
+                    personas: c.personas,
+                  }))}
+                />
+              </div>
+            </Card>
+          </motion.div>
 
-                  <div className={`space-y-4 ${isFullWidth ? "grid grid-cols-1 md:grid-cols-3 gap-5 space-y-0" : ""}`}>
-                    {category.sections.map((section, sectionIdx) => {
-                      const SectionIcon = getSectionIcon(section.title);
-                      const sectionColor = getSectionColor(category.id, sectionIdx);
-                      
-                      return (
-                        <div
-                          key={sectionIdx}
-                          className={`p-4 rounded-xl border-2 ${sectionColor} transition-all duration-200 hover:shadow-md`}
-                        >
-                          <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                            <SectionIcon className="w-4 h-4 text-primary" />
-                            {section.title}
-                          </h4>
-                          <ul className="space-y-2.5">
-                            {section.items.map((item, itemIdx) => (
-                              <li
-                                key={itemIdx}
-                                className="text-xs text-foreground bg-background/80 rounded-lg p-3 border border-border/50 leading-relaxed shadow-sm"
-                              >
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
-              </motion.div>
-            );
-          })}
+          {/* Email */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-3 rounded-xl bg-secondary/10 shadow-sm">
+                  <Mail className="w-6 h-6 text-secondary" />
+                </div>
+                <h3 className="text-lg font-bold text-secondary">Email Marketing</h3>
+              </div>
+              <div className="space-y-4">
+                {/* Flows automatisés */}
+                <RecoSection
+                  title="Flows automatisés"
+                  icon={TrendingUp}
+                  color="bg-secondary/10 border-secondary/30"
+                  items={(email.flows_automatises || []).map((f: any) => ({
+                    text: f.title,
+                    personas: f.personas,
+                    sub: f.sequence,
+                  }))}
+                />
+                {/* Lignes d'objet */}
+                <RecoSection
+                  title="Lignes d'objet"
+                  icon={Mail}
+                  color="bg-primary/10 border-primary/30"
+                  items={(email.lignes_objet || []).map((l: any) => ({
+                    text: `"${l.text}"`,
+                    personas: l.personas,
+                    sub: l.context,
+                  }))}
+                />
+                {/* Segmentation */}
+                <RecoSection
+                  title="Segmentation optimisée"
+                  icon={Users}
+                  color="bg-accent/10 border-accent/30"
+                  items={(email.segmentation || []).map((s: any) => ({
+                    text: s.segment,
+                    personas: s.personas,
+                    sub: s.action,
+                  }))}
+                />
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Offres & Bundles — full width */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2"
+          >
+            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-3 rounded-xl bg-accent/10 shadow-sm">
+                  <Gift className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <h3 className="text-lg font-bold text-accent-foreground">Offres & Bundles</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Bundles */}
+                <RecoSection
+                  title="Bundles personnalisés"
+                  icon={Gift}
+                  color="bg-accent/10 border-accent/30"
+                  items={(offers.bundles || []).map((b: any) => ({
+                    text: b.name,
+                    personas: b.personas,
+                    sub: `${b.produits} — ${b.prix}`,
+                  }))}
+                />
+                {/* Prix psychologiques */}
+                <RecoSection
+                  title="Prix psychologiques"
+                  icon={Tag}
+                  color="bg-secondary/10 border-secondary/30"
+                  items={(offers.prix_psychologiques || []).map((p: any) => ({
+                    text: p.strategie,
+                    sub: p.rationale,
+                  }))}
+                />
+                {/* Upsells */}
+                <RecoSection
+                  title="Upsells intelligents"
+                  icon={ShoppingCart}
+                  color="bg-primary/10 border-primary/30"
+                  items={(offers.upsells || []).map((u: any) => ({
+                    text: u.trigger,
+                    sub: u.action,
+                  }))}
+                />
+              </div>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>
   );
+}
+
+// ── Sub-components ──────────────────────────────────────────────────
+
+interface RecoItem {
+  text: string;
+  personas?: string[];
+  sub?: string;
+}
+
+function RecoSection({
+  title,
+  icon: Icon,
+  color,
+  items,
+}: {
+  title: string;
+  icon: any;
+  color: string;
+  items: RecoItem[];
+}) {
+  if (!items.length) return null;
+  return (
+    <div className={`p-4 rounded-xl border-2 ${color} transition-all duration-200 hover:shadow-md`}>
+      <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+        <Icon className="w-4 h-4 text-primary" />
+        {title}
+      </h4>
+      <ul className="space-y-2.5">
+        {items.map((item, idx) => (
+          <li
+            key={idx}
+            className="text-xs text-foreground bg-background/80 rounded-lg p-3 border border-border/50 leading-relaxed shadow-sm"
+          >
+            <div className="flex items-start gap-1">
+              <span className="flex-1">{item.text}</span>
+              <PersonaBadges personas={item.personas} />
+            </div>
+            {item.sub && (
+              <p className="text-[11px] text-muted-foreground mt-1.5 italic">{item.sub}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function renderChecklistDetail(detail: any, category: string) {
+  if (!detail) return null;
+
+  const sections: { label: string; items: string[] }[] = [];
+
+  if (detail.hooks_creatifs?.length) {
+    sections.push({ label: "Hooks créatifs", items: detail.hooks_creatifs });
+  }
+  if (detail.concepts_video?.length) {
+    sections.push({ label: "Concepts vidéo", items: detail.concepts_video });
+  }
+  if (detail.ciblage?.length) {
+    sections.push({ label: "Ciblage", items: detail.ciblage });
+  }
+  if (detail.justification) {
+    sections.push({ label: "Justification", items: [detail.justification] });
+  }
+  if (detail.flow) {
+    sections.push({ label: "Flow", items: [detail.flow] });
+  }
+  if (detail.sequence) {
+    sections.push({ label: "Séquence", items: [detail.sequence] });
+  }
+  if (detail.segments) {
+    sections.push({ label: "Segments", items: [detail.segments] });
+  }
+  if (detail.lignes_objet?.length) {
+    sections.push({ label: "Lignes d'objet", items: detail.lignes_objet });
+  }
+  if (detail.bundle) {
+    sections.push({ label: "Bundle", items: [detail.bundle] });
+  }
+  if (detail.produits) {
+    sections.push({ label: "Produits", items: [detail.produits] });
+  }
+  if (detail.prix) {
+    sections.push({ label: "Prix", items: [detail.prix] });
+  }
+  if (detail.action) {
+    sections.push({ label: "Action", items: [detail.action] });
+  }
+  if (detail.segment) {
+    sections.push({ label: "Segment", items: [detail.segment] });
+  }
+  if (detail.expected_impact) {
+    sections.push({ label: "Impact attendu", items: [detail.expected_impact] });
+  }
+
+  if (sections.length === 0) {
+    // Fallback: render all string values
+    const fallback = Object.entries(detail)
+      .filter(([, v]) => typeof v === "string" || Array.isArray(v))
+      .map(([k, v]) => ({
+        label: k,
+        items: Array.isArray(v) ? (v as string[]) : [v as string],
+      }));
+    sections.push(...fallback);
+  }
+
+  return sections.map((section, idx) => (
+    <div key={idx} className="space-y-2">
+      <h5 className="text-xs font-bold text-primary uppercase tracking-wide flex items-center gap-2">
+        <Zap className="w-3 h-3" />
+        {section.label}
+      </h5>
+      <ul className="space-y-2">
+        {section.items.map((item, itemIdx) => (
+          <li
+            key={itemIdx}
+            className="text-xs text-foreground bg-muted/50 rounded-lg p-2.5 border border-border/50"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ));
 }
