@@ -522,33 +522,33 @@ function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaSt
         </div>
 
         {/* Business footer — CA + % circle */}
-        <div className="p-4 pt-0">
-          <div className="border-t border-border/50 pt-3">
+        <div className="p-5 pt-0">
+          <div className="border-t border-border/50 pt-4">
             {p.business && p.business.conversions > 0 ? (
-              <div className="flex items-center justify-center gap-5">
+              <div className="flex items-center justify-center gap-6">
                 <div className="text-center">
-                  <p className="text-lg font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
-                  <p className="text-xs text-muted-foreground">CA généré</p>
+                  <p className="text-xl font-bold text-foreground">{p.business.revenue.toLocaleString("fr-FR")}€</p>
+                  <p className="text-sm text-muted-foreground">CA généré</p>
                 </div>
                 {globalRevenue > 0 && (() => {
                   const pct = Math.round((p.business.revenue / globalRevenue) * 1000) / 10;
-                  const r = 20;
+                  const r = 24;
                   const circ = 2 * Math.PI * r;
                   const offset = circ - (circ * Math.min(pct, 100)) / 100;
                   return (
                     <div className="flex flex-col items-center">
-                      <svg width="52" height="52" viewBox="0 0 52 52" className="-rotate-90">
-                        <circle cx="26" cy="26" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="4" />
-                        <circle cx="26" cy="26" r={r} fill="none" stroke={`hsl(${color})`} strokeWidth="4" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
+                      <svg width="62" height="62" viewBox="0 0 62 62" className="-rotate-90">
+                        <circle cx="31" cy="31" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="5" />
+                        <circle cx="31" cy="31" r={r} fill="none" stroke={`hsl(${color})`} strokeWidth="5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
                       </svg>
-                      <p className="text-xs font-semibold text-foreground -mt-[34px]">{pct}%</p>
-                      <p className="text-[10px] text-muted-foreground mt-4">du CA global</p>
+                      <p className="text-sm font-bold text-foreground -mt-[41px]">{pct}%</p>
+                      <p className="text-xs text-muted-foreground mt-5">du CA global</p>
                     </div>
                   );
                 })()}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center">0 conversion — segment à activer</p>
+              <p className="text-sm text-muted-foreground text-center">0 conversion — segment à activer</p>
             )}
           </div>
         </div>
