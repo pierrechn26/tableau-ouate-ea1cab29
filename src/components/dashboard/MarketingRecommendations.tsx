@@ -344,6 +344,12 @@ export function MarketingRecommendations() {
                           : "text-foreground"
                       }`}
                     >
+                      {action.category && (
+                        <span className="font-bold mr-1.5">
+                          {action.category === "ads" ? "Ads" : action.category === "email" ? "E-mail" : action.category === "offers" ? "Offre" : ""}
+                          {" · "}
+                        </span>
+                      )}
                       {safeString(action.title)}
                       {action.reconduite && (
                         <Badge
