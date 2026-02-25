@@ -131,13 +131,7 @@ export function MarketingRecommendations() {
     }
   }, [isLoading, data, isGenerating, autoGenerateTriggered, generateRecommendations]);
 
-  // Expand first checklist item by default
-  useEffect(() => {
-    if (data?.checklist?.length && !initialExpanded) {
-      setExpandedItems([data.checklist[0].id]);
-      setInitialExpanded(true);
-    }
-  }, [data, initialExpanded]);
+  // No auto-expand — all items closed by default
 
   const toggleExpanded = (id: string) => {
     setExpandedItems((prev) =>
