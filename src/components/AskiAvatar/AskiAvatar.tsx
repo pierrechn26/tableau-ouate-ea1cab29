@@ -180,7 +180,7 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
       <div
         ref={sphereRef}
         className={styles.sphere}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, animation: 'float 3.5s ease-in-out infinite' }}
       >
         <div
           className={styles.visorOuter}
@@ -194,7 +194,7 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
       </div>
       <div
         className={styles.shadow}
-        style={{ width: size * 0.5, height: size * 0.08, marginTop: 8 * scale }}
+        style={{ width: size * 0.5, height: 14 * scale, marginTop: 16 * scale, animation: 'shadowPulse 3.5s ease-in-out infinite' }}
       />
     </div>
   );
