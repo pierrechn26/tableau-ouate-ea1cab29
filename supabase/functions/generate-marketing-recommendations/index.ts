@@ -678,11 +678,24 @@ Si des tâches non complétées de la semaine précédente te sont fournies, év
 === RÈGLES DE GÉNÉRATION ===
 
 - NOMENCLATURE OBLIGATOIRE : Dans TOUS les textes visibles (titres, descriptions, raisons, rationale, hooks, concepts), utiliser TOUJOURS le prénom du persona (Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine). Ne JAMAIS utiliser les codes P1, P2, P3, etc. dans aucun texte. Ne JAMAIS inventer de noms, titres ou personas qui n'existent pas dans la liste ci-dessus (ex: "Grands-Parents", "Papa Solo", etc. sont INTERDITS).
+- INTERDICTION ABSOLUE — CODES PERSONA : Ne JAMAIS utiliser les codes P1, P2, P3, P4, P5, P6, P7, P8, P9 dans les textes visibles par la marque (titres de tâches, justifications, descriptions de hooks, concepts vidéo, descriptions d'audiences, séquences email, noms de bundles, stratégies prix, etc.). Utiliser TOUJOURS le prénom du persona : Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine. Les codes PX ne doivent apparaître QUE dans les champs JSON techniques "personas": ["P1", "P3"] qui sont résolus en prénoms côté frontend. Partout où du texte sera lu par un humain, écrire le prénom.
+- INTERDICTION ABSOLUE — TERMES INTERNES : Ne JAMAIS utiliser les termes "Bloc A", "Bloc B", "Bloc C", "intelligence marché", "données terrain", "base de connaissances" dans les textes visibles par la marque (justifications, titres, descriptions). Ces termes sont internes. Écris en langage business naturel. Exemples :
+  Au lieu de "L'intelligence marché confirme que les UGC performent" → "Les UGC génèrent actuellement un ROAS 2× supérieur aux productions léchées en beauté DTC"
+  Au lieu de "Les données terrain montrent que Clara a 13% de conversion" → "Clara convertit à 13%, au-dessus de la moyenne"
+  Au lieu de "Selon le Bloc A, le framework PAS est adapté" → "L'approche problème-solution est particulièrement adaptée car elle crée une connexion émotionnelle immédiate"
 - Dans le champ "nom" du persona_focus, utiliser TOUJOURS le format "Prénom — Titre" (ex: "Clara — La Novice Imperfections", "Sandrine — L'Insatisfaite").
 - Dans les champs "personas" (tableaux JSON), utiliser les codes (P1, P2, etc.) car ils sont résolus côté frontend en prénoms. Mais dans les titres et textes libres, utiliser UNIQUEMENT les prénoms.
 - Les recommandations doivent être ciblées sur un ou plusieurs personas selon la pertinence. Prioriser les 3 personas identifiés comme prioritaires cette semaine.
 - Ne recommander QUE des actions pertinentes pour des personas qui EXISTENT réellement dans les données. Si un persona a 0 session, ne pas créer de campagne pour lui. Les 9 personas sont EXCLUSIVEMENT des mamans d'enfants de 4-11 ans. Il n'existe PAS de persona "Grands-Parents", "Papa", ou autre.
 - Chaque recommandation DOIT être justifiée par DEUX éléments : une donnée persona spécifique ET un framework/best practice issu des sources marketing.
+- RAPPEL CRITIQUE SUR LES JUSTIFICATIONS : Ne JAMAIS écrire :
+  "framework AIDA du CTC" → écrire "une structure en 4 étapes : attirer l'attention, créer l'intérêt, susciter le désir, pousser à l'action"
+  "framework de Welcome Series de Klaviyo" → écrire "une séquence d'emails de bienvenue progressive"
+  "selon les données de Triple Whale" → écrire "les données du marché montrent que"
+  "le principe de Cialdini" → écrire "le mécanisme psychologique de preuve sociale"
+  "L'intelligence marché (Bloc C) confirme que" → écrire "Les tendances actuelles du marché confirment que"
+  "On applique le framework X de Y (Bloc A)" → écrire "La stratégie recommandée s'appuie sur une approche éprouvée : [description de l'approche]"
+  Si tu mentionnes un chiffre ou un benchmark issu de la recherche marché, dis simplement "les benchmarks actuels du secteur indiquent que" ou "les données du marché beauté DTC montrent que" — sans citer la source.
 - Les hooks créatifs DOIVENT être en français, prêts à être utilisés tels quels dans Ads Manager.
 - Les flows email DOIVENT être compatibles Klaviyo avec des triggers précis.
 - Les bundles DOIVENT utiliser les vrais noms de produits Ouate avec des prix réalistes.
