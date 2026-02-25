@@ -88,11 +88,11 @@ const SOURCES_CONSULTED = [
 
 // ── Step 1: Collect persona data ─────────────────────────────────────
 async function collectPersonaData(supabase: any) {
-  const fifteenDaysAgo = new Date();
-  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-  const fromDate = fifteenDaysAgo.toISOString();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const fromDate = thirtyDaysAgo.toISOString();
 
-  // Fetch completed sessions from last 15 days
+  // Fetch completed sessions from last 30 days
   const { data: sessions, error: sessionsErr } = await supabase
     .from("diagnostic_sessions")
     .select("*")
@@ -324,7 +324,7 @@ async function callGemini(collectedData: any): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-  const { personaData, priorities, globalMetrics } = collectedData;
+  const { personaData, priorities, globalMetrics, previousUncompletedTasks } = collectedData;
 
   const systemPrompt = `Tu es un directeur marketing senior spécialisé en e-commerce DTC skincare et cosmétiques pour enfants, avec 15 ans d'expérience en stratégie d'acquisition Meta Ads, email marketing Klaviyo et optimisation de panier moyen. Tu travailles comme consultant exclusif pour la marque Ouate Paris.
 
@@ -391,6 +391,13 @@ Sources francophones : WiziShop, Sales Odyssey.
 
 PRIORITÉ OUATE = BEAUTÉ/SKINCARE : Prioriser Motion App, Billo (UGC skincare), Klaviyo quiz flows, Octane AI (zero-party data), bundle skincare sets, Loox (avis visuels avant/après).
 
+=== TÂCHES NON COMPLÉTÉES DE LA SEMAINE PRÉCÉDENTE ===
+
+Si des tâches non complétées de la semaine précédente te sont fournies, évalue chacune au regard des données personas actuelles :
+- Si la tâche est toujours pertinente, reconduis-la dans la nouvelle checklist en ajoutant le champ "reconduite": true dans le JSON.
+- Si elle n'est plus pertinente, remplace-la par une nouvelle action plus adaptée aux données actuelles.
+- Maximum 2 tâches reconduites sur les 5 de la checklist.
+
 === RÈGLES DE GÉNÉRATION ===
 
 - NOMENCLATURE OBLIGATOIRE : Dans TOUS les textes visibles (titres, descriptions, raisons, rationale, hooks, concepts), utiliser TOUJOURS le prénom du persona (Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine). Ne JAMAIS utiliser les codes P1, P2, P3, etc. dans aucun texte. Ne JAMAIS inventer de noms, titres ou personas qui n'existent pas dans la liste ci-dessus (ex: "Grands-Parents", "Papa Solo", etc. sont INTERDITS).
@@ -410,7 +417,7 @@ PRIORITÉ OUATE = BEAUTÉ/SKINCARE : Prioriser Motion App, Billo (UGC skincare),
   const p = collectedData.priorities;
   const potentielEstimate = Math.round(p.potentiel_inexploite.business.volume * (collectedData.globalMetrics.global_conversion_rate / 100) - p.potentiel_inexploite.business.conversions);
 
-  const userPrompt = `Voici les données actuelles des 9 personas Ouate sur les 15 derniers jours :
+  const userPrompt = `Voici les données actuelles des 9 personas Ouate sur les 30 derniers jours :
 
 ${JSON.stringify(personaData, null, 2)}
 
@@ -421,7 +428,14 @@ Personas prioritaires cette semaine :
 - ACCÉLÉRER : ${p.accelerer.code} ${p.accelerer.name} — meilleur taux de conversion à ${p.accelerer.business.conversion_rate}%, ${p.accelerer.business.conversions} commandes → amplifier
 - MAXIMISER : ${p.maximiser.code} ${p.maximiser.name} — AOV à ${p.maximiser.business.aov}€ (moyenne : ${globalMetrics.global_aov}€) → CA additionnel si on augmente le volume
 
-Génère les recommandations marketing de la semaine. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks, sans texte avant ou après :
+${previousUncompletedTasks && previousUncompletedTasks.length > 0 ? `
+TÂCHES NON COMPLÉTÉES DE LA SEMAINE PRÉCÉDENTE (à évaluer pour reconduction) :
+${previousUncompletedTasks.map((t: any, i: number) => `${i + 1}. [${t.category}] ${t.title} — Personas: ${(t.personas || []).join(", ")}`).join("\n")}
+
+Pour chaque tâche ci-dessus, évalue si elle est toujours pertinente au regard des données actuelles. Si oui, reconduis-la (max 2 sur 5) avec "reconduite": true.
+` : "Aucune tâche non complétée de la semaine précédente."}
+
+Génère les recommandations marketing de la semaine. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks, sans texte avant ou après. Pour les tâches reconduites, ajoute le champ "reconduite": true :
 
 { "persona_focus": { "potentiel_inexploite": {"code": "PX", "nom": "...", "raison": "..."}, "accelerer": {"code": "PX", "nom": "...", "raison": "..."}, "maximiser": {"code": "PX", "nom": "...", "raison": "..."} }, "checklist": [ { "id": "task_1", "title": "Action prioritaire de la semaine — ciblée et actionnable", "personas": ["PX", "PY"], "category": "ads", "priority": "high", "completed": false, "detail": { "hooks_creatifs": ["Hook prêt à utiliser en français", "Hook 2", "Hook 3"], "concepts_video": ["Concept vidéo détaillé : format, durée, storyboard résumé, ton", "Concept 2"], "ciblage": ["Audience Meta précise", "Audience 2"], "justification": "Basé sur [donnée persona] + [framework source marketing]" } }, {"id": "task_2", "title": "...", "personas": ["PX"], "category": "email", "priority": "medium", "completed": false, "detail": {"flow": "...", "sequence": "J1 → J3 → J7", "segments": "...", "lignes_objet": ["..."], "justification": "..."}}, {"id": "task_3", "title": "...", "personas": ["PX", "PY"], "category": "offers", "priority": "medium", "completed": false, "detail": {"bundle": "...", "produits": "...", "prix": "...", "justification": "..."}}, {"id": "task_4", "title": "...", "personas": ["PX"], "category": "ads", "priority": "medium", "completed": false, "detail": {"hooks_creatifs": ["..."], "concepts_video": ["..."], "ciblage": ["..."], "justification": "..."}}, {"id": "task_5", "title": "...", "personas": ["PX"], "category": "email", "priority": "low", "completed": false, "detail": {"action": "...", "segment": "...", "expected_impact": "...", "justification": "..."}} ], "ads_recommendations": { "hooks_creatifs": [ {"text": "Hook en français prêt à utiliser", "personas": ["PX", "PY"], "rationale": "Basé sur [donnée persona] + [framework de Motion App / Dara Denney / etc.]"}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."} ], "concepts_video": [ {"title": "Titre du concept", "personas": ["PX"], "description": "Format, storyboard résumé, ton, CTA final"}, {"title": "...", "personas": ["PX"], "description": "..."}, {"title": "...", "personas": ["PX"], "description": "..."} ], "angles_psychologiques": [ {"angle": "Nom de l'angle", "personas": ["PX"], "source": "Basé sur [donnée persona] + [framework]"}, {"angle": "...", "personas": ["PX"], "source": "..."}, {"angle": "...", "personas": ["PX"], "source": "..."} ], "ciblage": [ {"audience": "Description audience Meta Ads Manager", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]} ] }, "email_recommendations": { "flows_automatises": [ {"title": "Nom du flow Klaviyo", "personas": ["PX", "PY"], "sequence": "J1 → J3 → J7 → J14", "trigger": "Événement déclencheur"}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."} ], "lignes_objet": [ {"text": "Ligne d'objet email en français", "personas": ["PX"], "context": "Type d'email"}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."} ], "segmentation": [ {"segment": "Nom du segment Klaviyo avec critères", "personas": ["PX"], "action": "Action marketing"}, {"segment": "...", "personas": ["PX"], "action": "..."}, {"segment": "...", "personas": ["PX"], "action": "..."} ] }, "offers_recommendations": { "bundles": [ {"name": "Nom commercial du bundle", "personas": ["PX"], "produits": "Produits Ouate", "prix": "XX€ (au lieu de XX€, soit -X%)", "rationale": "Basé sur [donnée]"}, {"name": "...", "personas": ["PX", "PY"], "produits": "...", "prix": "...", "rationale": "..."}, {"name": "...", "personas": ["PX"], "produits": "...", "prix": "...", "rationale": "..."} ], "prix_psychologiques": [ {"strategie": "Description stratégie prix", "rationale": "Basé sur [donnée] + [framework]"}, {"strategie": "...", "rationale": "..."}, {"strategie": "...", "rationale": "..."} ], "upsells": [ {"trigger": "Après ajout de [produit]", "action": "Proposer [produit] avec message [texte]", "taux_acceptation_estime": "X%"}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."} ] } }`;
 
@@ -509,8 +523,24 @@ serve(async (req) => {
 
     // POST: Generate new recommendations
     if (req.method === "POST") {
+      console.log("[generate-marketing] Step 0: Fetching previous uncompleted tasks...");
+      const { data: prevRec } = await supabase
+        .from("marketing_recommendations")
+        .select("checklist")
+        .eq("status", "archived")
+        .order("week_start", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const previousUncompletedTasks = (prevRec?.checklist || [])
+        .filter((t: any) => t && !t.completed)
+        .map((t: any) => ({ title: t.title, category: t.category, detail: t.detail, personas: t.personas }));
+
+      console.log("[generate-marketing] Previous uncompleted tasks:", previousUncompletedTasks.length);
+
       console.log("[generate-marketing] Step 1: Collecting persona data...");
       const collectedData = await collectPersonaData(supabase);
+      collectedData.previousUncompletedTasks = previousUncompletedTasks;
       console.log("[generate-marketing] Step 1 done. Sessions:", collectedData.globalMetrics.total_sessions);
 
       console.log("[generate-marketing] Step 2: Calling AI Gateway...");

@@ -19,8 +19,9 @@ import {
   ShoppingCart,
   RefreshCw,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, nextMonday, isMonday, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getPersonaBadgeLabel } from "@/constants/personas";
 
@@ -122,16 +123,40 @@ export function MarketingRecommendations() {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [initialExpanded, setInitialExpanded] = useState(false);
 
-  // Auto-generate on first load if no data
+  // Auto-generate: on first load if no data, OR if current week_start is outdated (Monday passed)
   const [autoGenerateTriggered, setAutoGenerateTriggered] = useState(false);
+  const [weeklyUpdateDone, setWeeklyUpdateDone] = useState(false);
+
+  // Compute next Monday for display
+  const nextMondayDate = useMemo(() => {
+    const now = new Date();
+    if (isMonday(now)) {
+      const next = new Date(now);
+      next.setDate(next.getDate() + 7);
+      return startOfDay(next);
+    }
+    return startOfDay(nextMonday(now));
+  }, []);
+
   useEffect(() => {
-    if (!isLoading && !data && !isGenerating && !autoGenerateTriggered) {
+    if (isLoading || isGenerating || autoGenerateTriggered) return;
+
+    // Case 1: No data at all → auto-generate
+    if (!data) {
+      setAutoGenerateTriggered(true);
+      generateRecommendations();
+      return;
+    }
+
+    // Case 2: Data exists but from previous week → auto-generate
+    const weekStart = new Date(data.week_start);
+    const now = new Date();
+    const diffDays = (now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays >= 7) {
       setAutoGenerateTriggered(true);
       generateRecommendations();
     }
   }, [isLoading, data, isGenerating, autoGenerateTriggered, generateRecommendations]);
-
-  // No auto-expand — all items closed by default
 
   const toggleExpanded = (id: string) => {
     setExpandedItems((prev) =>
@@ -215,20 +240,10 @@ export function MarketingRecommendations() {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={generateRecommendations}
-          disabled={isGenerating}
-          className="text-xs"
-        >
-          <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
-          Régénérer
-        </Button>
       </div>
 
-      {/* Outdated banner */}
-      {isOutdated && (
+      {/* Outdated banner — one-time weekly update */}
+      {isOutdated && !weeklyUpdateDone && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,12 +255,26 @@ export function MarketingRecommendations() {
           <Button
             size="sm"
             variant="outline"
-            onClick={generateRecommendations}
+            onClick={() => {
+              setWeeklyUpdateDone(true);
+              generateRecommendations();
+            }}
             disabled={isGenerating}
           >
+            <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
             Mettre à jour
           </Button>
         </motion.div>
+      )}
+
+      {/* After weekly update done */}
+      {isOutdated && weeklyUpdateDone && !isGenerating && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
+          <RefreshCw className="w-4 h-4" />
+          <span>
+            Prochaine mise à jour : lundi {format(nextMondayDate, "d MMMM yyyy", { locale: fr })} à 08h00
+          </span>
+        </div>
       )}
 
       {/* Section 1: Checklist hebdomadaire */}
@@ -324,6 +353,15 @@ export function MarketingRecommendations() {
                       }`}
                     >
                       {safeString(action.title)}
+                      {action.reconduite && (
+                        <Badge
+                          variant="outline"
+                          className="ml-2 text-[10px] px-1.5 py-0 h-5 font-bold bg-orange-500/15 text-orange-600 border-orange-500/30"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-0.5" />
+                          Reconduite
+                        </Badge>
+                      )}
                       <PersonaBadges personas={action.personas} />
                     </span>
                     <div className="flex items-center gap-2 text-primary">
