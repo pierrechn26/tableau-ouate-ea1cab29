@@ -368,168 +368,59 @@ export function MarketingRecommendations() {
         <h3 className="text-xl font-bold text-foreground font-heading mb-4">
           Recommandations complètes
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-3">
           {/* Ads */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0 }}
+          <RecoCollapsible
+            icon={Megaphone}
+            title="Ads (Meta / TikTok)"
+            colorClass="text-primary"
+            iconBg="bg-primary/10"
           >
-            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 rounded-xl bg-primary/10 shadow-sm">
-                  <Megaphone className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold text-primary">Ads (Meta / TikTok)</h3>
-              </div>
-              <div className="space-y-4">
-                {/* Hooks créatifs */}
-                <RecoSection
-                  title="Hooks créatifs"
-                  icon={Lightbulb}
-                  color="bg-primary/10 border-primary/30"
-                  items={(ads.hooks_creatifs || []).map((h: any) => ({
-                    text: `"${h.text}"`,
-                    personas: h.personas,
-                    sub: h.rationale,
-                  }))}
-                />
-                {/* Concepts vidéo */}
-                <RecoSection
-                  title="Concepts vidéo"
-                  icon={Video}
-                  color="bg-accent/10 border-accent/30"
-                  items={(ads.concepts_video || []).map((c: any) => ({
-                    text: c.title,
-                    personas: c.personas,
-                    sub: c.description,
-                  }))}
-                />
-                {/* Angles psychologiques */}
-                <RecoSection
-                  title="Angles psychologiques"
-                  icon={Target}
-                  color="bg-secondary/10 border-secondary/30"
-                  items={(ads.angles_psychologiques || []).map((a: any) => ({
-                    text: a.angle,
-                    personas: a.personas,
-                    sub: a.source,
-                  }))}
-                />
-                {/* Ciblage */}
-                <RecoSection
-                  title="Ciblage"
-                  icon={Users}
-                  color="bg-primary/10 border-primary/30"
-                  items={(ads.ciblage || []).map((c: any) => ({
-                    text: c.audience,
-                    personas: c.personas,
-                  }))}
-                />
-              </div>
-            </Card>
-          </motion.div>
+            <div className="space-y-4">
+              <RecoSection title="Hooks créatifs" icon={Lightbulb} color="bg-primary/10 border-primary/30"
+                items={(ads.hooks_creatifs || []).map((h: any) => ({ text: `"${h.text}"`, personas: h.personas, sub: h.rationale }))} />
+              <RecoSection title="Concepts vidéo" icon={Video} color="bg-accent/10 border-accent/30"
+                items={(ads.concepts_video || []).map((c: any) => ({ text: c.title, personas: c.personas, sub: c.description }))} />
+              <RecoSection title="Angles psychologiques" icon={Target} color="bg-secondary/10 border-secondary/30"
+                items={(ads.angles_psychologiques || []).map((a: any) => ({ text: a.angle, personas: a.personas, sub: a.source }))} />
+              <RecoSection title="Ciblage" icon={Users} color="bg-primary/10 border-primary/30"
+                items={(ads.ciblage || []).map((c: any) => ({ text: c.audience, personas: c.personas }))} />
+            </div>
+          </RecoCollapsible>
 
           {/* Email */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          <RecoCollapsible
+            icon={Mail}
+            title="Email Marketing"
+            colorClass="text-secondary"
+            iconBg="bg-secondary/10"
           >
-            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 rounded-xl bg-secondary/10 shadow-sm">
-                  <Mail className="w-6 h-6 text-secondary" />
-                </div>
-                <h3 className="text-lg font-bold text-secondary">Email Marketing</h3>
-              </div>
-              <div className="space-y-4">
-                {/* Flows automatisés */}
-                <RecoSection
-                  title="Flows automatisés"
-                  icon={TrendingUp}
-                  color="bg-secondary/10 border-secondary/30"
-                  items={(email.flows_automatises || []).map((f: any) => ({
-                    text: f.title,
-                    personas: f.personas,
-                    sub: f.sequence,
-                  }))}
-                />
-                {/* Lignes d'objet */}
-                <RecoSection
-                  title="Lignes d'objet"
-                  icon={Mail}
-                  color="bg-primary/10 border-primary/30"
-                  items={(email.lignes_objet || []).map((l: any) => ({
-                    text: `"${l.text}"`,
-                    personas: l.personas,
-                    sub: l.context,
-                  }))}
-                />
-                {/* Segmentation */}
-                <RecoSection
-                  title="Segmentation optimisée"
-                  icon={Users}
-                  color="bg-accent/10 border-accent/30"
-                  items={(email.segmentation || []).map((s: any) => ({
-                    text: s.segment,
-                    personas: s.personas,
-                    sub: s.action,
-                  }))}
-                />
-              </div>
-            </Card>
-          </motion.div>
+            <div className="space-y-4">
+              <RecoSection title="Flows automatisés" icon={TrendingUp} color="bg-secondary/10 border-secondary/30"
+                items={(email.flows_automatises || []).map((f: any) => ({ text: f.title, personas: f.personas, sub: f.sequence }))} />
+              <RecoSection title="Lignes d'objet" icon={Mail} color="bg-primary/10 border-primary/30"
+                items={(email.lignes_objet || []).map((l: any) => ({ text: `"${l.text}"`, personas: l.personas, sub: l.context }))} />
+              <RecoSection title="Segmentation optimisée" icon={Users} color="bg-accent/10 border-accent/30"
+                items={(email.segmentation || []).map((s: any) => ({ text: s.segment, personas: s.personas, sub: s.action }))} />
+            </div>
+          </RecoCollapsible>
 
-          {/* Offres & Bundles — full width */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
+          {/* Offres & Bundles */}
+          <RecoCollapsible
+            icon={Gift}
+            title="Offres & Bundles"
+            colorClass="text-foreground"
+            iconBg="bg-accent/10"
           >
-            <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-3 rounded-xl bg-accent/10 shadow-sm">
-                  <Gift className="w-6 h-6 text-foreground" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Offres & Bundles</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Bundles */}
-                <RecoSection
-                  title="Bundles personnalisés"
-                  icon={Gift}
-                  color="bg-accent/10 border-accent/30"
-                  items={(offers.bundles || []).map((b: any) => ({
-                    text: b.name,
-                    personas: b.personas,
-                    sub: `${b.produits} — ${b.prix}`,
-                  }))}
-                />
-                {/* Prix psychologiques */}
-                <RecoSection
-                  title="Prix psychologiques"
-                  icon={Tag}
-                  color="bg-secondary/10 border-secondary/30"
-                  items={(offers.prix_psychologiques || []).map((p: any) => ({
-                    text: p.strategie,
-                    sub: p.rationale,
-                  }))}
-                />
-                {/* Upsells */}
-                <RecoSection
-                  title="Upsells intelligents"
-                  icon={ShoppingCart}
-                  color="bg-primary/10 border-primary/30"
-                  items={(offers.upsells || []).map((u: any) => ({
-                    text: u.trigger,
-                    sub: u.action,
-                  }))}
-                />
-              </div>
-            </Card>
-          </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <RecoSection title="Bundles personnalisés" icon={Gift} color="bg-accent/10 border-accent/30"
+                items={(offers.bundles || []).map((b: any) => ({ text: b.name, personas: b.personas, sub: `${b.produits} — ${b.prix}` }))} />
+              <RecoSection title="Prix psychologiques" icon={Tag} color="bg-secondary/10 border-secondary/30"
+                items={(offers.prix_psychologiques || []).map((p: any) => ({ text: p.strategie, sub: p.rationale }))} />
+              <RecoSection title="Upsells intelligents" icon={ShoppingCart} color="bg-primary/10 border-primary/30"
+                items={(offers.upsells || []).map((u: any) => ({ text: u.trigger, sub: u.action }))} />
+            </div>
+          </RecoCollapsible>
         </div>
       </div>
     </div>
@@ -537,6 +428,50 @@ export function MarketingRecommendations() {
 }
 
 // ── Sub-components ──────────────────────────────────────────────────
+
+function RecoCollapsible({
+  icon: Icon,
+  title,
+  colorClass,
+  iconBg,
+  children,
+}: {
+  icon: any;
+  title: string;
+  colorClass: string;
+  iconBg: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className="border-2 border-border/50 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors">
+            <div className={`p-2.5 rounded-xl ${iconBg} shadow-sm`}>
+              <Icon className={`w-5 h-5 ${colorClass}`} />
+            </div>
+            <h3 className={`text-lg font-bold ${colorClass} flex-1`}>{title}</h3>
+            {open ? (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            )}
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="px-4 pb-5 pt-0"
+          >
+            {children}
+          </motion.div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
 
 interface RecoItem {
   text: string;
