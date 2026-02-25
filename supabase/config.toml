@@ -24,3 +24,6 @@ verify_jwt = false
 [functions.persona-stats]
 verify_jwt = false
 
+[functions.persona-priorities]
+verify_jwt = false
+

@@ -20,6 +20,7 @@ import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
 import { PersonasOverviewPreview } from "@/components/dashboard/PersonasOverviewPreview";
+import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import askItLogo from "@/assets/ask-it-logo.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -499,8 +500,8 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Personas Preview — Top 3 */}
-            <PersonasOverviewPreview dateRange={dateRange} onViewAll={() => setActiveTab("personas")} />
+            {/* Top 3 Personas — Potentiel de la semaine (replaces old PersonasOverviewPreview) */}
+            <TopPersonasPotential showTitle={true} />
 
             {/* Diagnostic Performance - Real Data */}
             <OverviewDiagnosticStats dateRange={dateRange} />

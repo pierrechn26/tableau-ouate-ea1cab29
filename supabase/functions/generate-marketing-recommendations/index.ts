@@ -282,33 +282,73 @@ async function collectPersonaData(supabase: any) {
     };
   }
 
-  // Identify priority personas
+  // ── New 3-category prioritization ──────────────────────────────────
   const activePersonas = Object.values(personaData).filter((p: any) => p.business.volume >= 1);
 
-  // Potentiel inexploité: highest volume + conversion below global average
-  const belowAvgConversion = activePersonas.filter(
-    (p: any) => p.business.conversion_rate < globalConversion * 100
-  );
-  const potentielInexploite = belowAvgConversion.sort(
-    (a: any, b: any) => b.business.volume - a.business.volume
-  )[0] || activePersonas[0];
+  // Category 1: Best ROI Acquisition — value per session = convRate × AOV
+  let bestROI: any = null;
+  let bestROIValue = 0;
+  for (const p of activePersonas) {
+    const valuePerSession = (p.business.conversion_rate / 100) * p.business.aov;
+    if (valuePerSession > bestROIValue) {
+      bestROIValue = valuePerSession;
+      bestROI = p;
+    }
+  }
 
-  // Accélérer: best conversion rate
-  const accelerer = [...activePersonas].sort(
-    (a: any, b: any) => b.business.conversion_rate - a.business.conversion_rate
-  )[0] || activePersonas[0];
+  // Category 2: Biggest Growth Lever — CA manquant = (globalConv - personaConv) × volume × AOV
+  // Only personas with conversion < global avg AND >= 5 sessions
+  let bestGrowth: any = null;
+  let bestGrowthCA = 0;
+  const globalConvPct = Math.round(globalConversion * 1000) / 10;
+  for (const p of activePersonas) {
+    if (p.business.conversion_rate >= globalConvPct || p.business.volume < 5) continue;
+    const caManquant = ((globalConvPct - p.business.conversion_rate) / 100) * p.business.volume * p.business.aov;
+    if (caManquant > bestGrowthCA) {
+      bestGrowthCA = caManquant;
+      bestGrowth = p;
+    }
+  }
 
-  // Maximiser: highest AOV
-  const maximiser = [...activePersonas].sort(
-    (a: any, b: any) => b.business.aov - a.business.aov
-  )[0] || activePersonas[0];
+  // Category 3: Best LTV Potential — score_age × optin_email_pct × coeff_multi
+  let bestLTV: any = null;
+  let bestLTVScore = 0;
+  for (const p of activePersonas) {
+    // Dominant age range
+    const ageRangeDist = p.profile.age_range_distribution || {};
+    let dominantAge: string | null = null;
+    let maxAgeCount = 0;
+    for (const [ar, count] of Object.entries(ageRangeDist)) {
+      if ((count as number) > maxAgeCount) { dominantAge = ar; maxAgeCount = count as number; }
+    }
+    let scoreAge = 2;
+    if (dominantAge === "4-6") scoreAge = 3;
+    else if (dominantAge === "7-9") scoreAge = 2;
+    else if (dominantAge === "10-11") scoreAge = 1;
+
+    const coeffMulti = p.profile.multi_child_pct > 20 ? 1.5 : 1.0;
+    const ltvScore = scoreAge * (p.behavior.optin_email_pct / 100) * coeffMulti;
+
+    if (ltvScore > bestLTVScore) {
+      bestLTVScore = ltvScore;
+      bestLTV = { ...p, _ltvScore: Math.round(ltvScore * 100) / 100, _scoreAge: scoreAge, _dominantAge: dominantAge, _coeffMulti: coeffMulti };
+    }
+  }
+
+  // Fallbacks
+  if (!bestROI) bestROI = activePersonas[0];
+  if (!bestGrowth) bestGrowth = activePersonas.length > 1 ? activePersonas[1] : activePersonas[0];
+  if (!bestLTV) bestLTV = activePersonas.length > 2 ? activePersonas[2] : activePersonas[0];
 
   return {
     personaData,
     priorities: {
-      potentiel_inexploite: potentielInexploite,
-      accelerer,
-      maximiser,
+      best_roi: bestROI,
+      best_roi_value: Math.round(bestROIValue * 100) / 100,
+      best_growth: bestGrowth,
+      best_growth_ca: Math.round(bestGrowthCA),
+      best_ltv: bestLTV,
+      best_ltv_score: Math.round(bestLTVScore * 100) / 100,
     },
     globalMetrics: {
       total_sessions: sessions.length,
@@ -415,7 +455,9 @@ Si des tâches non complétées de la semaine précédente te sont fournies, év
 - Chaque semaine les recommandations doivent être DIFFÉRENTES des semaines précédentes.`;
 
   const p = collectedData.priorities;
-  const potentielEstimate = Math.round(p.potentiel_inexploite.business.volume * (collectedData.globalMetrics.global_conversion_rate / 100) - p.potentiel_inexploite.business.conversions);
+  const roiValuePerSession = p.best_roi_value;
+  const growthCA = p.best_growth_ca;
+  const ltvScore = p.best_ltv_score;
 
   const userPrompt = `Voici les données actuelles des 9 personas Ouate sur les 30 derniers jours :
 
@@ -423,10 +465,13 @@ ${JSON.stringify(personaData, null, 2)}
 
 Métriques globales : ${JSON.stringify(globalMetrics)}
 
-Personas prioritaires cette semaine :
-- POTENTIEL INEXPLOITÉ : ${p.potentiel_inexploite.code} ${p.potentiel_inexploite.name} — ${p.potentiel_inexploite.business.volume} sessions, ${p.potentiel_inexploite.business.conversion_rate}% conversion (moyenne : ${globalMetrics.global_conversion_rate}%) → environ ${potentielEstimate} commandes potentielles à récupérer
-- ACCÉLÉRER : ${p.accelerer.code} ${p.accelerer.name} — meilleur taux de conversion à ${p.accelerer.business.conversion_rate}%, ${p.accelerer.business.conversions} commandes → amplifier
-- MAXIMISER : ${p.maximiser.code} ${p.maximiser.name} — AOV à ${p.maximiser.business.aov}€ (moyenne : ${globalMetrics.global_aov}€) → CA additionnel si on augmente le volume
+Personas prioritaires cette semaine (3 catégories stratégiques) :
+
+- 🎯 MEILLEUR ROI ACQUISITION : ${p.best_roi.code} ${p.best_roi.name} — Valeur par session : ${roiValuePerSession}€ (conv. ${p.best_roi.business.conversion_rate}% × AOV ${p.best_roi.business.aov}€). C'est le persona à cibler en priorité dans les publicités Meta car chaque euro d'acquisition y rapporte le plus.
+
+- 🚀 PLUS GROS LEVIER DE CROISSANCE : ${p.best_growth.code} ${p.best_growth.name} — CA potentiel à récupérer : +${growthCA}€/mois (conv. actuelle ${p.best_growth.business.conversion_rate}% vs moyenne ${globalMetrics.global_conversion_rate}%, ${p.best_growth.business.volume} sessions). C'est le persona où l'optimisation du tunnel de conversion aura le plus d'impact.
+
+- 💎 MEILLEUR POTENTIEL DE FIDÉLISATION : ${p.best_ltv.code} ${p.best_ltv.name} — Score LTV : ${ltvScore} (âge dominant enfant : ${p.best_ltv._dominantAge || "?"}, opt-in email : ${p.best_ltv.behavior.optin_email_pct}%, multi-enfants : ${p.best_ltv.profile.multi_child_pct}%). C'est le persona à cibler en priorité dans les flows email et les stratégies de rétention.
 
 ${previousUncompletedTasks && previousUncompletedTasks.length > 0 ? `
 TÂCHES NON COMPLÉTÉES DE LA SEMAINE PRÉCÉDENTE (à évaluer pour reconduction) :
@@ -437,7 +482,7 @@ Pour chaque tâche ci-dessus, évalue si elle est toujours pertinente au regard 
 
 Génère les recommandations marketing de la semaine. Retourne UNIQUEMENT du JSON valide, sans markdown, sans backticks, sans texte avant ou après. Pour les tâches reconduites, ajoute le champ "reconduite": true :
 
-{ "persona_focus": { "potentiel_inexploite": {"code": "PX", "nom": "...", "raison": "..."}, "accelerer": {"code": "PX", "nom": "...", "raison": "..."}, "maximiser": {"code": "PX", "nom": "...", "raison": "..."} }, "checklist": [ { "id": "task_1", "title": "Action prioritaire de la semaine — ciblée et actionnable", "personas": ["PX", "PY"], "category": "ads", "priority": "high", "completed": false, "detail": { "hooks_creatifs": ["Hook prêt à utiliser en français", "Hook 2", "Hook 3"], "concepts_video": ["Concept vidéo détaillé : format, durée, storyboard résumé, ton", "Concept 2"], "ciblage": ["Audience Meta précise", "Audience 2"], "justification": "Basé sur [donnée persona] + [framework source marketing]" } }, {"id": "task_2", "title": "...", "personas": ["PX"], "category": "email", "priority": "medium", "completed": false, "detail": {"flow": "...", "sequence": "J1 → J3 → J7", "segments": "...", "lignes_objet": ["..."], "justification": "..."}}, {"id": "task_3", "title": "...", "personas": ["PX", "PY"], "category": "offers", "priority": "medium", "completed": false, "detail": {"bundle": "...", "produits": "...", "prix": "...", "justification": "..."}}, {"id": "task_4", "title": "...", "personas": ["PX"], "category": "ads", "priority": "medium", "completed": false, "detail": {"hooks_creatifs": ["..."], "concepts_video": ["..."], "ciblage": ["..."], "justification": "..."}}, {"id": "task_5", "title": "...", "personas": ["PX"], "category": "email", "priority": "low", "completed": false, "detail": {"action": "...", "segment": "...", "expected_impact": "...", "justification": "..."}} ], "ads_recommendations": { "hooks_creatifs": [ {"text": "Hook en français prêt à utiliser", "personas": ["PX", "PY"], "rationale": "Basé sur [donnée persona] + [framework de Motion App / Dara Denney / etc.]"}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."} ], "concepts_video": [ {"title": "Titre du concept", "personas": ["PX"], "description": "Format, storyboard résumé, ton, CTA final"}, {"title": "...", "personas": ["PX"], "description": "..."}, {"title": "...", "personas": ["PX"], "description": "..."} ], "angles_psychologiques": [ {"angle": "Nom de l'angle", "personas": ["PX"], "source": "Basé sur [donnée persona] + [framework]"}, {"angle": "...", "personas": ["PX"], "source": "..."}, {"angle": "...", "personas": ["PX"], "source": "..."} ], "ciblage": [ {"audience": "Description audience Meta Ads Manager", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]} ] }, "email_recommendations": { "flows_automatises": [ {"title": "Nom du flow Klaviyo", "personas": ["PX", "PY"], "sequence": "J1 → J3 → J7 → J14", "trigger": "Événement déclencheur"}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."} ], "lignes_objet": [ {"text": "Ligne d'objet email en français", "personas": ["PX"], "context": "Type d'email"}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."} ], "segmentation": [ {"segment": "Nom du segment Klaviyo avec critères", "personas": ["PX"], "action": "Action marketing"}, {"segment": "...", "personas": ["PX"], "action": "..."}, {"segment": "...", "personas": ["PX"], "action": "..."} ] }, "offers_recommendations": { "bundles": [ {"name": "Nom commercial du bundle", "personas": ["PX"], "produits": "Produits Ouate", "prix": "XX€ (au lieu de XX€, soit -X%)", "rationale": "Basé sur [donnée]"}, {"name": "...", "personas": ["PX", "PY"], "produits": "...", "prix": "...", "rationale": "..."}, {"name": "...", "personas": ["PX"], "produits": "...", "prix": "...", "rationale": "..."} ], "prix_psychologiques": [ {"strategie": "Description stratégie prix", "rationale": "Basé sur [donnée] + [framework]"}, {"strategie": "...", "rationale": "..."}, {"strategie": "...", "rationale": "..."} ], "upsells": [ {"trigger": "Après ajout de [produit]", "action": "Proposer [produit] avec message [texte]", "taux_acceptation_estime": "X%"}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."} ] } }`;
+{ "persona_focus": { "best_roi_acquisition": {"code": "PX", "nom": "...", "raison": "...", "valeur_par_session": "X€"}, "levier_croissance": {"code": "PX", "nom": "...", "raison": "...", "ca_potentiel": "X€"}, "potentiel_fidelisation": {"code": "PX", "nom": "...", "raison": "...", "score_ltv": "X"} }, "checklist": [ { "id": "task_1", "title": "Action prioritaire de la semaine — ciblée et actionnable", "personas": ["PX", "PY"], "category": "ads", "priority": "high", "completed": false, "detail": { "hooks_creatifs": ["Hook prêt à utiliser en français", "Hook 2", "Hook 3"], "concepts_video": ["Concept vidéo détaillé : format, durée, storyboard résumé, ton", "Concept 2"], "ciblage": ["Audience Meta précise", "Audience 2"], "justification": "Basé sur [donnée persona] + [framework source marketing]" } }, {"id": "task_2", "title": "...", "personas": ["PX"], "category": "email", "priority": "medium", "completed": false, "detail": {"flow": "...", "sequence": "J1 → J3 → J7", "segments": "...", "lignes_objet": ["..."], "justification": "..."}}, {"id": "task_3", "title": "...", "personas": ["PX", "PY"], "category": "offers", "priority": "medium", "completed": false, "detail": {"bundle": "...", "produits": "...", "prix": "...", "justification": "..."}}, {"id": "task_4", "title": "...", "personas": ["PX"], "category": "ads", "priority": "medium", "completed": false, "detail": {"hooks_creatifs": ["..."], "concepts_video": ["..."], "ciblage": ["..."], "justification": "..."}}, {"id": "task_5", "title": "...", "personas": ["PX"], "category": "email", "priority": "low", "completed": false, "detail": {"action": "...", "segment": "...", "expected_impact": "...", "justification": "..."}} ], "ads_recommendations": { "hooks_creatifs": [ {"text": "Hook en français prêt à utiliser", "personas": ["PX", "PY"], "rationale": "Basé sur [donnée persona] + [framework de Motion App / Dara Denney / etc.]"}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."}, {"text": "...", "personas": ["PX"], "rationale": "..."} ], "concepts_video": [ {"title": "Titre du concept", "personas": ["PX"], "description": "Format, storyboard résumé, ton, CTA final"}, {"title": "...", "personas": ["PX"], "description": "..."}, {"title": "...", "personas": ["PX"], "description": "..."} ], "angles_psychologiques": [ {"angle": "Nom de l'angle", "personas": ["PX"], "source": "Basé sur [donnée persona] + [framework]"}, {"angle": "...", "personas": ["PX"], "source": "..."}, {"angle": "...", "personas": ["PX"], "source": "..."} ], "ciblage": [ {"audience": "Description audience Meta Ads Manager", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]}, {"audience": "...", "personas": ["PX"]} ] }, "email_recommendations": { "flows_automatises": [ {"title": "Nom du flow Klaviyo", "personas": ["PX", "PY"], "sequence": "J1 → J3 → J7 → J14", "trigger": "Événement déclencheur"}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."}, {"title": "...", "personas": ["PX"], "sequence": "...", "trigger": "..."} ], "lignes_objet": [ {"text": "Ligne d'objet email en français", "personas": ["PX"], "context": "Type d'email"}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."}, {"text": "...", "personas": ["PX"], "context": "..."} ], "segmentation": [ {"segment": "Nom du segment Klaviyo avec critères", "personas": ["PX"], "action": "Action marketing"}, {"segment": "...", "personas": ["PX"], "action": "..."}, {"segment": "...", "personas": ["PX"], "action": "..."} ] }, "offers_recommendations": { "bundles": [ {"name": "Nom commercial du bundle", "personas": ["PX"], "produits": "Produits Ouate", "prix": "XX€ (au lieu de XX€, soit -X%)", "rationale": "Basé sur [donnée]"}, {"name": "...", "personas": ["PX", "PY"], "produits": "...", "prix": "...", "rationale": "..."}, {"name": "...", "personas": ["PX"], "produits": "...", "prix": "...", "rationale": "..."} ], "prix_psychologiques": [ {"strategie": "Description stratégie prix", "rationale": "Basé sur [donnée] + [framework]"}, {"strategie": "...", "rationale": "..."}, {"strategie": "...", "rationale": "..."} ], "upsells": [ {"trigger": "Après ajout de [produit]", "action": "Proposer [produit] avec message [texte]", "taux_acceptation_estime": "X%"}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."}, {"trigger": "...", "action": "...", "taux_acceptation_estime": "..."} ] } }`;
 
   console.log("[generate-marketing] Calling Lovable AI Gateway with google/gemini-2.5-pro...");
 
