@@ -379,7 +379,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="inline-flex h-auto w-full items-center justify-center gap-2 rounded-lg bg-muted/30 p-1.5">
+          <TabsList className="flex h-auto w-full items-center justify-between gap-4 rounded-lg bg-muted/30 p-2 text-base">
             <TabsTrigger value="overview">
               <Sparkles className="w-4 h-4" />
               Vue d'ensemble
