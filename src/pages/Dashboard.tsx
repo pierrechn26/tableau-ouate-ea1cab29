@@ -116,9 +116,11 @@ export default function Dashboard() {
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff',
-            logging: false
+            logging: false,
+            imageTimeout: 15000,
+            removeContainer: true,
           });
-          const imgData = canvas.toDataURL('image/png');
+          const imgData = canvas.toDataURL('image/jpeg', 0.85);
           const imgWidth = pageWidth - margin * 2;
           const imgHeight = canvas.height * imgWidth / canvas.width;
           if (!isFirstPage) {
@@ -152,8 +154,8 @@ export default function Dashboard() {
             const sliceCtx = sliceCanvas.getContext('2d');
             if (sliceCtx) {
               sliceCtx.drawImage(canvas, 0, sourceY * (canvas.height / imgHeight), canvas.width, sliceCanvas.height, 0, 0, sliceCanvas.width, sliceCanvas.height);
-              const sliceData = sliceCanvas.toDataURL('image/png');
-              pdf.addImage(sliceData, 'PNG', margin, yPosition, imgWidth, sliceHeight);
+              const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.85);
+              pdf.addImage(sliceData, 'JPEG', margin, yPosition, imgWidth, sliceHeight);
             }
             remainingHeight -= sliceHeight;
             sourceY += sliceHeight;
