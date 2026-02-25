@@ -12,6 +12,7 @@ import { FunnelVisualization } from "@/components/dashboard/FunnelVisualization"
 import { DetailedFunnelVisualization } from "@/components/dashboard/DetailedFunnelVisualization";
 import { MarketingRecommendations } from "@/components/dashboard/MarketingRecommendations";
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
+import AskiAvatar from "@/components/AskiAvatar/AskiAvatar";
 import { DiagnosticsAnalytics } from "@/components/dashboard/DiagnosticsAnalytics";
 import { BusinessMetrics } from "@/components/dashboard/BusinessMetrics";
 import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
@@ -546,10 +547,12 @@ export default function Dashboard() {
 
           <TabsContent value="alerts" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <div ref={insightsRef}>
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                <Bot className="w-16 h-16 mb-4 text-primary/40" />
-                <p className="text-lg font-medium text-foreground">Aski — Bientôt disponible</p>
-                <p className="text-sm mt-1">Cette section sera enrichie prochainement.</p>
+              <div className="flex flex-col items-center pt-10 pb-16">
+                <AskiAvatar size={120} />
+                <p style={{ fontWeight: 600, fontSize: 20, color: '#1A1A2E', marginTop: 16 }}>Aski</p>
+                <p style={{ color: '#6B7280', fontSize: 14, textAlign: 'center', maxWidth: 450, marginTop: 8, lineHeight: 1.5 }}>
+                  Hello, je suis Aski votre assistant marketing IA. Posez-moi toutes vos questions marketing et j'y répondrai ! J'analyse vos données en temps réel pour vous donner des conseils d'expert.
+                </p>
               </div>
             </div>
           </TabsContent>
