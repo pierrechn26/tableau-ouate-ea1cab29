@@ -5,6 +5,7 @@ import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle
 import { usePersonaStats, PersonaStat, PersonaTopItem } from "@/hooks/usePersonaStats";
 import { DateRange } from "react-day-picker";
 import { PERSONA_PROFILES as SHARED_PERSONA_PROFILES } from "@/constants/personas";
+import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
@@ -601,6 +602,9 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
           {hiddenCount > 0 && ` · ${hiddenCount} profil${hiddenCount > 1 ? "s" : ""} masqué${hiddenCount > 1 ? "s" : ""} (volume insuffisant)`}
         </p>
       </div>
+
+      {/* Top 3 Personas — Potentiel de la semaine */}
+      <TopPersonasPotential />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {visiblePersonas.map((p) => (
