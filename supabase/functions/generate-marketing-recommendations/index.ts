@@ -696,6 +696,14 @@ Si des tâches non complétées de la semaine précédente te sont fournies, év
   "L'intelligence marché (Bloc C) confirme que" → écrire "Les tendances actuelles du marché confirment que"
   "On applique le framework X de Y (Bloc A)" → écrire "La stratégie recommandée s'appuie sur une approche éprouvée : [description de l'approche]"
   Si tu mentionnes un chiffre ou un benchmark issu de la recherche marché, dis simplement "les benchmarks actuels du secteur indiquent que" ou "les données du marché beauté DTC montrent que" — sans citer la source.
+- LISIBILITÉ DES MÉTRIQUES : Les recommandations sont lues par une marque, pas par des data analysts. Toujours exprimer les métriques de façon compréhensible :
+  "ROAS 3.8:1" → "un retour sur investissement publicitaire de 3,80€ pour chaque euro dépensé"
+  "ROAS 2×" → "un retour 2 fois supérieur"
+  "CTR 2.4%" → "un taux de clic de 2,4%"
+  "AOV +18-28%" → "une augmentation du panier moyen de 18 à 28%"
+  "LTV +15%" → "une augmentation de la valeur client de 15%"
+  Ne jamais utiliser de jargon technique sans explication. Chaque chiffre doit être immédiatement compréhensible par un directeur marketing non-technique.
+- VÉRIFICATION FINALE OBLIGATOIRE : Avant de renvoyer le JSON, relis CHAQUE texte visible et vérifie qu'il ne contient : (1) aucun code P1-P9, (2) aucun terme "Bloc A/B/C", "intelligence marché", "données terrain", "base de connaissances", (3) aucun nom de source/framework/outil cité tel quel, (4) aucune métrique en format jargon (ROAS X:1, etc.). Si tu en trouves, corrige-les AVANT de renvoyer.
 - Les hooks créatifs DOIVENT être en français, prêts à être utilisés tels quels dans Ads Manager.
 - Les flows email DOIVENT être compatibles Klaviyo avec des triggers précis.
 - Les bundles DOIVENT utiliser les vrais noms de produits Ouate avec des prix réalistes.
