@@ -65,13 +65,13 @@ function PersonaBadges({ personas }: { personas?: string[] }) {
   const colors: Record<string, string> = {
     P1: "bg-primary/20 text-primary border-primary/30",
     P2: "bg-secondary/20 text-secondary border-secondary/30",
-    P3: "bg-accent/20 text-accent-foreground border-accent/30",
+    P3: "bg-accent/20 text-foreground border-accent/30",
     P4: "bg-primary/20 text-primary border-primary/30",
     P5: "bg-secondary/20 text-secondary border-secondary/30",
-    P6: "bg-accent/20 text-accent-foreground border-accent/30",
+    P6: "bg-accent/20 text-foreground border-accent/30",
     P7: "bg-primary/20 text-primary border-primary/30",
     P8: "bg-secondary/20 text-secondary border-secondary/30",
-    P9: "bg-accent/20 text-accent-foreground border-accent/30",
+    P9: "bg-accent/20 text-foreground border-accent/30",
   };
   return (
     <span className="inline-flex gap-1 ml-2 flex-wrap">
@@ -491,9 +491,9 @@ export function MarketingRecommendations() {
             <Card className="p-6 h-full bg-gradient-to-br from-card via-card to-muted/20 border-2 border-border/50 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-3 rounded-xl bg-accent/10 shadow-sm">
-                  <Gift className="w-6 h-6 text-accent-foreground" />
+                  <Gift className="w-6 h-6 text-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-accent-foreground">Offres & Bundles</h3>
+                <h3 className="text-lg font-bold text-foreground">Offres & Bundles</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Bundles */}
