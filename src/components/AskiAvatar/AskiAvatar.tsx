@@ -20,9 +20,11 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
   const sphereRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const scale = size / 240;
+
   const idle: { left: EyeState; right: EyeState } = {
-    left:  { width: 22, height: 28, radius: '50%', rotate: 12, tx: 0, glow: 0.8 },
-    right: { width: 22, height: 28, radius: '50%', rotate: -12, tx: 0, glow: 0.8 },
+    left:  { width: 22 * scale, height: 28 * scale, radius: '50%', rotate: 12, tx: 0, glow: 0.8 },
+    right: { width: 22 * scale, height: 28 * scale, radius: '50%', rotate: -12, tx: 0, glow: 0.8 },
   };
 
   const applyEye = useCallback((el: HTMLDivElement | null, s: EyeState) => {
@@ -31,8 +33,8 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
     el.style.height = s.height + 'px';
     el.style.borderRadius = s.radius;
     el.style.transform = `rotate(${s.rotate}deg) translateX(${s.tx}px)`;
-    el.style.boxShadow = `0 0 ${12 * s.glow}px rgba(255,255,255,${s.glow}), 0 0 ${25 * s.glow}px rgba(255,255,255,${s.glow * 0.35})`;
-  }, []);
+    el.style.boxShadow = `0 0 ${12 * s.glow * scale}px rgba(255,255,255,${s.glow}), 0 0 ${25 * s.glow * scale}px rgba(255,255,255,${s.glow * 0.35})`;
+  }, [scale]);
 
   const setIdle = useCallback(() => {
     applyEye(eyeLRef.current, idle.left);
@@ -60,16 +62,16 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
       if (!L || !R) { resolve(); return; }
       L.style.transition = 'height 60ms ease-in, border-radius 60ms ease-in';
       R.style.transition = 'height 60ms ease-in, border-radius 60ms ease-in';
-      L.style.height = '2px';
-      L.style.borderRadius = '11px / 1px';
-      R.style.height = '2px';
-      R.style.borderRadius = '11px / 1px';
+      L.style.height = (2 * scale) + 'px';
+      L.style.borderRadius = (11 * scale) + 'px / ' + (1 * scale) + 'px';
+      R.style.height = (2 * scale) + 'px';
+      R.style.borderRadius = (11 * scale) + 'px / ' + (1 * scale) + 'px';
       setTimeout(() => {
         L.style.transition = 'height 120ms ease-out, border-radius 120ms ease-out';
         R.style.transition = 'height 120ms ease-out, border-radius 120ms ease-out';
-        L.style.height = '28px';
+        L.style.height = (28 * scale) + 'px';
         L.style.borderRadius = '50%';
-        R.style.height = '28px';
+        R.style.height = (28 * scale) + 'px';
         R.style.borderRadius = '50%';
         setTimeout(() => {
           L.style.transition = '';
@@ -78,53 +80,53 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
         }, 130);
       }, 80);
     });
-  }, []);
+  }, [scale]);
 
   const wink = useCallback((): Promise<void> => {
     return new Promise(resolve => {
-      applyEye(eyeRRef.current, { width: 24, height: 4, radius: '12px 12px 2px 2px', rotate: -12, tx: 0, glow: 0.4 });
+      applyEye(eyeRRef.current, { width: 24 * scale, height: 4 * scale, radius: `${12 * scale}px ${12 * scale}px ${2 * scale}px ${2 * scale}px`, rotate: -12, tx: 0, glow: 0.4 });
       setTimeout(() => { setIdle(); resolve(); }, 300);
     });
-  }, [applyEye, setIdle]);
+  }, [applyEye, setIdle, scale]);
 
   const happy = useCallback((): Promise<void> => {
     return new Promise(resolve => {
-      const arc: EyeState = { width: 24, height: 7, radius: '12px 12px 2px 2px', rotate: 0, tx: 0, glow: 0.6 };
+      const arc: EyeState = { width: 24 * scale, height: 7 * scale, radius: `${12 * scale}px ${12 * scale}px ${2 * scale}px ${2 * scale}px`, rotate: 0, tx: 0, glow: 0.6 };
       applyEye(eyeLRef.current, arc);
       applyEye(eyeRRef.current, arc);
       setTimeout(() => { setIdle(); resolve(); }, 1200);
     });
-  }, [applyEye, setIdle]);
+  }, [applyEye, setIdle, scale]);
 
   const laugh = useCallback((): Promise<void> => {
     return new Promise(resolve => {
-      const arc: EyeState = { width: 24, height: 7, radius: '12px 12px 2px 2px', rotate: 0, tx: 0, glow: 0.6 };
+      const arc: EyeState = { width: 24 * scale, height: 7 * scale, radius: `${12 * scale}px ${12 * scale}px ${2 * scale}px ${2 * scale}px`, rotate: 0, tx: 0, glow: 0.6 };
       applyEye(eyeLRef.current, arc);
       applyEye(eyeRRef.current, arc);
       giggle();
       setTimeout(() => { setIdle(); restoreFloat(); resolve(); }, 1000);
     });
-  }, [applyEye, setIdle, giggle, restoreFloat]);
+  }, [applyEye, setIdle, giggle, restoreFloat, scale]);
 
   const curious = useCallback((): Promise<void> => {
     return new Promise(resolve => {
-      applyEye(eyeLRef.current, { ...idle.left, tx: 10 });
-      applyEye(eyeRRef.current, { ...idle.right, tx: 10 });
+      applyEye(eyeLRef.current, { ...idle.left, tx: 10 * scale });
+      applyEye(eyeRRef.current, { ...idle.right, tx: 10 * scale });
       setTimeout(() => {
-        applyEye(eyeLRef.current, { ...idle.left, tx: -10 });
-        applyEye(eyeRRef.current, { ...idle.right, tx: -10 });
+        applyEye(eyeLRef.current, { ...idle.left, tx: -10 * scale });
+        applyEye(eyeRRef.current, { ...idle.right, tx: -10 * scale });
         setTimeout(() => { setIdle(); resolve(); }, 700);
       }, 700);
     });
-  }, [applyEye, setIdle]);
+  }, [applyEye, setIdle, scale]);
 
   const surprised = useCallback((): Promise<void> => {
     return new Promise(resolve => {
-      applyEye(eyeLRef.current, { width: 26, height: 34, radius: '50%', rotate: 6, tx: 0, glow: 1 });
-      applyEye(eyeRRef.current, { width: 26, height: 34, radius: '50%', rotate: -6, tx: 0, glow: 1 });
+      applyEye(eyeLRef.current, { width: 26 * scale, height: 34 * scale, radius: '50%', rotate: 6, tx: 0, glow: 1 });
+      applyEye(eyeRRef.current, { width: 26 * scale, height: 34 * scale, radius: '50%', rotate: -6, tx: 0, glow: 1 });
       setTimeout(() => { setIdle(); resolve(); }, 1000);
     });
-  }, [applyEye, setIdle]);
+  }, [applyEye, setIdle, scale]);
 
   useEffect(() => {
     setIdle();
@@ -171,7 +173,6 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
     };
   }, [setIdle, blink, wink, happy, laugh, curious, surprised]);
 
-  const scale = size / 240;
   const visorW = 165 * scale;
   const visorH = 75 * scale;
 

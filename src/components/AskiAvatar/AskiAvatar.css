@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
+  gap: 18%;
   position: relative;
   overflow: hidden;
   box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.5);
