@@ -20,6 +20,12 @@ import {
   RefreshCw,
   Loader2,
   RotateCcw,
+  Newspaper,
+  BookOpen,
+  MessageSquareHeart,
+  Heart,
+  Calendar,
+  Palette,
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -414,8 +420,12 @@ export function MarketingRecommendations() {
             iconBg="bg-secondary/10"
           >
             <div className="space-y-4">
+              {/* Newsletters (new format) */}
+              {(email.newsletters || []).length > 0 && (
+                <NewsletterSection newsletters={email.newsletters} />
+              )}
               <RecoSection title="Flows automatisés" icon={TrendingUp} color="bg-secondary/10 border-secondary/30"
-                items={(email.flows_automatises || []).map((f: any) => ({ text: f.title, personas: f.personas, sub: f.sequence }))} />
+                items={(email.flows_automatises || []).map((f: any) => ({ text: f.title, personas: f.personas, sub: f.trigger ? `Trigger : ${f.trigger} — ${f.sequence}` : f.sequence }))} />
               <RecoSection title="Lignes d'objet" icon={Mail} color="bg-primary/10 border-primary/30"
                 items={(email.lignes_objet || []).map((l: any) => ({ text: `"${l.text}"`, personas: l.personas, sub: l.context }))} />
               <RecoSection title="Segmentation optimisée" icon={Users} color="bg-accent/10 border-accent/30"
@@ -488,6 +498,62 @@ function RecoCollapsible({
         </CollapsibleContent>
       </Card>
     </Collapsible>
+  );
+}
+
+const NEWSLETTER_TYPE_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
+  educatif: { label: "Éducatif", color: "bg-blue-500/15 text-blue-700 border-blue-500/30", icon: BookOpen },
+  storytelling: { label: "Storytelling", color: "bg-violet-500/15 text-violet-700 border-violet-500/30", icon: Palette },
+  communautaire: { label: "Communautaire", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30", icon: MessageSquareHeart },
+  promotionnel: { label: "Promotionnel", color: "bg-orange-500/15 text-orange-700 border-orange-500/30", icon: Tag },
+  saisonnier: { label: "Saisonnier", color: "bg-pink-500/15 text-pink-700 border-pink-500/30", icon: Calendar },
+  curation: { label: "Curation", color: "bg-cyan-500/15 text-cyan-700 border-cyan-500/30", icon: Heart },
+};
+
+function NewsletterSection({ newsletters }: { newsletters: any[] }) {
+  if (!newsletters || newsletters.length === 0) return null;
+  return (
+    <div className="p-4 rounded-xl border-2 bg-secondary/10 border-secondary/30 transition-all duration-200 hover:shadow-md">
+      <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+        <Newspaper className="w-4 h-4 text-secondary" />
+        Newsletters recommandées
+      </h4>
+      <ul className="space-y-3">
+        {newsletters.map((nl: any, idx: number) => {
+          const typeConfig = NEWSLETTER_TYPE_CONFIG[nl.type] || NEWSLETTER_TYPE_CONFIG.educatif;
+          const TypeIcon = typeConfig.icon;
+          return (
+            <li
+              key={idx}
+              className="text-xs text-foreground bg-background/80 rounded-lg p-4 border border-border/50 leading-relaxed shadow-sm space-y-2"
+            >
+              <div className="flex items-start gap-2">
+                <span className="flex-1 font-semibold text-sm">{safeString(nl.title)}</span>
+                <Badge variant="outline" className={`text-[10px] px-2 py-0 h-5 font-bold ${typeConfig.color} flex items-center gap-1`}>
+                  <TypeIcon className="w-3 h-3" />
+                  {typeConfig.label}
+                </Badge>
+                <PersonaBadges personas={nl.personas} />
+              </div>
+              {nl.sujet && (
+                <p className="text-xs text-primary font-medium italic">« {safeString(nl.sujet)} »</p>
+              )}
+              {nl.contenu_cle && (
+                <p className="text-[11px] text-muted-foreground">{safeString(nl.contenu_cle)}</p>
+              )}
+              <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                {nl.cta && <span>🎯 CTA : <strong className="text-foreground">{safeString(nl.cta)}</strong></span>}
+                {nl.frequence && <span>📅 {safeString(nl.frequence)}</span>}
+                {nl.segment && <span>👥 {safeString(nl.segment)}</span>}
+              </div>
+              {nl.justification && (
+                <p className="text-[11px] text-muted-foreground mt-1 italic border-t border-border/30 pt-2">{safeString(nl.justification)}</p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
