@@ -226,40 +226,40 @@ export function MarketingRecommendations() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground font-heading">
-            Marketing IA Hub
-          </h2>
-          <p className="text-muted-foreground text-sm">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground font-heading mb-2">
+          Marketing IA Hub
+        </h2>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
             Recommandations de la semaine du {formatWeekStart(data.week_start)}
             {data.generated_at && (
-              <span className="text-xs ml-2">
+              <span className="ml-1">
                 — Générées le {formatGeneratedAt(data.generated_at)}
               </span>
             )}
           </p>
-        </div>
-        <div className="text-right flex flex-col items-end gap-2">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <RefreshCw className="w-3 h-3" />
-            Prochaine mise à jour : lundi {format(nextMondayDate, "d MMMM yyyy", { locale: fr })} à 08h00
-          </p>
-          {isOutdated && !weeklyUpdateDone && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setWeeklyUpdateDone(true);
-                generateRecommendations();
-              }}
-              disabled={isGenerating}
-              className="text-xs"
-            >
-              <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
-              Mettre à jour
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <RefreshCw className="w-3 h-3" />
+              Prochaine mise à jour : lundi {format(nextMondayDate, "d MMMM yyyy", { locale: fr })} à 08h00
+            </p>
+            {isOutdated && !weeklyUpdateDone && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setWeeklyUpdateDone(true);
+                  generateRecommendations();
+                }}
+                disabled={isGenerating}
+                className="text-xs"
+              >
+                <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
+                Mettre à jour
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
