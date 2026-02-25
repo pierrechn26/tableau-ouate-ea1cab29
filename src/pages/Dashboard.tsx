@@ -170,7 +170,7 @@ export default function Dashboard() {
       setActiveTab(originalTab);
 
       // Generate filename with date
-      const fileName = `rapport-talm-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const fileName = `rapport-marketing-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
       pdf.save(fileName);
       toast({
         title: "Export réussi",
@@ -353,11 +353,11 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <Label htmlFor="company">Entreprise</Label>
-                      <Input id="company" placeholder="TALM" required />
+                      <Input id="company" placeholder="Votre entreprise" required />
                     </div>
                     <div>
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="vous@talm.com" required />
+                      <Input id="email" type="email" placeholder="vous@entreprise.com" required />
                     </div>
                     <div>
                       <Label htmlFor="message">Message</Label>
