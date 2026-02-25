@@ -4,6 +4,26 @@ import { Loader2 } from "lucide-react";
 import { usePersonaPriorities } from "@/hooks/usePersonaPriorities";
 import { PERSONA_PROFILES } from "@/constants/personas";
 
+import personaP1 from "@/assets/persona-p1.png";
+import personaP2 from "@/assets/persona-sophie.png";
+import personaP3 from "@/assets/persona-p3.png";
+import personaP4 from "@/assets/persona-lea.png";
+import personaP5 from "@/assets/persona-p5.png";
+import personaP6 from "@/assets/persona-p6.png";
+import personaP7 from "@/assets/persona-p7.png";
+import personaP8 from "@/assets/persona-p8.png";
+import personaP9 from "@/assets/persona-p9.png";
+
+const PERSONA_IMAGES: Record<string, string> = {
+  P1: personaP1, P2: personaP2, P3: personaP3, P4: personaP4, P5: personaP5,
+  P6: personaP6, P7: personaP7, P8: personaP8, P9: personaP9,
+};
+
+const PERSONA_COLORS: Record<string, string> = {
+  P1: "348 83% 47%", P2: "330 81% 60%", P3: "15 85% 55%", P4: "205 85% 55%",
+  P5: "155 65% 45%", P6: "270 60% 55%", P7: "45 90% 50%", P8: "348 70% 35%", P9: "195 70% 45%",
+};
+
 interface CategoryCardProps {
   emoji: string;
   title: string;
@@ -17,6 +37,8 @@ interface CategoryCardProps {
 
 function CategoryCard({ emoji, title, borderColor, personaCode, mainMetric, mainMetricColor, secondaryMetrics, explanation }: CategoryCardProps) {
   const profile = personaCode ? PERSONA_PROFILES[personaCode] : null;
+  const image = personaCode ? PERSONA_IMAGES[personaCode] : null;
+  const color = personaCode ? PERSONA_COLORS[personaCode] || "200 60% 50%" : "200 60% 50%";
 
   if (!personaCode || !profile) {
     return (
@@ -37,9 +59,19 @@ function CategoryCard({ emoji, title, borderColor, personaCode, mainMetric, main
 
         {/* Persona winner */}
         <div className="px-5 pb-3">
-          <p className="text-sm font-semibold text-foreground mt-1">
-            {profile.displayName} — {profile.title}
-          </p>
+          <div className="flex items-center gap-3 mt-1 mb-3">
+            {image && (
+              <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2" style={{ borderColor: `hsl(${color})` }}>
+                <img src={image} alt={profile.displayName} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-base font-bold text-foreground leading-tight">
+                {profile.displayName}
+              </p>
+              <p className="text-sm text-muted-foreground">{profile.title}</p>
+            </div>
+          </div>
 
           {/* Main metric */}
           <p className="text-2xl font-extrabold mt-3" style={{ color: mainMetricColor }}>
