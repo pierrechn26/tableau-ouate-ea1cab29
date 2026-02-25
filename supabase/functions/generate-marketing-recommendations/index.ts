@@ -100,7 +100,7 @@ async function collectPersonaData(supabase: any) {
     .gte("created_at", fromDate);
 
   if (sessionsErr) throw new Error(`Sessions fetch error: ${sessionsErr.message}`);
-  if (!sessions || sessions.length === 0) throw new Error("No completed sessions in last 15 days");
+  if (!sessions || sessions.length === 0) throw new Error("No completed sessions in last 30 days");
 
   // Fetch children for these sessions
   const sessionIds = sessions.map((s: any) => s.id);
@@ -282,10 +282,10 @@ async function collectPersonaData(supabase: any) {
     };
   }
 
-  // ── New 3-category prioritization ──────────────────────────────────
+  // ── 3-category prioritization ──────────────────────────────────
   const activePersonas = Object.values(personaData).filter((p: any) => p.business.volume >= 1);
 
-  // Category 1: Best ROI Acquisition — value per session = convRate × AOV
+  // Category 1: Best ROI Acquisition
   let bestROI: any = null;
   let bestROIValue = 0;
   for (const p of activePersonas) {
@@ -296,8 +296,7 @@ async function collectPersonaData(supabase: any) {
     }
   }
 
-  // Category 2: Biggest Growth Lever — CA manquant = (globalConv - personaConv) × volume × AOV
-  // Only personas with conversion < global avg AND >= 5 sessions
+  // Category 2: Biggest Growth Lever
   let bestGrowth: any = null;
   let bestGrowthCA = 0;
   const globalConvPct = Math.round(globalConversion * 1000) / 10;
@@ -310,11 +309,10 @@ async function collectPersonaData(supabase: any) {
     }
   }
 
-  // Category 3: Best LTV Potential — score_age × optin_email_pct × coeff_multi
+  // Category 3: Best LTV Potential
   let bestLTV: any = null;
   let bestLTVScore = 0;
   for (const p of activePersonas) {
-    // Dominant age range
     const ageRangeDist = p.profile.age_range_distribution || {};
     let dominantAge: string | null = null;
     let maxAgeCount = 0;
@@ -340,6 +338,58 @@ async function collectPersonaData(supabase: any) {
   if (!bestGrowth) bestGrowth = activePersonas.length > 1 ? activePersonas[1] : activePersonas[0];
   if (!bestLTV) bestLTV = activePersonas.length > 2 ? activePersonas[2] : activePersonas[0];
 
+  // ── Global aggregates for Perplexity queries ──────────────────
+  // Trust trigger global dominant
+  const allTrustTriggers = sessions
+    .map((s: any) => s.trust_triggers_ordered?.split(",").map((x: string) => x.trim())[0])
+    .filter(Boolean);
+  const trustGlobalCounts = countOccurrences(allTrustTriggers);
+  const trustGlobalTop = topN(trustGlobalCounts, 1)[0];
+  const trustTriggerGlobalDominant = trustGlobalTop
+    ? (TRUST_LABELS[trustGlobalTop.value] || trustGlobalTop.value)
+    : "Transparence des ingrédients";
+
+  // Content format global dominant
+  const allFormats = sessions.map((s: any) => s.content_format_preference).filter(Boolean);
+  const formatGlobalCounts = countOccurrences(allFormats);
+  const formatGlobalTop = topN(formatGlobalCounts, 1)[0];
+  const contentFormatGlobalDominant = formatGlobalTop
+    ? (FORMAT_LABELS[formatGlobalTop.value] || formatGlobalTop.value)
+    : "Contenu court et direct";
+
+  // AOV global average
+  const avgAovGlobal = Math.round(globalAOV);
+
+  // AOV range across personas
+  const personaAOVs = activePersonas
+    .filter((p: any) => p.business.conversions > 0)
+    .map((p: any) => p.business.aov);
+  const aovMin = personaAOVs.length > 0 ? Math.round(Math.min(...personaAOVs)) : avgAovGlobal;
+  const aovMax = personaAOVs.length > 0 ? Math.round(Math.max(...personaAOVs)) : avgAovGlobal;
+  const aovRange = `${aovMin}€-${aovMax}€`;
+
+  // Top 5 products global
+  const allProductCounts = splitAndCount(sessions.map((s: any) => s.recommended_products));
+  const top5ProductsGlobal = topN(allProductCounts, 5).map((p) => p.value).join(", ");
+
+  // Multi children rate global
+  const multiChildrenRateGlobal = sessions.length > 0
+    ? Math.round(sessions.filter((s: any) => (s.number_of_children || 1) > 1).length / sessions.length * 100)
+    : 0;
+
+  // Avg optin email global
+  const avgOptinEmailGlobal = sessions.length > 0
+    ? Math.round(sessions.filter((s: any) => s.optin_email === true).length / sessions.length * 100)
+    : 0;
+
+  // Top 3 personas by optin email
+  const personasByOptin = activePersonas
+    .filter((p: any) => p.business.volume >= 3)
+    .sort((a: any, b: any) => b.behavior.optin_email_pct - a.behavior.optin_email_pct)
+    .slice(0, 3)
+    .map((p: any) => `${p.name} (${p.behavior.optin_email_pct}%)`)
+    .join(", ");
+
   return {
     personaData,
     priorities: {
@@ -356,15 +406,171 @@ async function collectPersonaData(supabase: any) {
       global_conversion_rate: Math.round(globalConversion * 1000) / 10,
       global_aov: Math.round(globalAOV * 100) / 100,
     },
+    globalAggregates: {
+      trustTriggerGlobalDominant,
+      contentFormatGlobalDominant,
+      avgAovGlobal,
+      aovRange,
+      top5ProductsGlobal,
+      multiChildrenRateGlobal,
+      avgOptinEmailGlobal,
+      top3PersonasByOptin: personasByOptin,
+    },
   };
 }
 
-// ── Step 2: Call Lovable AI Gateway ─────────────────────────────────
-async function callGemini(collectedData: any): Promise<any> {
+// ── Step 2: Perplexity research calls ────────────────────────────────
+async function callPerplexityResearch(globalAggregates: any): Promise<{ adsResearch: string; emailResearch: string; offersResearch: string }> {
+  const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
+  if (!PERPLEXITY_API_KEY) {
+    console.warn("[generate-marketing] PERPLEXITY_API_KEY not configured — skipping web research (degraded mode)");
+    return { adsResearch: "", emailResearch: "", offersResearch: "" };
+  }
+
+  const now = new Date();
+  const currentMonth = now.toLocaleString("fr-FR", { month: "long" });
+  const currentYear = now.getFullYear();
+
+  const {
+    trustTriggerGlobalDominant,
+    contentFormatGlobalDominant,
+    avgAovGlobal,
+    aovRange,
+    multiChildrenRateGlobal,
+    avgOptinEmailGlobal,
+    top3PersonasByOptin,
+  } = globalAggregates;
+
+  const TIMEOUT_MS = 30000;
+
+  async function safeFetch(label: string, body: any): Promise<string> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const response = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`[generate-marketing] Perplexity ${label} error ${response.status}: ${errText}`);
+        return "";
+      }
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "";
+    } catch (err) {
+      console.error(`[generate-marketing] Perplexity ${label} failed:`, err instanceof Error ? err.message : err);
+      return "";
+    }
+  }
+
+  // Run all 3 calls in parallel
+  const [adsResearch, emailResearch, offersResearch] = await Promise.all([
+    // CALL 1: Ads & Creatives
+    safeFetch("ads", {
+      model: "sonar-pro",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un analyste marketing spécialisé en publicités Meta Ads et TikTok Ads pour les marques e-commerce DTC beauté et skincare. Réponds de manière structurée avec des données chiffrées quand disponibles. Structure ta réponse en sections avec pour chaque stratégie ou format : description, benchmarks chiffrés (CTR, CPA, ROAS si disponibles), secteurs où ça fonctionne, conditions de succès. Ne cite que des stratégies ayant fait leurs preuves sur plusieurs mois, pas des micro-tendances éphémères.",
+        },
+        {
+          role: "user",
+          content: `Nous sommes en ${currentMonth} ${currentYear}. Recherche les informations suivantes pour une marque DTC de skincare pour enfants ciblant des mamans de 25-45 ans :
+
+1. FORMATS PUBLICITAIRES : Quels formats de publicités Meta Ads et TikTok Ads ont généré les meilleurs ROAS de manière consistante sur les 12 derniers mois pour les marques DTC beauté/skincare ? Donne des benchmarks chiffrés par format (Reels, Stories, Feed, Carrousel).
+
+2. HOOKS VIDÉO : Quels types de hooks vidéo convertissent le mieux auprès d'audiences mamans et parentalité ? Notre audience valorise principalement la "${trustTriggerGlobalDominant}" comme facteur de réassurance. Quels hooks exploitent le mieux ce levier psychologique avec des données à l'appui ?
+
+3. FORMATS CRÉATIFS PERFORMANTS : Quels formats créatifs (UGC authentique, avant/après, témoignages, unboxing, tuto, ASMR) ont les meilleurs taux d'engagement et de conversion en beauté/skincare DTC ? Notre audience préfère le format "${contentFormatGlobalDominant}".
+
+4. CIBLAGE : Quelles stratégies de ciblage Meta Ads fonctionnent le mieux actuellement pour les marques beauté DTC ? (Broad vs Interest-based vs Lookalike vs Advantage+)
+
+5. TENDANCES ÉMERGENTES : Quels nouveaux formats publicitaires ou approches créatives émergent et montrent des résultats prometteurs en beauté/parentalité DTC ?`,
+        },
+      ],
+    }),
+
+    // CALL 2: Email Marketing
+    safeFetch("email", {
+      model: "sonar-pro",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert en email marketing e-commerce et stratégie CRM. Réponds de manière structurée avec des benchmarks chiffrés (taux d'ouverture, taux de clic, CA généré par email) quand disponibles. Couvre autant les flows automatisés que les campagnes newsletters. Structure ta réponse en sections claires avec données chiffrées.",
+        },
+        {
+          role: "user",
+          content: `Nous sommes en ${currentMonth} ${currentYear}. Recherche les informations suivantes pour une marque e-commerce beauté/skincare DTC :
+
+1. FLOWS EMAIL PERFORMANTS : Quels flows email automatisés (welcome, post-achat, winback, cross-sell, abandon panier, abandon navigation, anniversaire, saisonnier, VIP, post-quiz) génèrent le plus de CA en e-commerce beauté/skincare DTC sur les 12 derniers mois ? Donne des benchmarks de taux d'ouverture, taux de clic et contribution au CA par flow.
+
+2. STRATÉGIES DE SEGMENTATION : Quelles stratégies de segmentation email génèrent le plus de résultats en e-commerce ? (RFM, comportementale, par intérêt produit, par étape du cycle de vie). Notre taux d'opt-in email moyen est de ${avgOptinEmailGlobal}%. Les 3 personas avec le meilleur opt-in sont : ${top3PersonasByOptin}.
+
+3. NEWSLETTERS QUI FIDÉLISENT : Quels types de contenu newsletter fidélisent le mieux dans le secteur beauté et parentalité ? Quels formats (éducatif, storytelling, behind-the-scenes, user generated, promotionnel) ont les meilleurs taux d'engagement ?
+
+4. LIGNES D'OBJET : Quelles formules de lignes d'objet email obtiennent les meilleurs taux d'ouverture en e-commerce beauté/parentalité ? Donne des exemples concrets avec benchmarks.
+
+5. TENDANCES EMAIL 2025-2026 : Quelles nouvelles pratiques email marketing montrent des résultats prouvés récemment ? (SMS complémentaire, contenu interactif, IA personnalisation, etc.)`,
+        },
+      ],
+    }),
+
+    // CALL 3: Offers & Bundles
+    safeFetch("offers", {
+      model: "sonar-pro",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert en stratégie commerciale e-commerce DTC spécialisé en pricing, bundles, upsells et cross-sells. Réponds avec des données chiffrées et des exemples concrets de marques beauté DTC. Structure ta réponse en sections avec pour chaque stratégie : description, impact chiffré sur l'AOV, conditions de succès, exemples.",
+        },
+        {
+          role: "user",
+          content: `Nous sommes en ${currentMonth} ${currentYear}. Recherche les informations suivantes pour une marque de skincare pour enfants avec un AOV moyen de ${avgAovGlobal}€ (range : ${aovRange}) et ${multiChildrenRateGlobal}% de clientes multi-enfants :
+
+1. BUNDLING : Quelles stratégies de bundling ont généré les meilleures augmentations d'AOV de manière prouvée sur les 12 derniers mois en e-commerce beauté DTC ? Quels types de bundles fonctionnent le mieux (routine complète, découverte, saisonnier, personnalisé) ?
+
+2. SEUILS ET PRIX PSYCHOLOGIQUES : Quels seuils de livraison gratuite optimisent l'AOV autour de ${avgAovGlobal}€-${Math.round(avgAovGlobal * 1.4)}€ ? Quels prix psychologiques et techniques de pricing fonctionnent le mieux en beauté DTC ?
+
+3. UPSELL POST-ACHAT : Quelles mécaniques d'upsell et cross-sell post-achat ont les meilleurs taux d'acceptation en beauté DTC ? (page de remerciement, email post-achat, panier, checkout) Donne des benchmarks.
+
+4. STRATÉGIES MULTI-ENFANTS/FAMILLE : Quelles stratégies commerciales fonctionnent pour les familles avec plusieurs enfants ? (remises fratrie, packs famille, abonnements multi-produits)
+
+5. PROGRAMMES DE FIDÉLITÉ : Quels mécaniques de fidélisation fonctionnent le mieux pour les marques beauté DTC avec un cycle de rachat de 2-3 mois ?`,
+        },
+      ],
+    }),
+  ]);
+
+  // Log results
+  const successCount = [adsResearch, emailResearch, offersResearch].filter((r) => r.length > 0).length;
+  if (successCount === 0) {
+    console.warn("[generate-marketing] All 3 Perplexity calls failed — generation will proceed in degraded mode");
+  } else {
+    console.log(`[generate-marketing] Perplexity research: ${successCount}/3 calls succeeded (ads: ${adsResearch.length > 0 ? "✓" : "✗"}, email: ${emailResearch.length > 0 ? "✓" : "✗"}, offers: ${offersResearch.length > 0 ? "✓" : "✗"})`);
+  }
+
+  return { adsResearch, emailResearch, offersResearch };
+}
+
+// ── Step 3: Call Lovable AI Gateway (enriched with Perplexity) ───────
+async function callGemini(collectedData: any, perplexityResearch: { adsResearch: string; emailResearch: string; offersResearch: string }): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
   const { personaData, priorities, globalMetrics, previousUncompletedTasks } = collectedData;
+
+  const now = new Date();
+  const currentMonth = now.toLocaleString("fr-FR", { month: "long" });
+  const currentYear = now.getFullYear();
+
+  const { adsResearch, emailResearch, offersResearch } = perplexityResearch;
 
   const systemPrompt = `Tu es un directeur marketing senior spécialisé en e-commerce DTC skincare et cosmétiques pour enfants, avec 15 ans d'expérience en stratégie d'acquisition Meta Ads, email marketing Klaviyo et optimisation de panier moyen. Tu travailles comme consultant exclusif pour la marque Ouate Paris.
 
@@ -431,6 +637,37 @@ Sources francophones : WiziShop, Sales Odyssey.
 
 PRIORITÉ OUATE = BEAUTÉ/SKINCARE : Prioriser Motion App, Billo (UGC skincare), Klaviyo quiz flows, Octane AI (zero-party data), bundle skincare sets, Loox (avis visuels avant/après).
 
+=== INTELLIGENCE MARCHÉ ACTUELLE — RECHERCHES VÉRIFIÉES (${currentMonth} ${currentYear}) ===
+
+Les synthèses ci-dessous proviennent de recherches web effectuées aujourd'hui sur les tendances actuelles du marché. Elles complètent ta base de connaissances avec des données fraîches et vérifiées. Utilise-les pour ancrer tes recommandations dans la réalité du marché actuel.
+
+--- TENDANCES CRÉATIVES & ADS META/TIKTOK ---
+${adsResearch || "Recherche non disponible cette semaine. Appuie-toi sur ta base de connaissances."}
+
+--- TENDANCES EMAIL MARKETING & NEWSLETTERS ---
+${emailResearch || "Recherche non disponible cette semaine. Appuie-toi sur ta base de connaissances."}
+
+--- TENDANCES OFFRES, BUNDLES & STRATÉGIES COMMERCIALES ---
+${offersResearch || "Recherche non disponible cette semaine. Appuie-toi sur ta base de connaissances."}
+
+=== INSTRUCTION DE CROISEMENT DES 3 SOURCES D'INFORMATION ===
+
+Tu disposes de 3 sources d'information complémentaires :
+- BLOC A (Base de connaissances) : Les best practices, frameworks et méthodologies éprouvées issues des 226 sources marketing spécialisées. C'est ton socle d'expertise permanent.
+- BLOC B (Données terrain) : Les données réelles des 9 personas Ouate avec toutes leurs métriques, comportements et psychologies. C'est ta compréhension du terrain.
+- BLOC C (Intelligence marché) : Les synthèses de recherches web actuelles avec benchmarks et tendances vérifiées. C'est ta mise à jour marché.
+
+COMMENT CROISER : Pour chaque recommandation, tu DOIS combiner au minimum 2 de ces 3 blocs. Idéalement les 3. Concrètement :
+- Identifie une opportunité dans les données terrain d'un persona (Bloc B)
+- Valide ou enrichis cette opportunité avec une tendance marché actuelle (Bloc C)
+- Appuie-toi sur un framework ou une best practice éprouvée pour structurer la recommandation (Bloc A)
+
+Exemple de croisement réussi : "Clara a 'Preuves de résultats' comme réassurance #1 (Bloc B). Les formats avant/après en Reels 15s génèrent actuellement un CTR 2× supérieur aux formats statiques en beauté DTC (Bloc C). → Recommandation : créer un Reel 15s avant/après ciblant Clara avec un hook problem-solution (Bloc A mapping)."
+
+Exemple de recommandation INSUFFISANTE : "Lancer une campagne Meta avec un hook sur les résultats." → Trop générique, ne croise qu'un seul bloc.
+
+Raisonne comme un directeur marketing senior qui doit maximiser le ROAS global de la marque en s'appuyant sur des données terrain précises ET des tendances marché validées.
+
 === TÂCHES NON COMPLÉTÉES DE LA SEMAINE PRÉCÉDENTE ===
 
 Si des tâches non complétées de la semaine précédente te sont fournies, évalue chacune au regard des données personas actuelles :
@@ -472,6 +709,8 @@ Personas prioritaires cette semaine (3 catégories stratégiques) :
 - 🚀 PLUS GROS LEVIER DE CROISSANCE : ${p.best_growth.code} ${p.best_growth.name} — CA potentiel à récupérer : +${growthCA}€/mois (conv. actuelle ${p.best_growth.business.conversion_rate}% vs moyenne ${globalMetrics.global_conversion_rate}%, ${p.best_growth.business.volume} sessions). C'est le persona où l'optimisation du tunnel de conversion aura le plus d'impact.
 
 - 💎 MEILLEUR POTENTIEL DE FIDÉLISATION : ${p.best_ltv.code} ${p.best_ltv.name} — Score LTV : ${ltvScore} (âge dominant enfant : ${p.best_ltv._dominantAge || "?"}, opt-in email : ${p.best_ltv.behavior.optin_email_pct}%, multi-enfants : ${p.best_ltv.profile.multi_child_pct}%). C'est le persona à cibler en priorité dans les flows email et les stratégies de rétention.
+
+Contexte temporel : Nous sommes en ${currentMonth} ${currentYear}. Tes recommandations doivent être pertinentes pour cette période (saisonnalité, tendances actuelles, événements commerciaux à venir).
 
 ${previousUncompletedTasks && previousUncompletedTasks.length > 0 ? `
 TÂCHES NON COMPLÉTÉES DE LA SEMAINE PRÉCÉDENTE (à évaluer pour reconduction) :
@@ -583,14 +822,18 @@ serve(async (req) => {
 
       console.log("[generate-marketing] Previous uncompleted tasks:", previousUncompletedTasks.length);
 
-      console.log("[generate-marketing] Step 1: Collecting persona data...");
+      console.log("[generate-marketing] Step 1: Collecting persona data (30 days)...");
       const collectedData = await collectPersonaData(supabase);
       collectedData.previousUncompletedTasks = previousUncompletedTasks;
       console.log("[generate-marketing] Step 1 done. Sessions:", collectedData.globalMetrics.total_sessions);
 
-      console.log("[generate-marketing] Step 2: Calling AI Gateway...");
-      const recommendations = await callGemini(collectedData);
-      console.log("[generate-marketing] Step 2 done. Checklist items:", recommendations.checklist?.length);
+      console.log("[generate-marketing] Step 2: Perplexity web research (3 parallel calls)...");
+      const perplexityResearch = await callPerplexityResearch(collectedData.globalAggregates);
+      console.log("[generate-marketing] Step 2 done.");
+
+      console.log("[generate-marketing] Step 3: Calling AI Gateway (enriched)...");
+      const recommendations = await callGemini(collectedData, perplexityResearch);
+      console.log("[generate-marketing] Step 3 done. Checklist items:", recommendations.checklist?.length);
 
       // Validate required fields
       if (!recommendations.persona_focus || !recommendations.checklist || !recommendations.ads_recommendations) {
@@ -598,7 +841,7 @@ serve(async (req) => {
         throw new Error("AI response missing required fields (persona_focus, checklist, ads_recommendations)");
       }
 
-      console.log("[generate-marketing] Step 3: Storing in database...");
+      console.log("[generate-marketing] Step 4: Storing in database...");
       const weekStart = getMonday(new Date());
 
       // Deactivate previous recommendations
@@ -606,6 +849,14 @@ serve(async (req) => {
         .from("marketing_recommendations")
         .update({ status: "archived" })
         .eq("status", "active");
+
+      // Build sources list with Perplexity indicators
+      const sourcesWithPerplexity = [
+        ...SOURCES_CONSULTED,
+        ...(perplexityResearch.adsResearch ? ["perplexity:ads_research"] : []),
+        ...(perplexityResearch.emailResearch ? ["perplexity:email_research"] : []),
+        ...(perplexityResearch.offersResearch ? ["perplexity:offers_research"] : []),
+      ];
 
       const { data: inserted, error: insertErr } = await supabase
         .from("marketing_recommendations")
@@ -617,7 +868,7 @@ serve(async (req) => {
           ads_recommendations: recommendations.ads_recommendations,
           email_recommendations: recommendations.email_recommendations,
           offers_recommendations: recommendations.offers_recommendations,
-          sources_consulted: SOURCES_CONSULTED,
+          sources_consulted: sourcesWithPerplexity,
           status: "active",
         })
         .select()
@@ -625,7 +876,7 @@ serve(async (req) => {
 
       if (insertErr) throw new Error(`Insert error: ${insertErr.message}`);
 
-      console.log("[generate-marketing] Step 3 done. ID:", inserted.id);
+      console.log("[generate-marketing] Step 4 done. ID:", inserted.id);
 
       return new Response(JSON.stringify(inserted), {
         status: 200,
