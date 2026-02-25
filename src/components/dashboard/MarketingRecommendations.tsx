@@ -231,7 +231,7 @@ export function MarketingRecommendations() {
           <h2 className="text-2xl font-bold text-foreground font-heading">
             Marketing IA Hub
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Recommandations de la semaine du {formatWeekStart(data.week_start)}
             {data.generated_at && (
               <span className="text-xs ml-2">
@@ -240,42 +240,28 @@ export function MarketingRecommendations() {
             )}
           </p>
         </div>
-      </div>
-
-      {/* Outdated banner — one-time weekly update */}
-      {isOutdated && !weeklyUpdateDone && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm"
-        >
-          <span className="text-foreground">
-            📅 Recommandations de la semaine du {formatWeekStart(data.week_start)} — Nouvelles recommandations disponibles
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setWeeklyUpdateDone(true);
-              generateRecommendations();
-            }}
-            disabled={isGenerating}
-          >
-            <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
-            Mettre à jour
-          </Button>
-        </motion.div>
-      )}
-
-      {/* After weekly update done */}
-      {isOutdated && weeklyUpdateDone && !isGenerating && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
-          <RefreshCw className="w-4 h-4" />
-          <span>
+        <div className="text-right flex flex-col items-end gap-2">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <RefreshCw className="w-3 h-3" />
             Prochaine mise à jour : lundi {format(nextMondayDate, "d MMMM yyyy", { locale: fr })} à 08h00
-          </span>
+          </p>
+          {isOutdated && !weeklyUpdateDone && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setWeeklyUpdateDone(true);
+                generateRecommendations();
+              }}
+              disabled={isGenerating}
+              className="text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1.5 ${isGenerating ? "animate-spin" : ""}`} />
+              Mettre à jour
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Section 1: Checklist hebdomadaire */}
       <Card className="p-6 bg-gradient-to-br from-primary/5 via-card to-accent/5 border-2 border-primary/20 shadow-lg">
