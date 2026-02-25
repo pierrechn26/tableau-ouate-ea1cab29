@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, FileText, Loader2, ClipboardList } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, FileText, Loader2, ClipboardList, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -76,7 +76,7 @@ export default function Dashboard() {
     business: "Business",
     funnel: "Funnel",
     marketing: "Marketing IA",
-    insights: "Insights"
+    insights: "Aski"
   };
   const handleExport = async () => {
     const selectedSections = Object.entries(exportSections).filter(([key, value]) => value && key !== 'all').map(([key]) => key);
@@ -317,8 +317,8 @@ export default function Dashboard() {
                       <div className="flex items-center space-x-3">
                         <Checkbox id="export-insights" checked={exportSections.insights} onCheckedChange={checked => handleToggleSection('insights', checked as boolean)} />
                         <Label htmlFor="export-insights" className="flex items-center gap-2 cursor-pointer">
-                          <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                          Insights
+                         <Bot className="w-4 h-4 text-muted-foreground" />
+                          Aski
                         </Label>
                       </div>
                     </div>
@@ -405,8 +405,8 @@ export default function Dashboard() {
               Marketing IA
             </TabsTrigger>
             <TabsTrigger value="alerts">
-              <AlertCircle className="w-4 h-4" />
-              Insights
+              <Bot className="w-4 h-4" />
+              Aski
             </TabsTrigger>
             <TabsTrigger value="responses">
               <ClipboardList className="w-4 h-4" />
@@ -546,7 +546,11 @@ export default function Dashboard() {
 
           <TabsContent value="alerts" className="bg-card rounded-lg border border-border p-6 shadow-md">
             <div ref={insightsRef}>
-              <AlertsSection />
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                <Bot className="w-16 h-16 mb-4 text-primary/40" />
+                <p className="text-lg font-medium text-foreground">Aski — Bientôt disponible</p>
+                <p className="text-sm mt-1">Cette section sera enrichie prochainement.</p>
+              </div>
             </div>
           </TabsContent>
 
