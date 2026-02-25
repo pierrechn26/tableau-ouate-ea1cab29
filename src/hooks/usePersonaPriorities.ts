@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PersonaPriorityStats {
@@ -49,7 +49,7 @@ export function usePersonaPriorities(): PersonaPrioritiesData {
     isLoading: true,
     error: null,
   });
-  const pollRef = useRef<number | null>(null);
+  
 
   useEffect(() => {
     async function fetchData() {
@@ -78,9 +78,31 @@ export function usePersonaPriorities(): PersonaPrioritiesData {
     }
 
     fetchData();
-    if (pollRef.current) window.clearInterval(pollRef.current);
-    pollRef.current = window.setInterval(fetchData, 120000);
-    return () => { if (pollRef.current) window.clearInterval(pollRef.current); };
+
+    // Schedule next refresh at 00:01 French time (Europe/Paris)
+    function msUntilNext0001() {
+      const now = new Date();
+      // Get current time in Paris
+      const parisNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+      const target = new Date(parisNow);
+      target.setHours(0, 1, 0, 0);
+      if (target <= parisNow) target.setDate(target.getDate() + 1);
+      // Convert back to local ms difference
+      const diffParis = target.getTime() - parisNow.getTime();
+      return diffParis;
+    }
+
+    let timeout: number | null = null;
+    function scheduleNextRefresh() {
+      const ms = msUntilNext0001();
+      timeout = window.setTimeout(() => {
+        fetchData();
+        scheduleNextRefresh();
+      }, ms);
+    }
+    scheduleNextRefresh();
+
+    return () => { if (timeout) window.clearTimeout(timeout); };
   }, []);
 
   return data;

@@ -19,7 +19,7 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
-import { PersonasOverviewPreview } from "@/components/dashboard/PersonasOverviewPreview";
+// PersonasOverviewPreview replaced by TopPersonasPotential
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import askItLogo from "@/assets/ask-it-logo.png";
