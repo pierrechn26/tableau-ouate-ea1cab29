@@ -136,20 +136,3 @@ All colors MUST be HSL.
   }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes shadowPulse {
-  0%, 100% { transform: scaleX(1); opacity: 1; }
-  50% { transform: scaleX(0.75); opacity: 0.5; }
-}
-
-@keyframes giggle {
-  0%, 100% { transform: translateY(0); }
-  20% { transform: translateY(-6px); }
-  40% { transform: translateY(0); }
-  60% { transform: translateY(-4px); }
-  80% { transform: translateY(0); }
-}

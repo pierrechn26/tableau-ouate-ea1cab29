@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import styles from './AskiAvatar.module.css';
+import './AskiAvatar.css';
 
 interface AskiAvatarProps {
   size?: number;
@@ -176,25 +176,25 @@ const AskiAvatar: React.FC<AskiAvatarProps> = ({ size = 240 }) => {
   const visorH = 75 * scale;
 
   return (
-    <div className={styles.wrapper}>
+    <div className="aski-wrapper">
       <div
         ref={sphereRef}
-        className={styles.sphere}
-        style={{ width: size, height: size, animation: 'float 3.5s ease-in-out infinite' }}
+        className="aski-sphere"
+        style={{ width: size, height: size }}
       >
         <div
-          className={styles.visorOuter}
+          className="aski-visor-outer"
           style={{ width: visorW, height: visorH }}
         >
-          <div className={styles.visor}>
-            <div ref={eyeLRef} className={styles.eye} />
-            <div ref={eyeRRef} className={styles.eye} />
+          <div className="aski-visor">
+            <div ref={eyeLRef} className="aski-eye" />
+            <div ref={eyeRRef} className="aski-eye" />
           </div>
         </div>
       </div>
       <div
-        className={styles.shadow}
-        style={{ width: size * 0.5, height: 14 * scale, marginTop: 16 * scale, animation: 'shadowPulse 3.5s ease-in-out infinite' }}
+        className="aski-shadow"
+        style={{ width: size * 0.5, height: 14 * scale, marginTop: 16 * scale }}
       />
     </div>
   );
