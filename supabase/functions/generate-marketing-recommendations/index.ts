@@ -703,8 +703,9 @@ Si des tâches non complétées de la semaine précédente te sont fournies, év
   "AOV +18-28%" → "une augmentation du panier moyen de 18 à 28%"
   "LTV +15%" → "une augmentation de la valeur client de 15%"
   Ne jamais utiliser de jargon technique sans explication. Chaque chiffre doit être immédiatement compréhensible par un directeur marketing non-technique.
-- VÉRIFICATION FINALE OBLIGATOIRE : Avant de renvoyer le JSON, relis CHAQUE texte visible et vérifie qu'il ne contient : (1) aucun code P1-P9, (2) aucun terme "Bloc A/B/C", "intelligence marché", "données terrain", "base de connaissances", (3) aucun nom de source/framework/outil cité tel quel, (4) aucune métrique en format jargon (ROAS X:1, etc.). Si tu en trouves, corrige-les AVANT de renvoyer.
+- VÉRIFICATION FINALE OBLIGATOIRE : Avant de renvoyer le JSON, relis CHAQUE texte visible et vérifie qu'il ne contient : (1) aucun code P1-P9, (2) aucun terme "Bloc A/B/C", "intelligence marché", "données terrain", "base de connaissances", (3) aucun nom de source/framework/outil cité tel quel, (4) aucune métrique en format jargon (ROAS X:1, etc.), (5) aucun emoji ni caractère non-latin (chinois, japonais, arabe, etc.). Si tu en trouves, corrige-les AVANT de renvoyer.
 - Les hooks créatifs DOIVENT être en français, prêts à être utilisés tels quels dans Ads Manager.
+- INTERDICTION ABSOLUE D'EMOJIS ET CARACTÈRES NON-LATINS : N'utiliser AUCUN emoji (🎯, 💎, ✨, etc.) et AUCUN caractère non-latin (japonais, chinois, arabe, coréen, etc.) dans les textes visibles : titres, lignes d'objet d'email, hooks, descriptions, concepts. Uniquement des caractères latins, chiffres, ponctuation française standard (accents inclus). Les lignes d'objet d'email en particulier doivent être en pur texte français sans aucun symbole unicode exotique.
 - Les flows email DOIVENT être compatibles Klaviyo avec des triggers précis.
 - Les bundles DOIVENT utiliser les vrais noms de produits Ouate avec des prix réalistes.
 - Les ciblages Meta DOIVENT être des audiences configurables dans Ads Manager.
