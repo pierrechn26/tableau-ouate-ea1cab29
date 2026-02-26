@@ -83,9 +83,11 @@ export function AskiChat() {
     else setMessages([]);
   }, [selectedChatId, loadMessages]);
 
-  // Auto-scroll
+  // Auto-scroll only when there are messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0 || isLoading) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, isLoading]);
 
   const handleNewChat = () => {
