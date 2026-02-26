@@ -548,6 +548,15 @@ export default function Dashboard() {
 
           <TabsContent value="alerts" className="p-0">
             <div ref={insightsRef}>
+              {/* Aski Hero Header — séparé visuellement du chat */}
+              <div className="flex flex-col items-center py-8 px-4 border-b border-border bg-gradient-to-b from-card to-background">
+                <AskiAvatar size={96} />
+                <h2 className="mt-4 text-2xl font-bold text-foreground tracking-tight">Aski</h2>
+                <p className="mt-2 text-sm text-muted-foreground text-center max-w-md leading-relaxed">
+                  Votre assistant marketing IA — Posez vos questions sur vos personas, performances et stratégies.
+                </p>
+              </div>
+              {/* Chat interface */}
               <AskiChat />
             </div>
           </TabsContent>

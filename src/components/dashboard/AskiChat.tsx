@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, Send, Pencil, Trash2, MessageSquare, Menu, X, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
-import AskiAvatar from "@/components/AskiAvatar/AskiAvatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -299,22 +298,15 @@ export function AskiChat() {
 
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0 bg-white">
-        {/* Header */}
-        <div className="flex flex-col items-center pt-5 pb-3 px-4 border-b border-[#E5E7EB] shrink-0">
-          {/* Mobile menu button */}
+        {/* Compteur mensuel + bouton mobile */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-[#E5E7EB] shrink-0">
           <button
-            className="md:hidden absolute left-4 top-4 p-2 rounded-lg hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
-
-          <AskiAvatar size={80} />
-          <p style={{ fontWeight: 600, fontSize: 18, color: "#1A1A2E", marginTop: 10 }}>Aski</p>
-          <p style={{ color: "#6B7280", fontSize: 13, textAlign: "center", maxWidth: 400, marginTop: 4, lineHeight: 1.5 }}>
-            Votre assistant marketing IA — Posez vos questions sur vos personas, performances et stratégies.
-          </p>
-          <p style={{ color: counterColor, fontSize: 12, marginTop: 6 }}>
+          <p className="text-xs ml-auto" style={{ color: counterColor }}>
             {questionsUsed >= questionsLimit
               ? `Limite atteinte — réinitialisation le 1er ${nextMonthStr}`
               : `${questionsUsed}/${questionsLimit} questions ce mois-ci`}
