@@ -307,12 +307,26 @@ Tu disposes de connaissances approfondies en marketing e-commerce issues de 226 
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-pro",
+            model: "google/gemini-2.5-flash-lite",
             messages: [
-              { role: "system", content: 'Génère un titre très court (3-6 mots max, en français) résumant cette question. Pas de guillemets, pas de ponctuation finale. Exemples : "Stratégie Meta Ads Clara", "Analyse conversion mars", "Newsletter personas atopiques"' },
+              { role: "system", content: `Tu génères des titres ultra-courts (2-4 mots) pour des conversations marketing. Règles strictes :
+- 2 à 4 mots maximum, jamais plus
+- En français, sans majuscule sauf noms propres
+- Pas de guillemets, pas de ponctuation finale
+- Capture le SUJET central, pas la forme de la question
+- Utilise les prénoms des personas si mentionnés (Clara, Sandrine, Marine, etc.)
+- Préfère les noms et verbes d'action aux articles
+
+Exemples :
+"Quelles sont les meilleures stratégies Meta Ads pour cibler Clara ?" → "Meta Ads Clara"
+"Comment améliorer le taux de conversion du mois de mars ?" → "Conversion mars"
+"Analyse les performances globales de la marque" → "Performances globales"
+"Quelle newsletter envoyer aux mamans atopiques ?" → "Newsletter atopiques"
+"Quels produits recommander à Sandrine ?" → "Recommandations Sandrine"
+"Comment fidéliser Marine ?" → "Fidélisation Marine"` },
               { role: "user", content: userMessage },
             ],
-            max_tokens: 30,
+            max_tokens: 20,
           }),
         });
         const titleData = await titleResponse.json();
