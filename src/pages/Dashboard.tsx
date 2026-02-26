@@ -553,7 +553,7 @@ export default function Dashboard() {
                 <AskiAvatar size={96} />
                 <h2 className="mt-4 text-2xl font-bold text-foreground tracking-tight">Aski</h2>
                 <p className="mt-2 text-sm text-muted-foreground text-center max-w-md leading-relaxed">
-                  Votre assistant marketing IA — Posez vos questions sur vos personas, performances et stratégies.
+                  Hello !<br /><br />Moi c'est Aski, votre assistant personnel IA pour répondre à toutes vos questions stratégie marketing et performances, alors on démarre ?
                 </p>
               </div>
               {/* Chat interface */}
