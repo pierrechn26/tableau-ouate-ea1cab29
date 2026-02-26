@@ -110,7 +110,7 @@ export default function Dashboard() {
         setActiveTab(section === 'diagnostics' ? 'analytics' : section === 'insights' ? 'alerts' : section);
 
         // Wait for tab content to render
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         const ref = sectionRefs[section];
         if (ref?.current) {
           const canvas = await html2canvas(ref.current, {
@@ -120,7 +120,7 @@ export default function Dashboard() {
             backgroundColor: '#ffffff',
             logging: false,
             imageTimeout: 15000,
-            removeContainer: true,
+            removeContainer: true
           });
           const imgData = canvas.toDataURL('image/jpeg', 0.85);
           const imgWidth = pageWidth - margin * 2;
@@ -261,7 +261,7 @@ export default function Dashboard() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="flex items-center space-x-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      <Checkbox id="export-all" checked={exportSections.all} onCheckedChange={checked => handleToggleAll(checked as boolean)} />
+                      <Checkbox id="export-all" checked={exportSections.all} onCheckedChange={(checked) => handleToggleAll(checked as boolean)} />
                       <Label htmlFor="export-all" className="font-semibold cursor-pointer">
                         Exporter l'ensemble des éléments
                       </Label>
@@ -269,7 +269,7 @@ export default function Dashboard() {
                     
                     <div className="space-y-3 pl-2">
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-overview" checked={exportSections.overview} onCheckedChange={checked => handleToggleSection('overview', checked as boolean)} />
+                        <Checkbox id="export-overview" checked={exportSections.overview} onCheckedChange={(checked) => handleToggleSection('overview', checked as boolean)} />
                         <Label htmlFor="export-overview" className="flex items-center gap-2 cursor-pointer">
                           <Sparkles className="w-4 h-4 text-muted-foreground" />
                           Vue d'ensemble
@@ -277,7 +277,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-personas" checked={exportSections.personas} onCheckedChange={checked => handleToggleSection('personas', checked as boolean)} />
+                        <Checkbox id="export-personas" checked={exportSections.personas} onCheckedChange={(checked) => handleToggleSection('personas', checked as boolean)} />
                         <Label htmlFor="export-personas" className="flex items-center gap-2 cursor-pointer">
                           <Users className="w-4 h-4 text-muted-foreground" />
                           Personas
@@ -285,7 +285,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-diagnostics" checked={exportSections.diagnostics} onCheckedChange={checked => handleToggleSection('diagnostics', checked as boolean)} />
+                        <Checkbox id="export-diagnostics" checked={exportSections.diagnostics} onCheckedChange={(checked) => handleToggleSection('diagnostics', checked as boolean)} />
                         <Label htmlFor="export-diagnostics" className="flex items-center gap-2 cursor-pointer">
                           <BarChart3 className="w-4 h-4 text-muted-foreground" />
                           Diagnostics
@@ -293,7 +293,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-business" checked={exportSections.business} onCheckedChange={checked => handleToggleSection('business', checked as boolean)} />
+                        <Checkbox id="export-business" checked={exportSections.business} onCheckedChange={(checked) => handleToggleSection('business', checked as boolean)} />
                         <Label htmlFor="export-business" className="flex items-center gap-2 cursor-pointer">
                           <DollarSign className="w-4 h-4 text-muted-foreground" />
                           Business
@@ -301,7 +301,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-funnel" checked={exportSections.funnel} onCheckedChange={checked => handleToggleSection('funnel', checked as boolean)} />
+                        <Checkbox id="export-funnel" checked={exportSections.funnel} onCheckedChange={(checked) => handleToggleSection('funnel', checked as boolean)} />
                         <Label htmlFor="export-funnel" className="flex items-center gap-2 cursor-pointer">
                           <Activity className="w-4 h-4 text-muted-foreground" />
                           Funnel
@@ -309,7 +309,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-marketing" checked={exportSections.marketing} onCheckedChange={checked => handleToggleSection('marketing', checked as boolean)} />
+                        <Checkbox id="export-marketing" checked={exportSections.marketing} onCheckedChange={(checked) => handleToggleSection('marketing', checked as boolean)} />
                         <Label htmlFor="export-marketing" className="flex items-center gap-2 cursor-pointer">
                           <TrendingUp className="w-4 h-4 text-muted-foreground" />
                           Marketing IA
@@ -317,7 +317,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <Checkbox id="export-insights" checked={exportSections.insights} onCheckedChange={checked => handleToggleSection('insights', checked as boolean)} />
+                        <Checkbox id="export-insights" checked={exportSections.insights} onCheckedChange={(checked) => handleToggleSection('insights', checked as boolean)} />
                         <Label htmlFor="export-insights" className="flex items-center gap-2 cursor-pointer">
                          <Bot className="w-4 h-4 text-muted-foreground" />
                           Aski
@@ -380,7 +380,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex h-auto w-full items-center justify-between gap-4 rounded-lg bg-muted/30 p-2 text-base">
             <TabsTrigger value="overview">
               <Sparkles className="w-4 h-4" />
@@ -421,87 +421,87 @@ export default function Dashboard() {
             {/* Key Metrics */}
             <div className="bg-gradient-to-br from-card via-card to-primary/5 rounded-xl border border-border/50 p-6 shadow-md">
               <h3 className="text-xl font-bold text-foreground mb-6 font-heading">Métriques clés</h3>
-              {businessMetrics.isLoading || diagnosticStats.isLoading ? (
-                <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+              {businessMetrics.isLoading || diagnosticStats.isLoading ?
+              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Chargement des données...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(() => {
-                    const fmt = (n: number, d = 0) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
-                    const pctDiff = (a: number, b: number) => {
-                      if (b === 0) return null;
-                      const diff = ((a - b) / b) * 100;
-                      return { value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`, positive: diff >= 0 };
-                    };
-                    const convRateDiag = businessMetrics.diagnosticPageViews > 0
-                      ? (businessMetrics.orderCountDiag / businessMetrics.diagnosticPageViews) * 100 : 0;
-                    const convRateGlobal = businessMetrics.siteSessions > 0
-                      ? (businessMetrics.orderCountNonDiag / businessMetrics.siteSessions) * 100 : 0;
-                    const convDiff = pctDiff(convRateDiag, convRateGlobal);
-                    const aovDiff = pctDiff(businessMetrics.aovDiag, businessMetrics.aovNonDiag);
-                    const caWithDiag = businessMetrics.revenueTotal;
-                    const caWithoutDiag = businessMetrics.revenueTotal - businessMetrics.revenueDiag;
-                    const caDiff = pctDiff(caWithDiag, caWithoutDiag);
+                </div> :
 
-                    return (
-                      <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {(() => {
+                  const fmt = (n: number, d = 0) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+                  const pctDiff = (a: number, b: number) => {
+                    if (b === 0) return null;
+                    const diff = (a - b) / b * 100;
+                    return { value: `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`, positive: diff >= 0 };
+                  };
+                  const convRateDiag = businessMetrics.diagnosticPageViews > 0 ?
+                  businessMetrics.orderCountDiag / businessMetrics.diagnosticPageViews * 100 : 0;
+                  const convRateGlobal = businessMetrics.siteSessions > 0 ?
+                  businessMetrics.orderCountNonDiag / businessMetrics.siteSessions * 100 : 0;
+                  const convDiff = pctDiff(convRateDiag, convRateGlobal);
+                  const aovDiff = pctDiff(businessMetrics.aovDiag, businessMetrics.aovNonDiag);
+                  const caWithDiag = businessMetrics.revenueTotal;
+                  const caWithoutDiag = businessMetrics.revenueTotal - businessMetrics.revenueDiag;
+                  const caDiff = pctDiff(caWithDiag, caWithoutDiag);
+
+                  return (
+                    <>
                         <MetricCard
-                          title="CA via diagnostic"
-                          value={`${fmt(businessMetrics.revenueDiag)} €`}
-                          subtitle={`${businessMetrics.orderCountDiag} commandes`}
-                          icon={DollarSign}
-                          comparison={{
-                            period: "CA total vs CA sans diagnostic",
-                            value: `${fmt(caWithDiag)} € vs ${fmt(caWithoutDiag)} €`,
-                            diff: caDiff ? caDiff.value : undefined,
-                            positive: caDiff?.positive,
-                          }}
-                          index={0}
-                        />
+                        title="CA via diagnostic"
+                        value={`${fmt(businessMetrics.revenueDiag)} €`}
+                        subtitle={`${businessMetrics.orderCountDiag} commandes`}
+                        icon={DollarSign}
+                        comparison={{
+                          period: "CA total vs CA sans diagnostic",
+                          value: `${fmt(caWithDiag)} € vs ${fmt(caWithoutDiag)} €`,
+                          diff: caDiff ? caDiff.value : undefined,
+                          positive: caDiff?.positive
+                        }}
+                        index={0} />
+
                         <MetricCard
-                          title="Taux de conversion diag"
-                          value={`${fmt(convRateDiag, 1)}%`}
-                          subtitle={`${businessMetrics.orderCountDiag} achats / ${businessMetrics.diagnosticPageViews.toLocaleString()} vues diag`}
-                          icon={BarChart3}
-                          comparison={{
-                            period: "vs global",
-                            value: `${fmt(convRateGlobal, 2)}%`,
-                            diff: convDiff ? convDiff.value : undefined,
-                            positive: convDiff?.positive,
-                          }}
-                          index={1}
-                        />
+                        title="Taux de conversion diag"
+                        value={`${fmt(convRateDiag, 1)}%`}
+                        subtitle={`${businessMetrics.orderCountDiag} achats / ${businessMetrics.diagnosticPageViews.toLocaleString()} vues diag`}
+                        icon={BarChart3}
+                        comparison={{
+                          period: "vs global",
+                          value: `${fmt(convRateGlobal, 2)}%`,
+                          diff: convDiff ? convDiff.value : undefined,
+                          positive: convDiff?.positive
+                        }}
+                        index={1} />
+
                         <MetricCard
-                          title="AOV après diagnostic"
-                          value={`${fmt(businessMetrics.aovDiag, 2)} €`}
-                          subtitle="Valeur moyenne par commande"
-                          icon={TrendingUp}
-                          comparison={{
-                            period: "vs sans diagnostic",
-                            value: `${fmt(businessMetrics.aovNonDiag, 2)} €`,
-                            diff: aovDiff ? aovDiff.value : undefined,
-                            positive: aovDiff?.positive,
-                          }}
-                          index={2}
-                        />
+                        title="AOV après diagnostic"
+                        value={`${fmt(businessMetrics.aovDiag, 2)} €`}
+                        subtitle="Valeur moyenne par commande"
+                        icon={TrendingUp}
+                        comparison={{
+                          period: "vs sans diagnostic",
+                          value: `${fmt(businessMetrics.aovNonDiag, 2)} €`,
+                          diff: aovDiff ? aovDiff.value : undefined,
+                          positive: aovDiff?.positive
+                        }}
+                        index={2} />
+
                         <MetricCard
-                          title="Diagnostics complétés"
-                          value={diagnosticStats.completedResponses.toLocaleString("fr-FR")}
-                          subtitle={`sur ${diagnosticStats.totalResponses.toLocaleString("fr-FR")} sessions`}
-                          icon={Users}
-                          comparison={{
-                            period: "Taux de complétion",
-                            value: `${diagnosticStats.completionRate.toFixed(1)}%`,
-                          }}
-                          index={3}
-                        />
-                      </>
-                    );
-                  })()}
+                        title="Diagnostics complétés"
+                        value={diagnosticStats.completedResponses.toLocaleString("fr-FR")}
+                        subtitle={`sur ${diagnosticStats.totalResponses.toLocaleString("fr-FR")} sessions`}
+                        icon={Users}
+                        comparison={{
+                          period: "Taux de complétion",
+                          value: `${diagnosticStats.completionRate.toFixed(1)}%`
+                        }}
+                        index={3} />
+
+                      </>);
+
+                })()}
                 </div>
-              )}
+              }
             </div>
 
             {/* Top 3 Personas — Potentiel de la semaine (replaces old PersonasOverviewPreview) */}
@@ -548,20 +548,11 @@ export default function Dashboard() {
 
           <TabsContent value="alerts" className="p-0">
             <div ref={insightsRef}>
-              {/* Aski Hero Header — séparé visuellement du chat */}
-              <div className="flex flex-col items-center py-8 px-4 border-b border-border bg-gradient-to-b from-card to-background">
-                <AskiAvatar size={96} />
-                <h2 className="mt-4 text-2xl font-bold text-foreground tracking-tight">Aski</h2>
-                <p className="mt-2 text-sm text-muted-foreground text-center max-w-md leading-relaxed">
-                  Hello !<br /><br />Moi c'est Aski, votre assistant personnel IA pour répondre à toutes vos questions stratégie marketing et performances, alors on démarre ?
-                </p>
-              </div>
-              {/* Chat interface */}
               <AskiChat />
             </div>
           </TabsContent>
 
-          <TabsContent value="responses">
+          <TabsContent value="responses" className="text-base">
             <ResponsesSection dateRange={dateRange} />
           </TabsContent>
         </Tabs>
