@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      aski_chats: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_archived: boolean | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          title?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      aski_messages: {
+        Row: {
+          chat_id: string
+          content: string
+          created_at: string | null
+          id: string
+          response_time_ms: number | null
+          role: string
+          tokens_used: number | null
+        }
+        Insert: {
+          chat_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          response_time_ms?: number | null
+          role: string
+          tokens_used?: number | null
+        }
+        Update: {
+          chat_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          response_time_ms?: number | null
+          role?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aski_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "aski_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_children: {
         Row: {
           age: number | null
