@@ -27,3 +27,6 @@ verify_jwt = false
 [functions.persona-priorities]
 verify_jwt = false
 
+[functions.aski-chat]
+verify_jwt = false
+
