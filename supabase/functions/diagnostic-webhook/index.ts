@@ -61,7 +61,7 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     device: coalesce("device"),
     user_name: coalesce("user_name"),
     relationship: coalesce("relationship"),
-    email: coalesce("email"),
+    email: payload.email ? payload.email.toLowerCase().trim() : coalesce("email"),
     phone: coalesce("phone"),
     optin_email: coalesce("optin_email", false),
     optin_sms: coalesce("optin_sms", false),
