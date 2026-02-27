@@ -84,6 +84,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Normaliser l'email en lowercase
+    const normalizedEmail = session.email.toLowerCase().trim();
+
     // 3. Charger les enfants triés par age DESC
     const { data: children } = await supabase
       .from("diagnostic_children")
@@ -148,6 +151,10 @@ Deno.serve(async (req) => {
       // Comportement
       ...(session.duration_seconds !== null && session.duration_seconds !== undefined && { diagnostic_duration_seconds: session.duration_seconds }),
 
+      // Opt-in (propriétés custom informatives)
+      optin_email: session.optin_email ? "Oui" : "Non",
+      optin_sms: session.optin_sms ? "Oui" : "Non",
+
       // Enfants — IA insights + enrichissement
       ...childrenDynamicProps,
       ...childrenEnrichmentProps,
@@ -157,14 +164,14 @@ Deno.serve(async (req) => {
       data: {
         type: "profile",
         attributes: {
-          email: session.email,
+          email: normalizedEmail,
           ...(session.phone && { phone_number: session.phone }),
           properties,
         },
       },
     };
 
-    // 6. Appel Klaviyo
+    // 6. Appel Klaviyo profile-import
     const klaviyoResponse = await fetch("https://a.klaviyo.com/api/profile-import/", {
       method: "POST",
       headers: {
@@ -176,6 +183,7 @@ Deno.serve(async (req) => {
     });
 
     const responseText = await klaviyoResponse.text();
+    console.log("[sync-klaviyo-persona] Klaviyo profile-import response:", klaviyoResponse.status, responseText);
 
     if (!klaviyoResponse.ok) {
       console.error("[sync-klaviyo-persona] Klaviyo error:", klaviyoResponse.status, responseText);
@@ -185,15 +193,65 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("[sync-klaviyo-persona] Profile updated for session:", session_id, "persona:", session.persona_code);
+    // 7. Appel API Subscribe si opt-in actif (best-effort, non-bloquant)
+    if (session.optin_email || session.optin_sms) {
+      // deno-lint-ignore no-explicit-any
+      const subscriptions: any = {};
+      if (session.optin_email) {
+        subscriptions.email = { marketing: { consent: "SUBSCRIBED" } };
+      }
+      if (session.optin_sms && session.phone) {
+        subscriptions.sms = { marketing: { consent: "SUBSCRIBED" } };
+      }
+
+      const subscribePayload = {
+        data: {
+          type: "profile-subscription-bulk-create-job",
+          attributes: {
+            profiles: {
+              data: [{
+                type: "profile",
+                attributes: {
+                  email: normalizedEmail,
+                  ...(session.phone && { phone_number: session.phone }),
+                  subscriptions,
+                },
+              }],
+            },
+          },
+          relationships: {
+            list: {
+              data: { type: "list", id: "TExMiq" },
+            },
+          },
+        },
+      };
+
+      try {
+        const subResponse = await fetch("https://a.klaviyo.com/api/profile-subscription-bulk-create-jobs/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Klaviyo-API-Key ${klaviyoApiKey}`,
+            revision: "2024-02-15",
+          },
+          body: JSON.stringify(subscribePayload),
+        });
+        const subBody = await subResponse.text();
+        console.log("[sync-klaviyo-persona] Klaviyo subscribe response:", subResponse.status, subBody);
+      } catch (subErr) {
+        console.error("[sync-klaviyo-persona] Klaviyo subscribe failed (non-blocking):", subErr);
+      }
+    }
+
+    console.log("[sync-klaviyo-persona] Profile updated for session:", session_id, "persona:", session.persona_code, "email:", normalizedEmail);
     return new Response(
-      JSON.stringify({ success: true, persona_code: session.persona_code, email: session.email }),
+      JSON.stringify({ success: true, persona_code: session.persona_code, email: normalizedEmail }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("[sync-klaviyo-persona] Unexpected error:", error);
-    // Best-effort: retourner 200 pour ne pas bloquer le webhook parent
     return new Response(
       JSON.stringify({ success: false, error: msg }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
