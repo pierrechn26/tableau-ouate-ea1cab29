@@ -33,3 +33,6 @@ verify_jwt = false
 [functions.sync-klaviyo-persona]
 verify_jwt = false
 
+[functions.backfill-klaviyo]
+verify_jwt = false
+
