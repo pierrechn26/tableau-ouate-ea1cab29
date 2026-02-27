@@ -30,3 +30,6 @@ verify_jwt = false
 [functions.aski-chat]
 verify_jwt = false
 
+[functions.sync-klaviyo-persona]
+verify_jwt = false
+
