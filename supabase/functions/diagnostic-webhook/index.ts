@@ -182,10 +182,15 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
         .eq("id", session.id);
       console.log("[diagnostic-webhook] Persona code assigned:", personaCode);
 
-      // Sync Klaviyo avec persona — fire and forget
-      supabase.functions.invoke("sync-klaviyo-persona", {
-        body: { session_id: session.id },
-      }).catch((err: Error) => console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err));
+      // Sync Klaviyo avec persona — awaited pour garantir l'exécution complète
+      try {
+        await supabase.functions.invoke("sync-klaviyo-persona", {
+          body: { session_id: session.id },
+        });
+        console.log("[diagnostic-webhook] Klaviyo sync done for session:", session.id);
+      } catch (err) {
+        console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err);
+      }
     }
   }
 
@@ -204,10 +209,15 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
         .eq("id", session.id);
       console.log("[diagnostic-webhook] Persona code assigned (existing children):", personaCode);
 
-      // Sync Klaviyo avec persona — fire and forget
-      supabase.functions.invoke("sync-klaviyo-persona", {
-        body: { session_id: session.id },
-      }).catch((err: Error) => console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err));
+      // Sync Klaviyo avec persona — awaited pour garantir l'exécution complète
+      try {
+        await supabase.functions.invoke("sync-klaviyo-persona", {
+          body: { session_id: session.id },
+        });
+        console.log("[diagnostic-webhook] Klaviyo sync done for session:", session.id);
+      } catch (err) {
+        console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err);
+      }
     }
   }
 
