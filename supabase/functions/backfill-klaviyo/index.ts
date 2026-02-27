@@ -61,8 +61,8 @@ Deno.serve(async (req) => {
       failed++;
     }
 
-    // 500ms entre chaque appel pour respecter le rate limit Klaviyo
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 200ms entre chaque appel — Klaviyo autorise 75 req/s, 200ms = ~5 req/s, très conservateur
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
   const summary = {
