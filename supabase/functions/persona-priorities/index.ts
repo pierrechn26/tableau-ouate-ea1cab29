@@ -74,8 +74,15 @@ serve(async (req) => {
       ? allOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0) / allOrders.length
       : 0;
 
-    // Per-persona aggregation — skip P0 (is_pool personas)
-    const personaCodes = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
+    // Per-persona aggregation — load active non-pool personas dynamically
+    const { data: personasData, error: personasErr } = await supabase
+      .from("personas")
+      .select("code")
+      .eq("is_active", true)
+      .eq("is_pool", false)
+      .order("code");
+    if (personasErr) throw new Error(`Personas fetch error: ${personasErr.message}`);
+    const personaCodes = (personasData || []).map((p: any) => p.code);
     const personaStats: Record<string, any> = {};
 
     for (const code of personaCodes) {
@@ -98,14 +105,21 @@ serve(async (req) => {
       const multiChildrenCount = pSessions.filter((s: any) => (s.number_of_children || 1) > 1).length;
       const multiChildrenPct = multiChildrenCount / volume;
 
-      // Dominant age range of first child + average age
+      // Dominant age range of first child + average age (fallback to age_range midpoint)
+      function getAgeEstimate(age: number | null, ageRange: string | null): number | null {
+        if (age !== null && age !== undefined) return age;
+        if (!ageRange) return null;
+        const midpoints: Record<string, number> = { "4-6": 5, "7-9": 8, "10-11": 10.5 };
+        return midpoints[ageRange] ?? null;
+      }
       const ageRanges: Record<string, number> = {};
       const ages: number[] = [];
       for (const s of pSessions) {
         const child = childBySession[s.id];
         if (child) {
           if (child.age_range) ageRanges[child.age_range] = (ageRanges[child.age_range] || 0) + 1;
-          if (child.age != null) ages.push(child.age);
+          const est = getAgeEstimate(child.age, child.age_range);
+          if (est !== null) ages.push(est);
         }
       }
       let dominantAgeRange: string | null = null;
