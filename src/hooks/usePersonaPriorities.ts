@@ -11,6 +11,7 @@ export interface PersonaPriorityStats {
   optinEmailPct: number;
   multiChildrenPct: number;
   dominantAgeRange: string | null;
+  avgChildAge: number | null;
 }
 
 export interface BestROI extends PersonaPriorityStats {

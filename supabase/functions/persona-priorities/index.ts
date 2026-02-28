@@ -37,18 +37,17 @@ serve(async (req) => {
       });
     }
 
-    // Fetch children (for age_range of first child)
+    // Fetch first child (child_index = 0) for age data
     const sessionIds = sessions.map((s: any) => s.id);
-    // Limit to child_index = 0 (first child)
     const { data: children } = await supabase
       .from("diagnostic_children")
-      .select("session_id, age_range")
+      .select("session_id, age_range, age")
       .in("session_id", sessionIds)
       .eq("child_index", 0);
 
-    const childAgeBySession: Record<string, string | null> = {};
+    const childBySession: Record<string, { age_range: string | null; age: number | null }> = {};
     for (const c of (children || [])) {
-      childAgeBySession[c.session_id] = c.age_range;
+      childBySession[c.session_id] = { age_range: c.age_range, age: c.age };
     }
 
     // Fetch orders
@@ -75,7 +74,7 @@ serve(async (req) => {
       ? allOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0) / allOrders.length
       : 0;
 
-    // Per-persona aggregation
+    // Per-persona aggregation — skip P0 (is_pool personas)
     const personaCodes = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"];
     const personaStats: Record<string, any> = {};
 
@@ -99,35 +98,43 @@ serve(async (req) => {
       const multiChildrenCount = pSessions.filter((s: any) => (s.number_of_children || 1) > 1).length;
       const multiChildrenPct = multiChildrenCount / volume;
 
-      // Dominant age range of first child
+      // Dominant age range of first child + average age
       const ageRanges: Record<string, number> = {};
+      const ages: number[] = [];
       for (const s of pSessions) {
-        const ar = childAgeBySession[s.id];
-        if (ar) ageRanges[ar] = (ageRanges[ar] || 0) + 1;
+        const child = childBySession[s.id];
+        if (child) {
+          if (child.age_range) ageRanges[child.age_range] = (ageRanges[child.age_range] || 0) + 1;
+          if (child.age != null) ages.push(child.age);
+        }
       }
       let dominantAgeRange: string | null = null;
       let maxCount = 0;
       for (const [ar, count] of Object.entries(ageRanges)) {
         if (count > maxCount) { dominantAgeRange = ar; maxCount = count; }
       }
+      const avgChildAge = ages.length > 0
+        ? Math.round((ages.reduce((a, b) => a + b, 0) / ages.length) * 10) / 10
+        : null;
 
       personaStats[code] = {
         code,
         volume,
         conversions,
-        convRate: Math.round(convRate * 1000) / 10, // percentage with 1 decimal
+        convRate: Math.round(convRate * 1000) / 10,
         aov: Math.round(aov * 100) / 100,
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         optinEmailPct: Math.round(optinEmailPct * 1000) / 10,
         multiChildrenPct: Math.round(multiChildrenPct * 1000) / 10,
         dominantAgeRange,
+        avgChildAge,
       };
     }
 
     const activePersonas = Object.values(personaStats);
+    const globalConvPct = Math.round(globalConvRate * 1000) / 10;
 
     // === CATÉGORIE 1: Meilleur ROI Acquisition ===
-    // Valeur par session = convRate × AOV
     let bestROI: any = null;
     let bestROIValue = 0;
     for (const p of activePersonas) {
@@ -139,12 +146,12 @@ serve(async (req) => {
     }
 
     // === CATÉGORIE 2: Plus gros levier de croissance ===
-    // CA manquant = (globalConvRate - personaConvRate) × volume × AOV
-    // Only personas with conversion < global avg AND >= 5 sessions
+    // Exclude the persona already chosen for ROI
+    const excludedAfterROI = new Set([bestROI?.code].filter(Boolean));
     let bestGrowth: any = null;
     let bestGrowthCA = 0;
-    const globalConvPct = Math.round(globalConvRate * 1000) / 10;
     for (const p of activePersonas) {
+      if (excludedAfterROI.has(p.code)) continue;
       if (p.convRate >= globalConvPct || p.volume < 5) continue;
       const caManquant = ((globalConvPct - p.convRate) / 100) * p.volume * p.aov;
       if (caManquant > bestGrowthCA) {
@@ -154,11 +161,13 @@ serve(async (req) => {
     }
 
     // === CATÉGORIE 3: Meilleur potentiel de fidélisation ===
-    // Score LTV = score_age × taux_optin_email × coefficient_multi_enfants
+    // Exclude personas already chosen for ROI and Growth
+    const excludedAfterGrowth = new Set([bestROI?.code, bestGrowth?.code].filter(Boolean));
     let bestLTV: any = null;
     let bestLTVScore = 0;
     for (const p of activePersonas) {
-      let scoreAge = 2; // default
+      if (excludedAfterGrowth.has(p.code)) continue;
+      let scoreAge = 2;
       if (p.dominantAgeRange === "4-6") scoreAge = 3;
       else if (p.dominantAgeRange === "7-9") scoreAge = 2;
       else if (p.dominantAgeRange === "10-11") scoreAge = 1;

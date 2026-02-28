@@ -146,7 +146,11 @@ export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialP
           personaCode={bestROI?.code || null}
           mainMetric={bestROI ? `${bestROI.valuePerSession.toFixed(2)}€ / session` : "–"}
           mainMetricColor="hsl(142 70% 40%)"
-          secondaryMetrics={bestROI ? `Taux de conversion : ${bestROI.convRate}% · AOV : ${bestROI.aov.toFixed(0)}€` : ""}
+          secondaryMetrics={bestROI ? [
+            `Taux de conversion : ${bestROI.convRate}%`,
+            `AOV : ${bestROI.aov.toFixed(0)}€`,
+            bestROI.avgChildAge != null ? `Âge moyen enfants : ${bestROI.avgChildAge} ans` : null,
+          ].filter(Boolean).join(" · ") : ""}
           explanation="Le persona qui génère le plus de revenu par visite du diagnostic. C'est celui à cibler en priorité dans vos publicités."
         />
 
@@ -157,7 +161,11 @@ export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialP
           personaCode={bestGrowth?.code || null}
           mainMetric={bestGrowth ? `${bestGrowth.convRate}% de conversion (moy. ${globalConvRate}%)` : "–"}
           mainMetricColor="hsl(25 85% 50%)"
-          secondaryMetrics={bestGrowth ? `AOV : ${bestGrowth.aov.toFixed(0)}€ · ${bestGrowth.volume} sessions sur la période` : ""}
+          secondaryMetrics={bestGrowth ? [
+            `AOV : ${bestGrowth.aov.toFixed(0)}€`,
+            `${bestGrowth.volume} sessions`,
+            bestGrowth.avgChildAge != null ? `Âge moyen enfants : ${bestGrowth.avgChildAge} ans` : null,
+          ].filter(Boolean).join(" · ") : ""}
           explanation="Le persona avec le plus gros potentiel d'amélioration. En améliorant son taux de conversion vers la moyenne, c'est là que le CA additionnel sera le plus important."
         />
 
@@ -166,9 +174,13 @@ export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialP
           title="Meilleur potentiel de fidélisation"
           borderColor="hsl(270 60% 55%)"
           personaCode={bestLTV?.code || null}
-          mainMetric={bestLTV ? `Âge moyen enfants : ${bestLTV.dominantAgeRange || "N/A"}` : "–"}
+          mainMetric={bestLTV?.avgChildAge != null ? `Âge moyen enfants : ${bestLTV.avgChildAge} ans` : "–"}
           mainMetricColor="hsl(270 55% 50%)"
-          secondaryMetrics={bestLTV ? `Opt-in email : ${bestLTV.optinEmailPct}% · Multi-enfants : ${bestLTV.multiChildrenPct}% · AOV : ${bestLTV.aov.toFixed(0)}€` : ""}
+          secondaryMetrics={bestLTV ? [
+            `Opt-in email : ${bestLTV.optinEmailPct}%`,
+            `Multi-enfants : ${bestLTV.multiChildrenPct}%`,
+            `AOV : ${bestLTV.aov.toFixed(0)}€`,
+          ].join(" · ") : ""}
           explanation="Le persona avec le plus fort potentiel à long terme. Enfants jeunes, forte capacité de recontact email et potentiel multi-produits."
         />
       </div>
