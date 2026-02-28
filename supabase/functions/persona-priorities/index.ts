@@ -22,12 +22,17 @@ serve(async (req) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const fromDate = thirtyDaysAgo.toISOString();
 
-    // Fetch completed sessions from last 30 days
+    // Fetch completed sessions from last 30 days WITH first child nested (avoids pagination issue)
     const { data: sessions, error: sessionsErr } = await supabase
       .from("diagnostic_sessions")
-      .select("id, session_code, persona_code, engagement_score, optin_email, number_of_children")
+      .select(`
+        id, session_code, persona_code, engagement_score, optin_email, number_of_children,
+        diagnostic_children!inner(age, age_range, child_index)
+      `)
       .eq("status", "termine")
-      .gte("created_at", fromDate);
+      .gte("created_at", fromDate)
+      .eq("diagnostic_children.child_index", 0)
+      .limit(10000);
 
     if (sessionsErr) throw new Error(`Sessions fetch error: ${sessionsErr.message}`);
     if (!sessions || sessions.length === 0) {
@@ -37,17 +42,13 @@ serve(async (req) => {
       });
     }
 
-    // Fetch first child (child_index = 0) for age data
-    const sessionIds = sessions.map((s: any) => s.id);
-    const { data: children } = await supabase
-      .from("diagnostic_children")
-      .select("session_id, age_range, age")
-      .in("session_id", sessionIds)
-      .eq("child_index", 0);
-
+    // Build child map from nested data
     const childBySession: Record<string, { age_range: string | null; age: number | null }> = {};
-    for (const c of (children || [])) {
-      childBySession[c.session_id] = { age_range: c.age_range, age: c.age };
+    for (const s of sessions) {
+      const children = (s as any).diagnostic_children;
+      if (Array.isArray(children) && children.length > 0) {
+        childBySession[s.id] = { age: children[0].age, age_range: children[0].age_range };
+      }
     }
 
     // Fetch orders
