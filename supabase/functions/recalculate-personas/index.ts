@@ -63,10 +63,13 @@ function scoreSession(
   }
 
   const scores: Record<string, number> = {};
+  // Track need-level scores for tie-breaking (Fix A)
+  const needScores: Record<string, number> = {};
 
   for (const persona of personas) {
     const criteria = persona.criteria;
     let totalScore = 0;
+    let blockedByRequired = false;
 
     for (const level of ["identity", "need", "behavior"]) {
       const levelDef = criteria[level];
@@ -86,37 +89,54 @@ function scoreSession(
           continue;
         }
 
-        if (sessionValue === null || sessionValue === undefined) continue;
+        if (sessionValue === null || sessionValue === undefined) {
+          if (criterion.required === true) blockedByRequired = true;
+          continue;
+        }
 
+        let matched = false;
         if (criterion.operator === "gte") {
-          if (Number(sessionValue) >= Number(criterion.values[0])) levelScore += criterionWeight;
+          matched = Number(sessionValue) >= Number(criterion.values[0]);
         } else if (criterion.operator === "lte") {
-          if (Number(sessionValue) <= Number(criterion.values[0])) levelScore += criterionWeight;
+          matched = Number(sessionValue) <= Number(criterion.values[0]);
         } else {
           // deno-lint-ignore no-explicit-any
-          const matchFound = criterion.values.some((v: any) => {
+          matched = criterion.values.some((v: any) => {
             if (typeof sessionValue === "boolean") return v === sessionValue;
             return String(v) === String(sessionValue);
           });
-          if (matchFound) levelScore += criterionWeight;
+        }
+
+        if (matched) {
+          levelScore += criterionWeight;
+        } else if (criterion.required === true) {
+          blockedByRequired = true;
         }
       }
 
+      if (blockedByRequired) break;
+
       if (levelTotalWeight > 0) {
-        totalScore += (levelScore / levelTotalWeight) * levelWeight;
+        const contribution = (levelScore / levelTotalWeight) * levelWeight;
+        totalScore += contribution;
+        if (level === "need") needScores[persona.code] = Math.round(contribution * 100 / levelWeight);
       }
     }
 
-    scores[persona.code] = Math.round(totalScore * 100);
+    scores[persona.code] = blockedByRequired ? 0 : Math.round(totalScore * 100);
+    if (blockedByRequired) needScores[persona.code] = 0;
   }
 
   let bestCode = "P0";
   let bestScore = 0;
+  let bestNeedScore = 0;
 
   for (const [code, score] of Object.entries(scores)) {
-    if (score > bestScore) {
+    const needScore = needScores[code] ?? 0;
+    if (score > bestScore || (score === bestScore && needScore > bestNeedScore)) {
       bestScore = score;
       bestCode = code;
+      bestNeedScore = needScore;
     }
   }
 

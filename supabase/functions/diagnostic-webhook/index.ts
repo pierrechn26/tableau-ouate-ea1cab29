@@ -78,10 +78,13 @@ async function computePersonaWithScore(
 
   // 3. Score each persona
   const scores: Record<string, number> = {};
+  // Track need-level scores for tie-breaking (Fix A)
+  const needScores: Record<string, number> = {};
 
   for (const persona of personas) {
     const criteria = persona.criteria;
     let totalScore = 0;
+    let blockedByRequired = false;
 
     for (const level of ["identity", "need", "behavior"]) {
       const levelDef = criteria[level];
@@ -104,47 +107,59 @@ async function computePersonaWithScore(
 
         // null/undefined in session = no match
         if (sessionValue === null || sessionValue === undefined) {
+          // Fix B: if required and missing, block the persona
+          if (criterion.required === true) {
+            blockedByRequired = true;
+          }
           continue;
         }
 
-        // Special operators
+        // Evaluate match
+        let matched = false;
         if (criterion.operator === "gte") {
-          if (Number(sessionValue) >= Number(criterion.values[0])) {
-            levelScore += criterionWeight;
-          }
+          matched = Number(sessionValue) >= Number(criterion.values[0]);
         } else if (criterion.operator === "lte") {
-          if (Number(sessionValue) <= Number(criterion.values[0])) {
-            levelScore += criterionWeight;
-          }
+          matched = Number(sessionValue) <= Number(criterion.values[0]);
         } else {
-          // Standard match: value is in the accepted list
-          // Handle boolean comparison properly
-          const matchFound = criterion.values.some((v: any) => {
+          matched = criterion.values.some((v: any) => {
             if (typeof sessionValue === "boolean") return v === sessionValue;
             return String(v) === String(sessionValue);
           });
-          if (matchFound) levelScore += criterionWeight;
+        }
+
+        if (matched) {
+          levelScore += criterionWeight;
+        } else if (criterion.required === true) {
+          // Fix B: required criterion didn't match → block this persona
+          blockedByRequired = true;
         }
       }
 
+      if (blockedByRequired) break;
+
       // Level score = (weighted matches / total weight) × level weight
       if (levelTotalWeight > 0) {
-        totalScore += (levelScore / levelTotalWeight) * levelWeight;
+        const contribution = (levelScore / levelTotalWeight) * levelWeight;
+        totalScore += contribution;
+        if (level === "need") needScores[persona.code] = Math.round(contribution * 100 / levelWeight);
       }
     }
 
-    // Convert to percentage
-    scores[persona.code] = Math.round(totalScore * 100);
+    scores[persona.code] = blockedByRequired ? 0 : Math.round(totalScore * 100);
+    if (blockedByRequired) needScores[persona.code] = 0;
   }
 
-  // 4. Find best persona (highest score, ≥60%)
+  // 4. Find best persona (highest score, ≥60%) — Fix A: break ties using need score
   let bestCode = "P0";
   let bestScore = 0;
+  let bestNeedScore = 0;
 
   for (const [code, score] of Object.entries(scores)) {
-    if (score > bestScore) {
+    const needScore = needScores[code] ?? 0;
+    if (score > bestScore || (score === bestScore && needScore > bestNeedScore)) {
       bestScore = score;
       bestCode = code;
+      bestNeedScore = needScore;
     }
   }
 
