@@ -7,10 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Eye, PlayCircle, CheckCircle, Mail, Clock, MessageSquare, Loader2, RefreshCw, Users } from "lucide-react";
+import { PlayCircle, CheckCircle, Mail, MessageSquare, Loader2, RefreshCw, Users } from "lucide-react";
 import { MetricCard } from "./MetricCard";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import { usePersonaStats } from "@/hooks/usePersonaStats";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { DateRange } from "react-day-picker";
 
 interface DiagnosticsAnalyticsProps {
@@ -27,18 +28,7 @@ const PERSONA_COLORS: Record<string, string> = {
   P7: "hsl(45, 90%, 50%)",
   P8: "hsl(348, 70%, 35%)",
   P9: "hsl(195, 70%, 45%)",
-};
-
-const PERSONA_NAMES: Record<string, string> = {
-  P1: "Clara — La Novice Imperfections",
-  P2: "Nathalie — La Novice Pré-ado",
-  P3: "Amandine — La Novice Atopique",
-  P4: "Julie — La Novice Sensible",
-  P5: "Stéphanie — La Multi-enfants",
-  P6: "Camille — La Novice Découverte",
-  P7: "Sandrine — L'Insatisfaite",
-  P8: "Virginie — La Fidèle Imperfections",
-  P9: "Marine — La Fidèle Exploratrice",
+  P0: "hsl(0, 0%, 60%)",
 };
 
 const DEFAULT_COLOR = "hsl(0, 0%, 60%)";
@@ -54,29 +44,27 @@ function getPersonaChartColor(code: string): string {
 export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
   const stats = useDiagnosticStats(dateRange);
   const personaData = usePersonaStats(dateRange);
+  const { getLabel, getName, profiles: personaProfiles } = usePersonaProfiles();
 
   // Build pie chart from persona-stats (real persona_code distribution)
-  const DISPLAY_NAMES: Record<string, string> = {
-    P1: "Clara", P2: "Nathalie", P3: "Amandine", P4: "Julie", P5: "Stéphanie",
-    P6: "Camille", P7: "Sandrine", P8: "Virginie", P9: "Marine",
-  };
-  const TITLES: Record<string, string> = {
-    P1: "La Novice Imperfections", P2: "La Novice Pré-ado", P3: "La Novice Atopique",
-    P4: "La Novice Sensible", P5: "La Multi-enfants", P6: "La Novice Découverte",
-    P7: "L'Insatisfaite", P8: "La Fidèle Imperfections", P9: "La Fidèle Exploratrice",
-  };
   const personaChartData = personaData.personas
     .filter(p => p.count > 0)
     .sort((a, b) => b.count - a.count)
-    .map(p => ({
-      name: PERSONA_NAMES[p.code] || `Persona ${p.code}`,
-      shortName: p.code,
-      displayName: DISPLAY_NAMES[p.code] || p.code,
-      title: TITLES[p.code] || p.subtitle,
-      value: p.percentage,
-      count: p.count,
-      color: getPersonaChartColor(p.code),
-    }));
+    .map(p => {
+      const fullLabel = getLabel(p.code);
+      const parts = fullLabel.split(" — ");
+      const displayName = parts[0] || p.code;
+      const title = parts.slice(1).join(" — ") || p.subtitle;
+      return {
+        name: fullLabel,
+        shortName: p.code,
+        displayName,
+        title,
+        value: p.percentage,
+        count: p.count,
+        color: getPersonaChartColor(p.code),
+      };
+    });
 
   if (stats.isLoading) {
     return (
@@ -325,54 +313,68 @@ export function DiagnosticsAnalytics({ dateRange }: DiagnosticsAnalyticsProps) {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th>
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Prénom enfant</th>
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Âge</th>
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Prénom</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Persona</th>
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Score</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Opt-in</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.responses.slice(0, 10).map((response) => (
-                      <tr key={response.id} className="border-b border-border/50 hover:bg-muted/50">
-                        <td className="py-2 px-3 text-muted-foreground">
-                          {response.created_at 
-                            ? new Date(response.created_at).toLocaleString('fr-FR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: 'Europe/Paris'
-                              })
-                            : '-'}
-                        </td>
-                        <td className="py-2 px-3 font-medium">{response.child_name || '-'}</td>
-                        <td className="py-2 px-3">{response.child_age ? `${response.child_age} ans` : '-'}</td>
-                        <td className="py-2 px-3">
-                          {response.detected_persona ? (
-                            <span 
-                              className="px-2 py-1 rounded-full text-xs font-medium text-white"
-                              style={{ 
-                                backgroundColor: PERSONA_COLORS[response.detected_persona.toLowerCase()] || DEFAULT_COLOR 
-                              }}
-                            >
-                              {response.detected_persona}
-                            </span>
-                          ) : '-'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex gap-1">
-                            {response.email_optin && (
-                              <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs">Email</span>
-                            )}
-                            {response.sms_optin && (
-                              <span className="px-2 py-0.5 bg-accent/20 text-accent rounded text-xs">SMS</span>
-                            )}
-                            {!response.email_optin && !response.sms_optin && '-'}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {stats.responses.slice(0, 10).map((response) => {
+                      const personaCode = response.persona_code;
+                      const isP0 = !personaCode || personaCode === "P0";
+                      const personaColor = personaCode ? (PERSONA_COLORS[personaCode] || DEFAULT_COLOR) : DEFAULT_COLOR;
+                      const personaLabel = personaCode ? getLabel(personaCode) : null;
+                      return (
+                        <tr key={response.id} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="py-2 px-3 text-muted-foreground">
+                            {response.created_at 
+                              ? new Date(response.created_at).toLocaleString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'Europe/Paris'
+                                })
+                              : '-'}
+                          </td>
+                          <td className="py-2 px-3 font-medium">{response.user_name || '-'}</td>
+                          <td className="py-2 px-3">
+                            {isP0 ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium italic text-muted-foreground bg-muted">
+                                Non attribué
+                              </span>
+                            ) : personaLabel ? (
+                              <span 
+                                className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                                style={{ backgroundColor: personaColor }}
+                              >
+                                {personaLabel}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="py-2 px-3">
+                            {response.matching_score != null ? (
+                              <span className={`text-xs font-semibold ${response.matching_score >= 80 ? 'text-green-600' : response.matching_score >= 60 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                                {response.matching_score}%
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="py-2 px-3">
+                            <div className="flex gap-1">
+                              {response.optin_email && (
+                                <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs">Email</span>
+                              )}
+                              {response.optin_sms && (
+                                <span className="px-2 py-0.5 bg-accent/20 text-accent rounded text-xs">SMS</span>
+                              )}
+                              {!response.optin_email && !response.optin_sms && '-'}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

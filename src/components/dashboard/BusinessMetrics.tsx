@@ -20,7 +20,7 @@ import { useBusinessMetrics } from "@/hooks/useBusinessMetrics";
 import { useRevenueTimeseries, type Granularity } from "@/hooks/useRevenueTimeseries";
 import { useInsightsMetrics } from "@/hooks/useInsightsMetrics";
 import { usePersonaStats } from "@/hooks/usePersonaStats";
-import { PERSONA_PROFILES, getPersonaDisplayName } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
@@ -57,6 +57,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
   const revenue = useRevenueTimeseries(dateRange, granularity);
   const insights = useInsightsMetrics(dateRange);
   const personaData = usePersonaStats(dateRange);
+  const { getName, getLabel } = usePersonaProfiles();
   const percentInfluenced = metrics.revenueTotal > 0
     ? (metrics.revenueDiag / metrics.revenueTotal) * 100
     : 0;
@@ -242,10 +243,10 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
             ) : (
               (() => {
                 const sortedPersonas = personaData.personas
-                  .filter(p => p.business && p.business.revenue > 0)
+                  .filter(p => p.code !== "P0" && p.business && p.business.revenue > 0)
                   .sort((a, b) => (b.business?.revenue ?? 0) - (a.business?.revenue ?? 0));
                 const chartData = sortedPersonas.map(p => ({
-                  name: getPersonaDisplayName(p.code),
+                  name: getName(p.code),
                   revenue: p.business?.revenue ?? 0,
                   aov: p.business?.aov ?? 0,
                   convRate: p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0,
@@ -303,8 +304,8 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                         const convRate = p.count > 0 ? ((p.business?.conversions ?? 0) / p.count * 100) : 0;
                         return (
                           <div key={p.code} className="text-center space-y-0.5">
-                            <p className="font-bold text-foreground text-sm">{getPersonaDisplayName(p.code)}</p>
-                            <p className="text-xs text-muted-foreground leading-tight italic">{PERSONA_PROFILES[p.code]?.title ?? p.name}</p>
+                            <p className="font-bold text-foreground text-sm">{getName(p.code)}</p>
+                            <p className="text-xs text-muted-foreground leading-tight italic">{getLabel(p.code).split(" — ").slice(1).join(" — ") || p.name}</p>
                             <p className="text-xs text-muted-foreground">AOV: <span className="font-medium text-foreground">{fmt(p.business?.aov ?? 0, 1)}€</span></p>
                             <p className="text-xs text-muted-foreground">Conv: <span className="font-medium text-foreground">{fmt(convRate, 1)}%</span></p>
                           </div>

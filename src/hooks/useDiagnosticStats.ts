@@ -59,6 +59,16 @@ type PerformancePayload = {
   }>;
 };
 
+type SessionRow = {
+  id: string;
+  created_at: string | null;
+  user_name: string | null;
+  persona_code: string | null;
+  matching_score: number | null;
+  optin_email: boolean | null;
+  optin_sms: boolean | null;
+};
+
 interface DiagnosticStats {
   // Compteurs principaux
   totalResponses: number;
@@ -95,8 +105,16 @@ interface DiagnosticStats {
   // Detailed diagnostic funnel
   detailedFunnel: Array<{ label: string; count: number }>;
   
-  // Données brutes
-  responses: DiagnosticResponse[];
+  // Données brutes (depuis diagnostic_sessions)
+  responses: Array<{
+    id: string;
+    created_at: string | null;
+    user_name: string | null;
+    persona_code: string | null;
+    matching_score: number | null;
+    optin_email: boolean | null;
+    optin_sms: boolean | null;
+  }>;
   
   // État
   isLoading: boolean;
@@ -104,7 +122,7 @@ interface DiagnosticStats {
 }
 
 export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
-  const [responses, setResponses] = useState<DiagnosticResponse[]>([]);
+  const [responses, setResponses] = useState<SessionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [serverStats, setServerStats] = useState<Omit<DiagnosticStats,
@@ -151,32 +169,17 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
             detailedFunnel: data.detailedFunnel ?? [],
           });
 
-        // Map sanitized recent responses into local shape (fields not provided become null)
-        setResponses(
-          (data.responses || []).map((r) => ({
-            id: r.id,
-            session_id: '',
-            created_at: r.created_at,
-            child_name: r.child_name,
-            child_age: r.child_age,
-            parent_name: null,
-            email: null,
-            phone: null,
-            email_optin: r.email_optin,
-            sms_optin: r.sms_optin,
-            detected_persona: r.detected_persona,
-            persona_confidence: null,
-            persona_scores: null,
-            answers: null,
-            metadata: null,
-            source_url: null,
-            utm_source: null,
-            utm_medium: null,
-            utm_campaign: null,
-            utm_content: null,
-            utm_term: null,
-          }))
-        );
+        // Fetch recent completed sessions for the responses table (uses new columns)
+        const sessionQuery = supabase
+          .from("diagnostic_sessions")
+          .select("id, created_at, user_name, persona_code, matching_score, optin_email, optin_sms")
+          .eq("status", "termine")
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (from) sessionQuery.gte("created_at", from);
+        if (to) sessionQuery.lte("created_at", to);
+        const { data: sessionRows } = await sessionQuery;
+        setResponses(sessionRows ?? []);
       } catch (err) {
         console.error('[useDiagnosticStats] Error fetching performance:', err);
         setError(err instanceof Error ? err : new Error('Unknown error'));

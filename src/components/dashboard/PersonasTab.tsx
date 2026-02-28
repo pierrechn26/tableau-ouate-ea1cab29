@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
-import { usePersonaStats, PersonaStat, PersonaTopItem } from "@/hooks/usePersonaStats";
+import { usePersonaStats, PersonaStat } from "@/hooks/usePersonaStats";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { DateRange } from "react-day-picker";
-import { PERSONA_PROFILES as SHARED_PERSONA_PROFILES } from "@/constants/personas";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 
 import personaP1 from "@/assets/persona-p1.png";
@@ -41,18 +40,11 @@ function getPersonaColor(code: string): string {
   return `${hue} 65% 50%`;
 }
 
-/* ── Persona definitions with names, taglines, ages, images ── */
+/* ── Persona images (static assets, not from DB) ── */
 
-const PERSONA_PROFILES: Record<string, { displayName: string; title: string; description: string; image: string }> = {
-  P1: { displayName: SHARED_PERSONA_PROFILES.P1.displayName, title: SHARED_PERSONA_PROFILES.P1.title, description: SHARED_PERSONA_PROFILES.P1.description, image: personaP1 },
-  P2: { displayName: SHARED_PERSONA_PROFILES.P2.displayName, title: SHARED_PERSONA_PROFILES.P2.title, description: SHARED_PERSONA_PROFILES.P2.description, image: personaP2 },
-  P3: { displayName: SHARED_PERSONA_PROFILES.P3.displayName, title: SHARED_PERSONA_PROFILES.P3.title, description: SHARED_PERSONA_PROFILES.P3.description, image: personaP3 },
-  P4: { displayName: SHARED_PERSONA_PROFILES.P4.displayName, title: SHARED_PERSONA_PROFILES.P4.title, description: SHARED_PERSONA_PROFILES.P4.description, image: personaP4 },
-  P5: { displayName: SHARED_PERSONA_PROFILES.P5.displayName, title: SHARED_PERSONA_PROFILES.P5.title, description: SHARED_PERSONA_PROFILES.P5.description, image: personaP5 },
-  P6: { displayName: SHARED_PERSONA_PROFILES.P6.displayName, title: SHARED_PERSONA_PROFILES.P6.title, description: SHARED_PERSONA_PROFILES.P6.description, image: personaP6 },
-  P7: { displayName: SHARED_PERSONA_PROFILES.P7.displayName, title: SHARED_PERSONA_PROFILES.P7.title, description: SHARED_PERSONA_PROFILES.P7.description, image: personaP7 },
-  P8: { displayName: SHARED_PERSONA_PROFILES.P8.displayName, title: SHARED_PERSONA_PROFILES.P8.title, description: SHARED_PERSONA_PROFILES.P8.description, image: personaP8 },
-  P9: { displayName: SHARED_PERSONA_PROFILES.P9.displayName, title: SHARED_PERSONA_PROFILES.P9.title, description: SHARED_PERSONA_PROFILES.P9.description, image: personaP9 },
+const PERSONA_IMAGES: Record<string, string> = {
+  P1: personaP1, P2: personaP2, P3: personaP3, P4: personaP4, P5: personaP5,
+  P6: personaP6, P7: personaP7, P8: personaP8, P9: personaP9,
 };
 
 /* ── Translation maps ────────────────────────────────── */
@@ -347,11 +339,14 @@ function generateInsightsText(p: PersonaStat, globalAvg: { conversionRate: numbe
 function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number }; globalRevenue: number }) {
   const color = getPersonaColor(persona.code);
   const p = persona;
-  const profile = PERSONA_PROFILES[p.code];
-  const displayName = profile?.displayName || p.name;
-  const title = profile?.title || p.subtitle;
-  const description = profile?.description || p.subtitle;
-  const image = profile?.image;
+  const { getLabel, getName, profiles: dbProfiles } = usePersonaProfiles();
+  const fullLabel = getLabel(p.code);
+  const labelParts = fullLabel.split(" — ");
+  const displayName = labelParts[0] || p.name;
+  const title = labelParts.slice(1).join(" — ") || p.subtitle;
+  const dbProfile = dbProfiles.find(dp => dp.code === p.code);
+  const description = dbProfile?.description || p.subtitle;
+  const image = PERSONA_IMAGES[p.code];
 
   if (!p.profile) {
     return (
