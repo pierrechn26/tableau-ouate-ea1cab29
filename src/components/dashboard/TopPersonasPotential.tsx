@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { usePersonaPriorities } from "@/hooks/usePersonaPriorities";
-import { PERSONA_PROFILES } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
@@ -36,11 +36,16 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({ emoji, title, borderColor, personaCode, mainMetric, mainMetricColor, secondaryMetrics, explanation }: CategoryCardProps) {
-  const profile = personaCode ? PERSONA_PROFILES[personaCode] : null;
+  const { profiles: dbProfiles } = usePersonaProfiles();
+  const dbProfile = personaCode ? dbProfiles.find(p => p.code === personaCode) : null;
+  const fullLabel = dbProfile?.full_label ?? "";
+  const labelParts = fullLabel.split(" — ");
+  const displayName = labelParts[0] || personaCode || "";
+  const titleStr = labelParts.slice(1).join(" — ") || "";
   const image = personaCode ? PERSONA_IMAGES[personaCode] : null;
   const color = personaCode ? PERSONA_COLORS[personaCode] || "200 60% 50%" : "200 60% 50%";
 
-  if (!personaCode || !profile) {
+  if (!personaCode || !dbProfile) {
     return (
       <Card className="p-5 opacity-50">
         <p className="text-base font-bold">{emoji} {title}</p>
@@ -62,14 +67,14 @@ function CategoryCard({ emoji, title, borderColor, personaCode, mainMetric, main
           <div className="flex items-center gap-3 mt-1 mb-3">
             {image && (
               <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2" style={{ borderColor: `hsl(${color})` }}>
-                <img src={image} alt={profile.displayName} className="w-full h-full object-cover" />
+                <img src={image} alt={displayName} className="w-full h-full object-cover" />
               </div>
             )}
             <div className="min-w-0">
               <p className="text-base font-bold text-foreground leading-tight">
-                {profile.displayName}
+                {displayName}
               </p>
-              <p className="text-sm text-muted-foreground">{profile.title}</p>
+              <p className="text-sm text-muted-foreground">{titleStr}</p>
             </div>
           </div>
 
@@ -97,6 +102,7 @@ interface TopPersonasPotentialProps {
 
 export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialProps) {
   const { bestROI, bestGrowth, bestLTV, globalConvRate, isLoading } = usePersonaPriorities();
+  const { profiles: dbProfiles } = usePersonaProfiles();
 
   if (isLoading) {
     return (

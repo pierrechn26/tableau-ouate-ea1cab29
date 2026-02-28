@@ -78,7 +78,20 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(20);
 
-    // === ÉTAPE 3: Collecter le contexte données ===
+    // === ÉTAPE 3: Charger les personas depuis la BDD ===
+    const { data: personaRows } = await supabase
+      .from("personas")
+      .select("code, name, full_label, description, criteria, is_pool")
+      .eq("is_active", true)
+      .order("code");
+
+    const activePersonas = (personaRows || []).filter((p: any) => !p.is_pool);
+    const personaLabelMap: Record<string, string> = Object.fromEntries(
+      (personaRows || []).map((p: any) => [p.code, p.full_label])
+    );
+    const getPersonaLabel = (code: string) => personaLabelMap[code] || code;
+
+    // === ÉTAPE 4: Collecter le contexte données ===
     const [{ data: allSessions }, { data: allOrders }, { data: latestRecommendations }] = await Promise.all([
       supabase.from("diagnostic_sessions").select("*").eq("status", "termine"),
       supabase.from("shopify_orders").select("*"),
@@ -95,32 +108,21 @@ serve(async (req) => {
     const conversionRate = totalSessions > 0 ? ((sessions.filter(s => s.conversion).length / totalSessions) * 100).toFixed(1) : "0";
     const globalAov = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0";
 
-    // Métriques par persona
-    const personaNames: Record<string, string> = {
-      P1: "Clara — La Novice Imperfections",
-      P2: "Nathalie — La Novice Pré-ado",
-      P3: "Amandine — La Novice Atopique",
-      P4: "Julie — La Novice Sensible",
-      P5: "Stéphanie — La Multi-enfants Besoins Mixtes",
-      P6: "Camille — La Novice Découverte",
-      P7: "Sandrine — L'Insatisfaite",
-      P8: "Virginie — La Fidèle Imperfections",
-      P9: "Marine — La Fidèle Exploratrice",
-    };
-
+    // Métriques par persona — depuis la table personas (source de vérité)
+    const p0Sessions = sessions.filter(s => !s.persona_code || s.persona_code === "P0");
     const personasData: Record<string, object> = {};
-    for (const [code, name] of Object.entries(personaNames)) {
-      const pSessions = sessions.filter(s => s.persona_code === code || s.persona_detected === code);
+    for (const p of activePersonas) {
+      const code = p.code;
+      const name = p.full_label;
+      const pSessions = sessions.filter(s => s.persona_code === code);
       const pOrders = orders.filter(o => {
-        const matchedSession = sessions.find(s => s.session_code === o.diagnostic_session_id && (s.persona_code === code || s.persona_detected === code));
+        const matchedSession = sessions.find(s => s.session_code === o.diagnostic_session_id && s.persona_code === code);
         return !!matchedSession;
       });
       const pConverted = pSessions.filter(s => s.conversion).length;
       const pRevenue = pOrders.reduce((sum, o) => sum + (o.total_price ?? 0), 0);
       const pAov = pOrders.length > 0 ? pRevenue / pOrders.length : 0;
 
-      // Distributions
-      const priorities = pSessions.map(s => s.priorities_ordered).filter(Boolean);
       const routines = pSessions.map(s => s.routine_size_preference).filter(Boolean);
       const emailOptins = pSessions.filter(s => s.optin_email).length;
       const smsOptins = pSessions.filter(s => s.optin_sms).length;
@@ -130,9 +132,13 @@ serve(async (req) => {
       const avgEngagement = pSessions.length > 0
         ? (pSessions.reduce((sum, s) => sum + (s.engagement_score ?? 0), 0) / pSessions.length).toFixed(1)
         : "0";
+      const avgMatchingScore = pSessions.length > 0
+        ? (pSessions.reduce((sum, s) => sum + (s.matching_score ?? 0), 0) / pSessions.length).toFixed(1)
+        : null;
 
       personasData[code] = {
         name,
+        description: p.description || "",
         total_sessions: pSessions.length,
         converted: pConverted,
         conversion_rate: pSessions.length > 0 ? ((pConverted / pSessions.length) * 100).toFixed(1) + "%" : "0%",
@@ -143,10 +149,18 @@ serve(async (req) => {
         sms_optin_rate: pSessions.length > 0 ? ((smsOptins / pSessions.length) * 100).toFixed(1) + "%" : "0%",
         avg_duration_seconds: avgDuration,
         avg_engagement_score: avgEngagement,
+        avg_matching_score: avgMatchingScore,
         routine_preferences: routines.reduce((acc: Record<string, number>, r) => { acc[r!] = (acc[r!] ?? 0) + 1; return acc; }, {}),
         share_of_total: totalSessions > 0 ? ((pSessions.length / totalSessions) * 100).toFixed(1) + "%" : "0%",
       };
     }
+    // P0 summary
+    const p0Summary = {
+      name: "P0 — Non attribué",
+      total_sessions: p0Sessions.length,
+      share_of_total: totalSessions > 0 ? ((p0Sessions.length / totalSessions) * 100).toFixed(1) + "%" : "0%",
+      note: "Sessions dont le score de matching est inférieur à 60% pour tous les personas.",
+    };
 
     // Tendance mensuelle (mois actuel vs mois précédent)
     const now = new Date();
@@ -201,24 +215,21 @@ Gamme de produits avec prix :
 Canaux marketing : Meta Ads (Instagram + Facebook), Klaviyo (email/SMS), Site Shopify, Diagnostic de peau IA en ligne.
 Code promo diagnostic : DIAG-15 (-15%).
 
-=== PERSONAS OUATE ===
+=== PERSONAS OUATE (SOURCE BASE DE DONNÉES) ===
 
-9 personas identifiés :
-- P1 Clara — La Novice Imperfections
-- P2 Nathalie — La Novice Pré-ado
-- P3 Amandine — La Novice Atopique
-- P4 Julie — La Novice Sensible
-- P5 Stéphanie — La Multi-enfants Besoins Mixtes
-- P6 Camille — La Novice Découverte
-- P7 Sandrine — L'Insatisfaite
-- P8 Virginie — La Fidèle Imperfections
-- P9 Marine — La Fidèle Exploratrice
+${activePersonas.map((p: any) => `- ${p.full_label} : ${p.description || "Profil en cours de définition."}`).join("\n")}
 
-Toujours utiliser les prénoms, jamais les codes P1-P9.
+- P0 — Non attribué : Sessions dont le score de matching est inférieur à 60% pour tous les personas. Ce sont des profils atypiques qui ne rentrent dans aucune catégorie. Il y a actuellement ${p0Summary.total_sessions} sessions P0 (${p0Summary.share_of_total} du total).
 
-=== DONNÉES ACTUELLES — HISTORIQUE COMPLET ===
+Toujours utiliser les prénoms, jamais les codes P0-P9.
+
+=== DONNÉES ACTUELLES — HISTORIQUE COMPLET PAR PERSONA ===
 
 ${JSON.stringify(personasData, null, 2)}
+
+=== SESSIONS NON ATTRIBUÉES (P0) ===
+
+${JSON.stringify(p0Summary, null, 2)}
 
 === MÉTRIQUES GLOBALES ===
 

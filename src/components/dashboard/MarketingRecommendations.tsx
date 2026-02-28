@@ -37,7 +37,7 @@ import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, nextMonday, isMonday, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getPersonaBadgeLabel } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 
 // Hook for animated counter
 function useAnimatedCounter(value: number, duration: number = 400) {
@@ -68,6 +68,7 @@ function useAnimatedCounter(value: number, duration: number = 400) {
 }
 
 function PersonaBadges({ personas }: { personas?: string[] }) {
+  const { getName } = usePersonaProfiles();
   if (!personas || personas.length === 0) return null;
   const colors: Record<string, string> = {
     P1: "bg-primary/20 text-primary border-primary/30",
@@ -88,7 +89,7 @@ function PersonaBadges({ personas }: { personas?: string[] }) {
           variant="outline"
           className={`text-[10px] px-1.5 py-0 h-5 font-bold ${colors[p] || "bg-muted text-muted-foreground"}`}
         >
-          {getPersonaBadgeLabel(p)}
+          {getName(p)}
         </Badge>
       ))}
     </span>
