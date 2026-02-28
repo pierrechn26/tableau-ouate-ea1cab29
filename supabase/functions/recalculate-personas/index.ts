@@ -23,7 +23,7 @@ function scoreSession(
   sessionData: Record<string, unknown>,
   // deno-lint-ignore no-explicit-any
   children: any[]
-): { code: string; score: number } {
+): { code: string; score: number; scores_all: Record<string, number> } {
   // deno-lint-ignore no-explicit-any
   const child1 = children.find((c: any) => c.child_index === 0) || children[0];
   const child2 = children.find((c: any) => c.child_index === 1);
@@ -122,7 +122,7 @@ function scoreSession(
 
   if (bestScore < 60) bestCode = "P0";
 
-  return { code: bestCode, score: bestScore };
+  return { code: bestCode, score: bestScore, scores_all: scores };
 }
 
 /* ============================================================
@@ -193,6 +193,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const recalculateOnly = body.recalculate_only === true;
+    const debugSessionIds: string[] = body.debug_session_ids || [];
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -200,6 +201,36 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("[recalculate-personas] Starting recalculation, recalculate_only:", recalculateOnly);
+
+    // ── DEBUG MODE: return scores_all for specific sessions without writing ──
+    if (debugSessionIds.length > 0) {
+      const { data: pDef } = await supabase.from("personas").select("code, full_label, criteria").eq("is_active", true).eq("is_pool", false);
+      if (!pDef) return jsonResponse({ error: "No personas" }, 500);
+      const { data: dSessions } = await supabase.from("diagnostic_sessions").select("*").in("id", debugSessionIds);
+      const { data: dChildren } = await supabase.from("diagnostic_children").select("*").in("session_id", debugSessionIds).order("child_index", { ascending: true });
+      // deno-lint-ignore no-explicit-any
+      const childMap: Record<string, any[]> = {};
+      for (const c of dChildren || []) {
+        if (!childMap[c.session_id]) childMap[c.session_id] = [];
+        childMap[c.session_id].push(c);
+      }
+      const debugResults = (dSessions || []).map((s) => {
+        const res = scoreSession(pDef, s, childMap[s.id] || []);
+        const sorted = Object.entries(res.scores_all).sort(([, a], [, b]) => b - a);
+        return {
+          id: s.id,
+          email: s.email,
+          assigned: res.code,
+          best_score: res.score,
+          rank1: sorted[0] ? `${sorted[0][0]}=${sorted[0][1]}%` : null,
+          rank2: sorted[1] ? `${sorted[1][0]}=${sorted[1][1]}%` : null,
+          rank3: sorted[2] ? `${sorted[2][0]}=${sorted[2][1]}%` : null,
+          gap_1_2: sorted[0] && sorted[1] ? sorted[0][1] - sorted[1][1] : null,
+          all_scores: res.scores_all,
+        };
+      });
+      return jsonResponse({ debug: true, results: debugResults }, 200);
+    }
 
     // 1. Load all active personas (excluding P0)
     const { data: personas, error: personasError } = await supabase
@@ -261,7 +292,7 @@ Deno.serve(async (req) => {
       const updates = batch.map((session) => {
         const children = childrenBySession[session.id] || [];
         const result = scoreSession(personas, session, children);
-        return { id: session.id, email: session.email, persona_code: result.code, matching_score: result.score };
+        return { id: session.id, email: session.email, persona_code: result.code, matching_score: result.score, scores_all: result.scores_all };
       });
 
       // Batch update DB
