@@ -252,8 +252,6 @@ export type Database = {
         Row: {
           abandoned_at_step: string | null
           adapted_tone: string | null
-          ai_key_messages: string | null
-          ai_suggested_segment: string | null
           avg_response_time: number | null
           back_navigation_count: number | null
           behavior_tags: string | null
@@ -279,8 +277,6 @@ export type Database = {
           optin_email: boolean | null
           optin_sms: boolean | null
           persona_code: string | null
-          persona_detected: string | null
-          persona_matching_score: number | null
           phone: string | null
           priorities_ordered: string | null
           question_path: string | null
@@ -305,8 +301,6 @@ export type Database = {
         Insert: {
           abandoned_at_step?: string | null
           adapted_tone?: string | null
-          ai_key_messages?: string | null
-          ai_suggested_segment?: string | null
           avg_response_time?: number | null
           back_navigation_count?: number | null
           behavior_tags?: string | null
@@ -332,8 +326,6 @@ export type Database = {
           optin_email?: boolean | null
           optin_sms?: boolean | null
           persona_code?: string | null
-          persona_detected?: string | null
-          persona_matching_score?: number | null
           phone?: string | null
           priorities_ordered?: string | null
           question_path?: string | null
@@ -358,8 +350,6 @@ export type Database = {
         Update: {
           abandoned_at_step?: string | null
           adapted_tone?: string | null
-          ai_key_messages?: string | null
-          ai_suggested_segment?: string | null
           avg_response_time?: number | null
           back_navigation_count?: number | null
           behavior_tags?: string | null
@@ -385,8 +375,6 @@ export type Database = {
           optin_email?: boolean | null
           optin_sms?: boolean | null
           persona_code?: string | null
-          persona_detected?: string | null
-          persona_matching_score?: number | null
           phone?: string | null
           priorities_ordered?: string | null
           question_path?: string | null
