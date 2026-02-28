@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { getPersonaLabel } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import {
   Table,
   TableBody,
@@ -98,11 +98,22 @@ const IDENTIFICATION_COLS: ColumnDef[] = [
   { key: "result_url", label: "Result URL", category: "identification", getValue: (s) => fmt(s.result_url) },
 ];
 
-const PERSONA_COLS: ColumnDef[] = [
-  { key: "persona_code_col", label: "Persona", category: "persona", getValue: (s) => s.persona_code ? getPersonaLabel(s.persona_code) : "—" },
-  { key: "matching_score_col", label: "Matching %", category: "persona", getValue: (s) => s.matching_score != null ? `${s.matching_score}%` : "—" },
-  { key: "adapted_tone", label: "Tone adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },
-];
+function buildPersonaCols(getLabel: (code: string) => string): ColumnDef[] {
+  return [
+    {
+      key: "persona_code_col",
+      label: "Persona",
+      category: "persona",
+      getValue: (s) => {
+        if (!s.persona_code) return "—";
+        if (s.persona_code === "P0") return "Non attribué";
+        return getLabel(s.persona_code);
+      },
+    },
+    { key: "matching_score_col", label: "Matching %", category: "persona", getValue: (s) => s.matching_score != null ? `${s.matching_score}%` : "—" },
+    { key: "adapted_tone", label: "Tone adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },
+  ];
+}
 
 const BUSINESS_COLS: ColumnDef[] = [
   { key: "conversion", label: "Conversion", category: "business", getValue: (s) => s.conversion ? "Oui" : "Non" },
@@ -170,10 +181,10 @@ function childDynamicCols(index: number): ColumnDef[] {
 
 /* ── Build all columns ─────────────────────────────────── */
 
-function buildAllColumns(): ColumnDef[] {
+function buildAllColumns(getLabel: (code: string) => string): ColumnDef[] {
   const cols: ColumnDef[] = [
     ...IDENTIFICATION_COLS,
-    ...PERSONA_COLS,
+    ...buildPersonaCols(getLabel),
     ...BUSINESS_COLS,
     ...COMPORTEMENT_COLS,
   ];
@@ -251,7 +262,8 @@ type SortDir = "asc" | "desc";
 const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
 
 export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFilter, conversionFilter }: SessionsTableProps) {
-  const columns = useMemo(buildAllColumns, []);
+  const { getLabel } = usePersonaProfiles();
+  const columns = useMemo(() => buildAllColumns(getLabel), [getLabel]);
   const spans = useMemo(() => getCategorySpans(columns), [columns]);
   const [pageSize, setPageSize] = useState<number>(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -518,6 +530,6 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
 
 /* ── Export helpers (used by ResponsesSection) ─────────── */
 
-export function getColumnDefs() {
-  return buildAllColumns();
+export function getColumnDefs(getLabel?: (code: string) => string) {
+  return buildAllColumns(getLabel ?? ((code) => code));
 }

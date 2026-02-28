@@ -587,8 +587,11 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
   }
 
   const MIN_VOLUME = 20;
-  const visiblePersonas = [...personas].filter(p => p.count >= MIN_VOLUME).sort((a, b) => b.count - a.count);
-  const hiddenCount = personas.filter(p => p.count > 0 && p.count < MIN_VOLUME).length;
+  // Include P0 in stats display but with special styling
+  const p0Stat = personas.find(p => p.code === "P0");
+  const visiblePersonas = [...personas].filter(p => p.code !== "P0" && p.count >= MIN_VOLUME).sort((a, b) => b.count - a.count);
+  const hiddenCount = personas.filter(p => p.code !== "P0" && p.count > 0 && p.count < MIN_VOLUME).length;
+  const p0Count = p0Stat?.count ?? 0;
   const globalRevenue = personas.reduce((sum, p) => sum + (p.business?.revenue || 0), 0);
 
   return (
@@ -600,6 +603,11 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
         <p className="text-sm text-muted-foreground mt-1">
           {visiblePersonas.length} profils affichés (seuil minimum : {MIN_VOLUME} sessions)
           {hiddenCount > 0 && ` · ${hiddenCount} profil${hiddenCount > 1 ? "s" : ""} masqué${hiddenCount > 1 ? "s" : ""} (volume insuffisant)`}
+          {p0Count > 0 && (
+            <span className="ml-2 text-muted-foreground/70 italic">
+              · {p0Count} session{p0Count > 1 ? "s" : ""} non attribuée{p0Count > 1 ? "s" : ""} (P0)
+            </span>
+          )}
         </p>
       </div>
 
