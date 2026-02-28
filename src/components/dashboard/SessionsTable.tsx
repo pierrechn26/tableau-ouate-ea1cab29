@@ -101,11 +101,7 @@ const IDENTIFICATION_COLS: ColumnDef[] = [
 const PERSONA_COLS: ColumnDef[] = [
   { key: "persona_code_col", label: "Persona", category: "persona", getValue: (s) => s.persona_code ? getPersonaLabel(s.persona_code) : "—" },
   { key: "matching_score_col", label: "Matching %", category: "persona", getValue: (s) => s.matching_score != null ? `${s.matching_score}%` : "—" },
-  { key: "persona_detected", label: "Persona détecté", category: "persona", getValue: (s) => fmt(s.persona_detected) },
-  { key: "persona_score", label: "Matching score (%)", category: "persona", getValue: (s) => s.persona_matching_score != null ? `${s.persona_matching_score}%` : "—" },
   { key: "adapted_tone", label: "Tone adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },
-  { key: "ai_key_messages", label: "Messages clés IA", category: "persona", getValue: (s) => fmt(s.ai_key_messages) },
-  { key: "ai_segment", label: "Suggestion IA — Segment", category: "persona", getValue: (s) => fmt(s.ai_suggested_segment) },
 ];
 
 const BUSINESS_COLS: ColumnDef[] = [
@@ -293,7 +289,7 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
           s.session_code?.toLowerCase().includes(q) ||
           s.user_name?.toLowerCase().includes(q) ||
           s.email?.toLowerCase().includes(q) ||
-          s.persona_detected?.toLowerCase().includes(q)
+          s.persona_code?.toLowerCase().includes(q)
       );
     }
 
