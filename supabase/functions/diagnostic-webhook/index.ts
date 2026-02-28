@@ -17,6 +17,147 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 type SupabaseClient = any;
 
 /* ============================================================
+   PERSONA SCORING ENGINE — reads definitions from personas table
+   ============================================================ */
+// deno-lint-ignore no-explicit-any
+async function computePersonaWithScore(
+  supabase: SupabaseClient,
+  sessionData: Record<string, unknown>,
+  children: any[]
+): Promise<{ code: string; score: number; scores_all: Record<string, number> }> {
+
+  // 1. Load all active personas (excluding P0 pool)
+  const { data: personas } = await supabase
+    .from("personas")
+    .select("code, criteria")
+    .eq("is_active", true)
+    .eq("is_pool", false);
+
+  if (!personas || personas.length === 0) {
+    console.warn("[diagnostic-webhook] No personas found in DB, falling back to P0");
+    return { code: "P0", score: 0, scores_all: {} };
+  }
+
+  // 2. Prepare session values for matching
+  const child1 = children.find((c: any) => c.child_index === 0) || children[0];
+  const child2 = children.find((c: any) => c.child_index === 1);
+
+  const priority_1 = sessionData.priorities_ordered
+    ? String(sessionData.priorities_ordered).split(",")[0].trim()
+    : null;
+  const trust_trigger_1 = sessionData.trust_triggers_ordered
+    ? String(sessionData.trust_triggers_ordered).split(",")[0].trim()
+    : null;
+
+  const sessionValues: Record<string, any> = {
+    "relationship": sessionData.relationship,
+    "is_existing_client": sessionData.is_existing_client,
+    "number_of_children": sessionData.number_of_children,
+    "priority_1": priority_1,
+    "routine_size_preference": sessionData.routine_size_preference,
+    "trust_trigger_1": trust_trigger_1,
+    "content_format_preference": sessionData.content_format_preference,
+  };
+
+  if (child1) {
+    sessionValues["child.skin_concern"] = child1.skin_concern;
+    sessionValues["child.age_range"] = child1.age_range;
+    sessionValues["child.has_routine"] = child1.has_routine;
+    sessionValues["child.skin_reactivity"] = child1.skin_reactivity;
+    sessionValues["child.has_ouate_products"] = child1.has_ouate_products;
+    sessionValues["child.exclude_fragrance"] = child1.exclude_fragrance;
+    sessionValues["child.routine_satisfaction"] = child1.routine_satisfaction;
+  }
+
+  // Special criterion: different skin concerns between child1 and child2
+  if (child1 && child2) {
+    sessionValues["child.skin_concern_different"] = child1.skin_concern !== child2.skin_concern;
+  } else {
+    sessionValues["child.skin_concern_different"] = false;
+  }
+
+  // 3. Score each persona
+  const scores: Record<string, number> = {};
+
+  for (const persona of personas) {
+    const criteria = persona.criteria;
+    let totalScore = 0;
+
+    for (const level of ["identity", "need", "behavior"]) {
+      const levelDef = criteria[level];
+      if (!levelDef || !levelDef.criteria || levelDef.criteria.length === 0) continue;
+
+      const levelWeight = levelDef.weight;
+      let levelScore = 0;
+      let levelTotalWeight = 0;
+
+      for (const criterion of levelDef.criteria) {
+        const sessionValue = sessionValues[criterion.field];
+        const criterionWeight = criterion.weight;
+        levelTotalWeight += criterionWeight;
+
+        // "any" always matches
+        if (criterion.values.includes("any")) {
+          levelScore += criterionWeight;
+          continue;
+        }
+
+        // null/undefined in session = no match
+        if (sessionValue === null || sessionValue === undefined) {
+          continue;
+        }
+
+        // Special operators
+        if (criterion.operator === "gte") {
+          if (Number(sessionValue) >= Number(criterion.values[0])) {
+            levelScore += criterionWeight;
+          }
+        } else if (criterion.operator === "lte") {
+          if (Number(sessionValue) <= Number(criterion.values[0])) {
+            levelScore += criterionWeight;
+          }
+        } else {
+          // Standard match: value is in the accepted list
+          // Handle boolean comparison properly
+          const matchFound = criterion.values.some((v: any) => {
+            if (typeof sessionValue === "boolean") return v === sessionValue;
+            return String(v) === String(sessionValue);
+          });
+          if (matchFound) levelScore += criterionWeight;
+        }
+      }
+
+      // Level score = (weighted matches / total weight) × level weight
+      if (levelTotalWeight > 0) {
+        totalScore += (levelScore / levelTotalWeight) * levelWeight;
+      }
+    }
+
+    // Convert to percentage
+    scores[persona.code] = Math.round(totalScore * 100);
+  }
+
+  // 4. Find best persona (highest score, ≥60%)
+  let bestCode = "P0";
+  let bestScore = 0;
+
+  for (const [code, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestCode = code;
+    }
+  }
+
+  // If best score < 60% → P0 (unassigned pool)
+  if (bestScore < 60) {
+    bestCode = "P0";
+  }
+
+  console.log("[diagnostic-webhook] Scoring result:", { bestCode, bestScore, scores });
+  return { code: bestCode, score: bestScore, scores_all: scores };
+}
+
+/* ============================================================
    NEW FORMAT — writes to diagnostic_sessions + diagnostic_children
    ============================================================ */
 // deno-lint-ignore no-explicit-any
@@ -37,22 +178,6 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     return fallback;
   };
 
-  // Helper: assign persona_code based on decision tree
-  // deno-lint-ignore no-explicit-any
-  function computePersonaCode(sData: Record<string, unknown>, children: any[]): string {
-    const c1 = children.find((c: any) => c.child_index === 0) || children[0];
-    const c2 = children.find((c: any) => c.child_index === 1);
-    if (!c1) return "P6";
-    if (sData.is_existing_client) return c1.skin_concern === "imperfections" ? "P8" : "P9";
-    if ((sData.number_of_children as number) >= 2 && c2 && c1.skin_concern !== c2.skin_concern) return "P5";
-    if (c1.has_routine === true) return "P7";
-    if (c1.skin_concern === "imperfections" && c1.age_range === "10-11") return "P2";
-    if (c1.skin_concern === "imperfections") return "P1";
-    if (c1.skin_concern === "atopique") return "P3";
-    if (c1.skin_concern === "sensible") return "P4";
-    return "P6";
-  }
-
   const sessionData: Record<string, unknown> = {
     session_code: payload.session_code,
     status: coalesce("status", "en_cours"),
@@ -68,11 +193,7 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     number_of_children: coalesce("number_of_children"),
     locale: coalesce("locale"),
     result_url: coalesce("result_url"),
-    persona_detected: coalesce("persona_detected"),
-    persona_matching_score: coalesce("persona_matching_score"),
     adapted_tone: coalesce("adapted_tone"),
-    ai_key_messages: coalesce("ai_key_messages"),
-    ai_suggested_segment: coalesce("ai_suggested_segment"),
     conversion: coalesce("conversion", false),
     exit_type: coalesce("exit_type"),
     existing_ouate_products: coalesce("existing_ouate_products"),
@@ -161,63 +282,48 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     if (childrenError) {
       console.error("[diagnostic-webhook] Children insert error:", childrenError);
       return jsonResponse(
-        {
-          error: "Session saved but failed to save children",
-          details: childrenError.message,
-        },
+        { error: "Session saved but failed to save children", details: childrenError.message },
         500
       );
     }
-    console.log(
-      "[diagnostic-webhook] Children saved:",
-      payload.children.length
-    );
+    console.log("[diagnostic-webhook] Children saved:", payload.children.length);
 
-    // Assign persona_code if session is completed
+    // Assign persona + score if session is completed
     if (sessionData.status === "termine") {
-      const personaCode = computePersonaCode(sessionData, payload.children);
+      const persona = await computePersonaWithScore(supabase, sessionData, payload.children);
       await supabase
         .from("diagnostic_sessions")
-        .update({ persona_code: personaCode })
+        .update({ persona_code: persona.code, matching_score: persona.score })
         .eq("id", session.id);
-      console.log("[diagnostic-webhook] Persona code assigned:", personaCode);
+      console.log("[diagnostic-webhook] Persona assigned:", persona.code, "score:", persona.score);
 
-      // Sync Klaviyo avec persona — awaited pour garantir l'exécution complète
-      try {
-        await supabase.functions.invoke("sync-klaviyo-persona", {
-          body: { session_id: session.id },
-        });
-        console.log("[diagnostic-webhook] Klaviyo sync done for session:", session.id);
-      } catch (err) {
-        console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err);
-      }
+      // Sync Klaviyo — fire and forget
+      supabase.functions.invoke("sync-klaviyo-persona", {
+        body: { session_id: session.id },
+      }).catch((err: Error) => console.error("[diagnostic-webhook] Klaviyo sync failed:", err));
     }
   }
 
-  // Also assign persona_code if session is termine but no children in this payload
+  // Also assign persona if terminated but no children in this payload
   if (sessionData.status === "termine" && (!Array.isArray(payload.children) || payload.children.length === 0)) {
     const { data: existingChildren } = await supabase
       .from("diagnostic_children")
       .select("*")
       .eq("session_id", session.id)
       .order("child_index", { ascending: true });
+
     if (existingChildren && existingChildren.length > 0) {
-      const personaCode = computePersonaCode(sessionData, existingChildren);
+      const persona = await computePersonaWithScore(supabase, sessionData, existingChildren);
       await supabase
         .from("diagnostic_sessions")
-        .update({ persona_code: personaCode })
+        .update({ persona_code: persona.code, matching_score: persona.score })
         .eq("id", session.id);
-      console.log("[diagnostic-webhook] Persona code assigned (existing children):", personaCode);
+      console.log("[diagnostic-webhook] Persona assigned (existing children):", persona.code, "score:", persona.score);
 
-      // Sync Klaviyo avec persona — awaited pour garantir l'exécution complète
-      try {
-        await supabase.functions.invoke("sync-klaviyo-persona", {
-          body: { session_id: session.id },
-        });
-        console.log("[diagnostic-webhook] Klaviyo sync done for session:", session.id);
-      } catch (err) {
-        console.error("[diagnostic-webhook] Klaviyo persona sync failed:", err);
-      }
+      // Sync Klaviyo — fire and forget
+      supabase.functions.invoke("sync-klaviyo-persona", {
+        body: { session_id: session.id },
+      }).catch((err: Error) => console.error("[diagnostic-webhook] Klaviyo sync failed:", err));
     }
   }
 
@@ -258,8 +364,8 @@ async function handleLegacyFormat(supabase: SupabaseClient, payload: any) {
   if (detectedPersona) {
     const { data: personaRow, error: personaError } = await supabase
       .from("personas")
-      .select("name")
-      .eq("name", detectedPersona)
+      .select("code")
+      .eq("code", detectedPersona)
       .maybeSingle();
 
     if (personaError) {

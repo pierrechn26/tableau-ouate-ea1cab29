@@ -36,3 +36,7 @@ verify_jwt = false
 [functions.backfill-klaviyo]
 verify_jwt = false
 
+[functions.recalculate-personas]
+verify_jwt = false
+
+

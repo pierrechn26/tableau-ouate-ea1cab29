@@ -238,15 +238,7 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "diagnostic_responses_detected_persona_fkey"
-            columns: ["detected_persona"]
-            isOneToOne: false
-            referencedRelation: "personas"
-            referencedColumns: ["name"]
-          },
-        ]
+        Relationships: []
       }
       diagnostic_sessions: {
         Row: {
@@ -475,32 +467,41 @@ export type Database = {
       }
       personas: {
         Row: {
-          age_range: string | null
+          code: string
           created_at: string | null
+          criteria: Json
           description: string | null
+          full_label: string
           id: string
-          image_url: string | null
           is_active: boolean | null
+          is_pool: boolean | null
+          min_sessions: number | null
           name: string
           updated_at: string | null
         }
         Insert: {
-          age_range?: string | null
+          code: string
           created_at?: string | null
+          criteria?: Json
           description?: string | null
+          full_label: string
           id?: string
-          image_url?: string | null
           is_active?: boolean | null
+          is_pool?: boolean | null
+          min_sessions?: number | null
           name: string
           updated_at?: string | null
         }
         Update: {
-          age_range?: string | null
+          code?: string
           created_at?: string | null
+          criteria?: Json
           description?: string | null
+          full_label?: string
           id?: string
-          image_url?: string | null
           is_active?: boolean | null
+          is_pool?: boolean | null
+          min_sessions?: number | null
           name?: string
           updated_at?: string | null
         }
