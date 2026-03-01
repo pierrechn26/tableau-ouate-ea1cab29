@@ -244,6 +244,19 @@ async function collectPersonaData(supabase: any) {
 
     const cartGap = aov > 0 ? Math.round((aov - avgRecommendedCart) * 100) / 100 : 0;
 
+    // Adapted tone distribution
+    const toneDist = countOccurrences(pSessions.map((s: any) => s.adapted_tone).filter(Boolean));
+    const toneLabels: Record<string, string> = {
+      playful: "Ludique", factual: "Factuel", empowering: "Autonomisant",
+      transparent: "Transparent", expert: "Expert",
+    };
+    const toneDistPct: Record<string, number> = {};
+    const toneTotal = Object.values(toneDist).reduce((a, b) => a + b, 0);
+    for (const [t, n] of Object.entries(toneDist)) {
+      toneDistPct[toneLabels[t] || t] = toneTotal > 0 ? Math.round((n / toneTotal) * 100) : 0;
+    }
+    const dominantTone = topN(toneDist, 1)[0];
+
     personaData[code] = {
       code,
       name: getPersonaFullLabel(code),
@@ -277,6 +290,8 @@ async function collectPersonaData(supabase: any) {
         content_format_distribution: formatDist,
         optin_email_pct: optinEmailPct,
         optin_sms_pct: optinSmsPct,
+        dominant_tone: dominantTone ? (toneLabels[dominantTone.value] || dominantTone.value) : null,
+        tone_distribution: toneDistPct,
       },
       products: {
         top_5_recommended: topProducts,
@@ -754,6 +769,17 @@ FLOWS AUTOMATISÉS — Règles obligatoires :
 ${JSON.stringify(personaData, null, 2)}
 
 Métriques globales : ${JSON.stringify(globalMetrics)}
+
+Distribution des tons de communication par persona (basée sur les sessions réelles) :
+${Object.values(personaData).filter((p: any) => p.business.volume >= 1).map((p: any) => {
+  const toneStr = Object.entries(p.behavior.tone_distribution || {})
+    .sort((a: any, b: any) => b[1] - a[1])
+    .map(([t, pct]) => `${t} ${pct}%`)
+    .join(", ");
+  return `- ${p.name} (${p.code}) : ${p.business.volume} sessions, score moyen ${Math.round((p.business.conversion_rate || 0))}% conv., tons : ${toneStr || "N/A"}${p.behavior.dominant_tone ? ` → dominant : ${p.behavior.dominant_tone}` : ""}`;
+}).join("\n")}
+
+Cette distribution des tons reflète les priorités réelles des clientes de chaque persona. Utilise ces données pour recommander des angles de communication alignés avec le ton dominant de chaque persona dans tes recommandations ads, newsletters et flows.
 
 Personas prioritaires cette semaine (3 catégories stratégiques) :
 

@@ -17,6 +17,35 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 type SupabaseClient = any;
 
 /* ============================================================
+   ADAPTED TONE COMPUTATION — deterministic, based on session data
+   ============================================================ */
+function computeAdaptedTone(sessionData: Record<string, unknown>): string {
+  const priority_1 = sessionData.priorities_ordered
+    ? String(sessionData.priorities_ordered).split(",")[0].trim()
+    : null;
+  const trust_trigger_1 = sessionData.trust_triggers_ordered
+    ? String(sessionData.trust_triggers_ordered).split(",")[0].trim()
+    : null;
+
+  const priorityToneMap: Record<string, string> = {
+    ludique: "playful",
+    autonomie: "empowering",
+    efficacite: "factual",
+    clean: "transparent",
+  };
+
+  if (priority_1 && priorityToneMap[priority_1]) {
+    return priorityToneMap[priority_1];
+  }
+
+  if (trust_trigger_1 === "scientific_validation" || trust_trigger_1 === "proof_results") {
+    return "expert";
+  }
+
+  return "factual";
+}
+
+/* ============================================================
    PERSONA SCORING ENGINE — reads definitions from personas table
    ============================================================ */
 // deno-lint-ignore no-explicit-any
@@ -303,14 +332,15 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     }
     console.log("[diagnostic-webhook] Children saved:", payload.children.length);
 
-    // Assign persona + score if session is completed
+    // Assign persona + score + adapted_tone if session is completed
     if (sessionData.status === "termine") {
       const persona = await computePersonaWithScore(supabase, sessionData, payload.children);
+      const adaptedTone = computeAdaptedTone(sessionData);
       await supabase
         .from("diagnostic_sessions")
-        .update({ persona_code: persona.code, matching_score: persona.score })
+        .update({ persona_code: persona.code, matching_score: persona.score, adapted_tone: adaptedTone })
         .eq("id", session.id);
-      console.log("[diagnostic-webhook] Persona assigned:", persona.code, "score:", persona.score);
+      console.log("[diagnostic-webhook] Persona assigned:", persona.code, "score:", persona.score, "tone:", adaptedTone);
 
       // Sync Klaviyo — fire and forget
       supabase.functions.invoke("sync-klaviyo-persona", {
@@ -329,11 +359,12 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
 
     if (existingChildren && existingChildren.length > 0) {
       const persona = await computePersonaWithScore(supabase, sessionData, existingChildren);
+      const adaptedTone = computeAdaptedTone(sessionData);
       await supabase
         .from("diagnostic_sessions")
-        .update({ persona_code: persona.code, matching_score: persona.score })
+        .update({ persona_code: persona.code, matching_score: persona.score, adapted_tone: adaptedTone })
         .eq("id", session.id);
-      console.log("[diagnostic-webhook] Persona assigned (existing children):", persona.code, "score:", persona.score);
+      console.log("[diagnostic-webhook] Persona assigned (existing children):", persona.code, "score:", persona.score, "tone:", adaptedTone);
 
       // Sync Klaviyo — fire and forget
       supabase.functions.invoke("sync-klaviyo-persona", {
