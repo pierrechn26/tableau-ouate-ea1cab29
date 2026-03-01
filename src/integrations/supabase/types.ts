@@ -465,47 +465,95 @@ export type Database = {
         }
         Relationships: []
       }
+      persona_detection_log: {
+        Row: {
+          action_taken: string
+          created_at: string | null
+          details: Json
+          detection_type: string
+          id: string
+          persona_code_created: string | null
+          sessions_affected: number | null
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string | null
+          details: Json
+          detection_type: string
+          id?: string
+          persona_code_created?: string | null
+          sessions_affected?: number | null
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string | null
+          details?: Json
+          detection_type?: string
+          id?: string
+          persona_code_created?: string | null
+          sessions_affected?: number | null
+        }
+        Relationships: []
+      }
       personas: {
         Row: {
+          auto_created_at: string | null
+          avg_matching_score: number | null
           code: string
           created_at: string | null
           criteria: Json
           description: string | null
+          detection_source: string | null
           full_label: string
           id: string
           is_active: boolean | null
+          is_auto_created: boolean | null
           is_existing_client_persona: boolean | null
           is_pool: boolean | null
           min_sessions: number | null
           name: string
+          session_count: number | null
+          source_personas: string[] | null
           updated_at: string | null
         }
         Insert: {
+          auto_created_at?: string | null
+          avg_matching_score?: number | null
           code: string
           created_at?: string | null
           criteria?: Json
           description?: string | null
+          detection_source?: string | null
           full_label: string
           id?: string
           is_active?: boolean | null
+          is_auto_created?: boolean | null
           is_existing_client_persona?: boolean | null
           is_pool?: boolean | null
           min_sessions?: number | null
           name: string
+          session_count?: number | null
+          source_personas?: string[] | null
           updated_at?: string | null
         }
         Update: {
+          auto_created_at?: string | null
+          avg_matching_score?: number | null
           code?: string
           created_at?: string | null
           criteria?: Json
           description?: string | null
+          detection_source?: string | null
           full_label?: string
           id?: string
           is_active?: boolean | null
+          is_auto_created?: boolean | null
           is_existing_client_persona?: boolean | null
           is_pool?: boolean | null
           min_sessions?: number | null
           name?: string
+          session_count?: number | null
+          source_personas?: string[] | null
           updated_at?: string | null
         }
         Relationships: []

@@ -1,10 +1,14 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package, Sparkles, ChevronDown, ChevronUp, Calendar, BarChart2, Edit2, PowerOff } from "lucide-react";
 import { usePersonaStats, PersonaStat } from "@/hooks/usePersonaStats";
-import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
+import { usePersonaProfiles, PersonaDBProfile } from "@/hooks/usePersonaProfiles";
 import { DateRange } from "react-day-picker";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
+import { supabase } from "@/integrations/supabase/client";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
@@ -334,19 +338,33 @@ function generateInsightsText(p: PersonaStat, globalAvg: { conversionRate: numbe
   return insights;
 }
 
+/* ── Extended persona profile from DB ── */
+interface ExtendedPersonaProfile extends PersonaDBProfile {
+  is_auto_created?: boolean;
+  auto_created_at?: string;
+  session_count?: number;
+  avg_matching_score?: number;
+  detection_source?: string;
+}
+
 /* ── Persona Card ────────────────────────────────────── */
 
-function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaStat; globalAvg: { conversionRate: number; aov: number; engagement: number }; globalRevenue: number }) {
+function PersonaCard({ persona, globalAvg, globalRevenue, dbProfile }: {
+  persona: PersonaStat;
+  globalAvg: { conversionRate: number; aov: number; engagement: number };
+  globalRevenue: number;
+  dbProfile?: PersonaDBProfile & { is_auto_created?: boolean; auto_created_at?: string; session_count?: number; avg_matching_score?: number; detection_source?: string };
+}) {
   const color = getPersonaColor(persona.code);
   const p = persona;
-  const { getLabel, getName, profiles: dbProfiles } = usePersonaProfiles();
+  const { getLabel } = usePersonaProfiles();
   const fullLabel = getLabel(p.code);
   const labelParts = fullLabel.split(" — ");
   const displayName = labelParts[0] || p.name;
   const title = labelParts.slice(1).join(" — ") || p.subtitle;
-  const dbProfile = dbProfiles.find(dp => dp.code === p.code);
   const description = dbProfile?.description || p.subtitle;
   const image = PERSONA_IMAGES[p.code];
+  const isAuto = dbProfile?.is_auto_created === true;
 
   if (!p.profile) {
     return (
@@ -375,11 +393,46 @@ function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaSt
                 <img src={image} alt={displayName} className="w-full h-full object-cover" />
               </div>
             )}
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold text-foreground leading-tight">{displayName} <span className="font-medium text-muted-foreground">— {title}</span></h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-bold text-foreground leading-tight">{displayName} <span className="font-medium text-muted-foreground">— {title}</span></h3>
+                {isAuto && (
+                  <Badge className="bg-orange-500/15 text-orange-600 border-orange-500/30 text-xs gap-1 shrink-0">
+                    <Sparkles className="w-3 h-3" /> Auto-détecté
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
+              {isAuto && dbProfile?.auto_created_at && (
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  Créé le {new Date(dbProfile.auto_created_at).toLocaleDateString("fr-FR")} · {dbProfile.session_count ?? 0} sessions · score moy. {Number(dbProfile.avg_matching_score ?? 0).toFixed(0)}%
+                </p>
+              )}
             </div>
           </div>
+          {/* Manual disable button for auto-created personas */}
+          {isAuto && (
+            <div className="flex gap-2 mt-3 mb-1">
+              <button
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors px-2.5 py-1 rounded-md border border-border hover:border-destructive/50"
+                title="Désactiver ce persona auto-détecté"
+                onClick={async () => {
+                  if (!confirm(`Désactiver le persona ${displayName} ?`)) return;
+                  await supabase.from("personas").update({ is_active: false }).eq("code", p.code);
+                  window.location.reload();
+                }}
+              >
+                <PowerOff className="w-3 h-3" /> Désactiver
+              </button>
+              <button
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2.5 py-1 rounded-md border border-border hover:border-primary/50"
+                title="Modifier ce persona"
+                onClick={() => alert(`Pour modifier ${displayName}, éditez directement la table personas dans le backend (code: ${p.code}).`)}
+              >
+                <Edit2 className="w-3 h-3" /> Modifier
+              </button>
+            </div>
+          )}
 
           {/* Progress bar — prospect percentage */}
           <div className="space-y-1.5">
@@ -554,10 +607,48 @@ function PersonaCard({ persona, globalAvg, globalRevenue }: { persona: PersonaSt
   );
 }
 
+/* ── Detection Log types ── */
+interface DetectionLog {
+  id: string;
+  created_at: string;
+  detection_type: string;
+  action_taken: string;
+  persona_code_created: string | null;
+  sessions_affected: number;
+  details: Record<string, unknown>;
+}
+
+const DETECTION_TYPE_LABELS: Record<string, string> = {
+  new_cluster: "Nouveau cluster",
+  split: "Scission",
+  recombination: "Recombinaison",
+  deactivation: "Désactivation",
+  scan_no_result: "Scan sans résultat",
+};
+
 /* ── Main Tab ────────────────────────────────────────── */
 
 export function PersonasTab({ dateRange }: PersonasTabProps) {
   const { personas, isLoading, error, totalCompleted, globalAvg } = usePersonaStats(dateRange);
+  // deno-lint-ignore no-explicit-any
+  const [dbProfiles, setDbProfiles] = useState<ExtendedPersonaProfile[]>([]);
+  const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("personas")
+      .select("code, name, full_label, description, is_pool, is_active, is_auto_created, auto_created_at, session_count, avg_matching_score, detection_source")
+      .eq("is_active", true)
+      .then(({ data }) => { if (data) setDbProfiles(data); });
+
+    supabase
+      .from("persona_detection_log")
+      .select("id, created_at, detection_type, action_taken, persona_code_created, sessions_affected, details")
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data }) => { if (data) setDetectionLogs(data as DetectionLog[]); });
+  }, []);
 
   if (isLoading) {
     return (
@@ -582,12 +673,13 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
   }
 
   const MIN_VOLUME = 20;
-  // Include P0 in stats display but with special styling
   const p0Stat = personas.find(p => p.code === "P0");
   const visiblePersonas = [...personas].filter(p => p.code !== "P0" && p.count >= MIN_VOLUME).sort((a, b) => b.count - a.count);
   const hiddenCount = personas.filter(p => p.code !== "P0" && p.count > 0 && p.count < MIN_VOLUME).length;
   const p0Count = p0Stat?.count ?? 0;
   const globalRevenue = personas.reduce((sum, p) => sum + (p.business?.revenue || 0), 0);
+
+  const autoCount = dbProfiles.filter((p) => p.is_auto_created).length;
 
   return (
     <div className="space-y-6">
@@ -598,6 +690,7 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
         <p className="text-sm text-muted-foreground mt-1">
           {visiblePersonas.length} profils affichés (seuil minimum : {MIN_VOLUME} sessions)
           {hiddenCount > 0 && ` · ${hiddenCount} profil${hiddenCount > 1 ? "s" : ""} masqué${hiddenCount > 1 ? "s" : ""} (volume insuffisant)`}
+          {autoCount > 0 && ` · ${autoCount} auto-détecté${autoCount > 1 ? "s" : ""}`}
           {p0Count > 0 && (
             <span className="ml-2 text-muted-foreground/70 italic">
               · {p0Count} session{p0Count > 1 ? "s" : ""} non attribuée{p0Count > 1 ? "s" : ""} (P0)
@@ -611,9 +704,70 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {visiblePersonas.map((p) => (
-          <PersonaCard key={p.code} persona={p} globalAvg={globalAvg} globalRevenue={globalRevenue} />
+          <PersonaCard
+            key={p.code}
+            persona={p}
+            globalAvg={globalAvg}
+            globalRevenue={globalRevenue}
+            dbProfile={dbProfiles.find((dp) => dp.code === p.code)}
+          />
         ))}
       </div>
+
+      {/* Detection Log — collapsible */}
+      <Collapsible open={logOpen} onOpenChange={setLogOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2">
+            <BarChart2 className="w-4 h-4" />
+            Historique des détections automatiques ({detectionLogs.length})
+            {logOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <Card className="p-4 mt-2">
+            {detectionLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Aucune détection automatique pour le moment.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-5 gap-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 border-b border-border">
+                  <span>Date</span>
+                  <span>Type</span>
+                  <span>Persona créé</span>
+                  <span>Sessions</span>
+                  <span>Action</span>
+                </div>
+                {detectionLogs.map((log) => (
+                  <div key={log.id} className="grid grid-cols-5 gap-3 text-sm items-center py-2 border-b border-border/40 last:border-0">
+                    <span className="text-muted-foreground text-xs flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(log.created_at).toLocaleDateString("fr-FR")}
+                    </span>
+                    <span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          log.detection_type === "new_cluster" ? "border-blue-500/40 text-blue-600 bg-blue-50 dark:bg-blue-950/30" :
+                          log.detection_type === "split" ? "border-purple-500/40 text-purple-600 bg-purple-50 dark:bg-purple-950/30" :
+                          log.detection_type === "recombination" ? "border-amber-500/40 text-amber-600 bg-amber-50 dark:bg-amber-950/30" :
+                          log.detection_type === "deactivation" ? "border-red-500/40 text-red-600 bg-red-50 dark:bg-red-950/30" :
+                          "border-muted"
+                        }
+                      >
+                        {DETECTION_TYPE_LABELS[log.detection_type] || log.detection_type}
+                      </Badge>
+                    </span>
+                    <span className="font-medium">{log.persona_code_created || "—"}</span>
+                    <span className="text-muted-foreground">{log.sessions_affected}</span>
+                    <span className={log.action_taken === "created" ? "text-green-600" : log.action_taken === "deactivated" ? "text-destructive" : "text-muted-foreground"}>
+                      {log.action_taken === "created" ? "✓ Créé" : log.action_taken === "deactivated" ? "✗ Désactivé" : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
