@@ -1,5 +1,27 @@
 import { useMemo, useState } from "react";
 import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
+import { Badge } from "@/components/ui/badge";
+
+/* ── Adapted tone badge ─────────────────────────────────── */
+
+const TONE_CONFIG: Record<string, { label: string; className: string }> = {
+  playful:     { label: "🎭 Ludique",       className: "bg-purple-100 text-purple-800 border-purple-200" },
+  factual:     { label: "📊 Factuel",       className: "bg-blue-100 text-blue-800 border-blue-200" },
+  empowering:  { label: "💪 Autonomisant",  className: "bg-green-100 text-green-800 border-green-200" },
+  transparent: { label: "🌿 Transparent",   className: "bg-teal-100 text-teal-800 border-teal-200" },
+  expert:      { label: "🧪 Expert",        className: "bg-orange-100 text-orange-800 border-orange-200" },
+};
+
+function AdaptedToneBadge({ value }: { value?: string | null }) {
+  if (!value) return <span className="text-muted-foreground">—</span>;
+  const config = TONE_CONFIG[value];
+  if (!config) return <span>{value}</span>;
+  return (
+    <Badge variant="outline" className={`text-xs font-medium whitespace-nowrap ${config.className}`}>
+      {config.label}
+    </Badge>
+  );
+}
 import {
   Table,
   TableBody,
@@ -111,7 +133,7 @@ function buildPersonaCols(getLabel: (code: string) => string): ColumnDef[] {
       },
     },
     { key: "matching_score_col", label: "Matching %", category: "persona", getValue: (s) => s.matching_score != null ? `${s.matching_score}%` : "—" },
-    { key: "adapted_tone", label: "Tone adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },
+    { key: "adapted_tone", label: "Ton adapté", category: "persona", getValue: (s) => fmt(s.adapted_tone) },
   ];
 }
 
@@ -445,13 +467,15 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                     key={session.id}
                     className="hover:bg-muted/40 transition-colors"
                   >
-                    {columns.map((col) => (
+                     {columns.map((col) => (
                       <TableCell
                         key={col.key}
                         className="px-3 py-2 text-xs max-w-[250px] truncate"
                         title={col.getValue(session)}
                       >
-                        {col.getValue(session)}
+                        {col.key === "adapted_tone"
+                          ? <AdaptedToneBadge value={session.adapted_tone} />
+                          : col.getValue(session)}
                       </TableCell>
                     ))}
                   </TableRow>

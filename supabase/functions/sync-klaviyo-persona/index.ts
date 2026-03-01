@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
       // Persona
       persona: personaFullLabel,
       persona_code: session.persona_code,
+      adapted_tone: session.adapted_tone || null,
 
       // Scores
       ...(session.matching_score !== null && session.matching_score !== undefined && { matching_score: session.matching_score }),
