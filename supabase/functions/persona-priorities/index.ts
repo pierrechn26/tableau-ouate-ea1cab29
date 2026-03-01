@@ -78,20 +78,17 @@ serve(async (req) => {
     // Per-persona aggregation — load active non-pool personas dynamically
     const { data: personasData, error: personasErr } = await supabase
       .from("personas")
-      .select("code, criteria")
+      .select("code, is_existing_client_persona")
       .eq("is_active", true)
       .eq("is_pool", false)
       .order("code");
     if (personasErr) throw new Error(`Personas fetch error: ${personasErr.message}`);
     const personaCodes = (personasData || []).map((p: any) => p.code);
 
-    // Build set of "existing client" persona codes (criteria.identity.is_existing_client = true with required = true)
+    // Build set of existing-client persona codes (excluded from ROI Acquisition)
     const existingClientCodes = new Set<string>(
       (personasData || [])
-        .filter((p: any) => {
-          const identity = p.criteria?.identity;
-          return identity?.is_existing_client === true || identity?.is_existing_client?.value === true;
-        })
+        .filter((p: any) => p.is_existing_client_persona === true)
         .map((p: any) => p.code)
     );
     const personaStats: Record<string, any> = {};
