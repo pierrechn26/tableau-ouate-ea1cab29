@@ -474,6 +474,7 @@ export type Database = {
           full_label: string
           id: string
           is_active: boolean | null
+          is_existing_client_persona: boolean | null
           is_pool: boolean | null
           min_sessions: number | null
           name: string
@@ -487,6 +488,7 @@ export type Database = {
           full_label: string
           id?: string
           is_active?: boolean | null
+          is_existing_client_persona?: boolean | null
           is_pool?: boolean | null
           min_sessions?: number | null
           name: string
@@ -500,6 +502,7 @@ export type Database = {
           full_label?: string
           id?: string
           is_active?: boolean | null
+          is_existing_client_persona?: boolean | null
           is_pool?: boolean | null
           min_sessions?: number | null
           name?: string
