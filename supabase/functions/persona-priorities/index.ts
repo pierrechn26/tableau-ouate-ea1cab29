@@ -78,12 +78,22 @@ serve(async (req) => {
     // Per-persona aggregation — load active non-pool personas dynamically
     const { data: personasData, error: personasErr } = await supabase
       .from("personas")
-      .select("code")
+      .select("code, criteria")
       .eq("is_active", true)
       .eq("is_pool", false)
       .order("code");
     if (personasErr) throw new Error(`Personas fetch error: ${personasErr.message}`);
     const personaCodes = (personasData || []).map((p: any) => p.code);
+
+    // Build set of "existing client" persona codes (criteria.identity.is_existing_client = true with required = true)
+    const existingClientCodes = new Set<string>(
+      (personasData || [])
+        .filter((p: any) => {
+          const identity = p.criteria?.identity;
+          return identity?.is_existing_client === true || identity?.is_existing_client?.value === true;
+        })
+        .map((p: any) => p.code)
+    );
     const personaStats: Record<string, any> = {};
 
     for (const code of personaCodes) {
@@ -153,6 +163,8 @@ serve(async (req) => {
     let bestROI: any = null;
     let bestROIValue = 0;
     for (const p of activePersonas) {
+      // Exclude existing client personas from acquisition ROI
+      if (existingClientCodes.has(p.code)) continue;
       const valuePerSession = (p.convRate / 100) * p.aov;
       if (valuePerSession > bestROIValue) {
         bestROIValue = valuePerSession;
@@ -188,7 +200,7 @@ serve(async (req) => {
       else if (p.dominantAgeRange === "10-11") scoreAge = 1;
 
       const coeffMulti = p.multiChildrenPct > 20 ? 1.5 : 1.0;
-      const ltvScore = scoreAge * (p.optinEmailPct / 100) * coeffMulti;
+      const ltvScore = scoreAge * (p.optinEmailPct / 100) * coeffMulti * (p.aov / 50);
 
       if (ltvScore > bestLTVScore) {
         bestLTVScore = ltvScore;
