@@ -5,20 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function getPersonaFullName(code: string | null): string {
-  const map: Record<string, string> = {
-    P1: "Clara — La Novice Imperfections",
-    P2: "Nathalie — La Novice Pré-ado",
-    P3: "Amandine — La Novice Atopique",
-    P4: "Julie — La Novice Sensible",
-    P5: "Stéphanie — La Multi-enfants Besoins Mixtes",
-    P6: "Camille — La Novice Découverte",
-    P7: "Sandrine — L'Insatisfaite",
-    P8: "Virginie — La Fidèle Imperfections",
-    P9: "Marine — La Fidèle Exploratrice",
-  };
-  return (code && map[code]) || code || "Non déterminé";
-}
 
 function translateExitType(exitType: string | null): string {
   const map: Record<string, string> = {
@@ -87,7 +73,15 @@ Deno.serve(async (req) => {
     // Normaliser l'email en lowercase
     const normalizedEmail = session.email.toLowerCase().trim();
 
-    // 3. Charger les enfants triés par age DESC
+    // 3. Charger le full_label du persona depuis la table personas (source of truth)
+    const { data: personaData } = await supabase
+      .from("personas")
+      .select("full_label")
+      .eq("code", session.persona_code ?? "P0")
+      .maybeSingle();
+    const personaFullLabel = personaData?.full_label || session.persona_code || "Non attribué";
+
+    // 4. Charger les enfants triés par age DESC
     const { data: children } = await supabase
       .from("diagnostic_children")
       .select("*")
@@ -123,7 +117,7 @@ Deno.serve(async (req) => {
     // 5. Construire le payload Klaviyo
     const properties: Record<string, unknown> = {
       // Persona
-      persona: getPersonaFullName(session.persona_code),
+      persona: personaFullLabel,
       persona_code: session.persona_code,
 
       // Scores
