@@ -465,6 +465,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ouate_products: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          handle: string
+          id: string
+          images: Json | null
+          price_max: number | null
+          price_min: number | null
+          product_type: string | null
+          published_at: string | null
+          shopify_product_id: number
+          shopify_url: string | null
+          status: string | null
+          synced_at: string | null
+          tags: string[] | null
+          title: string
+          variants: Json | null
+          vendor: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          handle: string
+          id?: string
+          images?: Json | null
+          price_max?: number | null
+          price_min?: number | null
+          product_type?: string | null
+          published_at?: string | null
+          shopify_product_id: number
+          shopify_url?: string | null
+          status?: string | null
+          synced_at?: string | null
+          tags?: string[] | null
+          title: string
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          handle?: string
+          id?: string
+          images?: Json | null
+          price_max?: number | null
+          price_min?: number | null
+          product_type?: string | null
+          published_at?: string | null
+          shopify_product_id?: number
+          shopify_url?: string | null
+          status?: string | null
+          synced_at?: string | null
+          tags?: string[] | null
+          title?: string
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       persona_detection_log: {
         Row: {
           action_taken: string
