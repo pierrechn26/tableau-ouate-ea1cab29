@@ -149,8 +149,8 @@ export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialP
           secondaryMetrics={bestROI ? [
             `Taux de conversion : ${bestROI.convRate}%`,
             `AOV : ${bestROI.aov.toFixed(0)}€`,
-            bestROI.avgChildAge != null ? `Âge moyen enfants : ${bestROI.avgChildAge} ans` : null,
-          ].filter(Boolean).join(" · ") : ""}
+            `${bestROI.volume} sessions`,
+          ].join(" · ") : ""}
           explanation="Le persona qui génère le plus de revenu par visite du diagnostic. C'est celui à cibler en priorité dans vos publicités."
         />
 
@@ -164,25 +164,38 @@ export function TopPersonasPotential({ showTitle = true }: TopPersonasPotentialP
           secondaryMetrics={bestGrowth ? [
             `AOV : ${bestGrowth.aov.toFixed(0)}€`,
             `${bestGrowth.volume} sessions`,
-            bestGrowth.avgChildAge != null ? `Âge moyen enfants : ${bestGrowth.avgChildAge} ans` : null,
+            bestGrowth.caManquant != null ? `CA potentiel : +${bestGrowth.caManquant}€` : null,
           ].filter(Boolean).join(" · ") : ""}
           explanation="Le persona avec le plus gros potentiel d'amélioration. En améliorant son taux de conversion vers la moyenne, c'est là que le CA additionnel sera le plus important."
         />
 
-        <CategoryCard
-          emoji="💎"
-          title="Meilleur potentiel de fidélisation"
-          borderColor="hsl(270 60% 55%)"
-          personaCode={bestLTV?.code || null}
-          mainMetric={bestLTV?.avgChildAge != null ? `Âge moyen enfants : ${bestLTV.avgChildAge} ans` : "–"}
-          mainMetricColor="hsl(270 55% 50%)"
-          secondaryMetrics={bestLTV ? [
-            `Opt-in email : ${bestLTV.optinEmailPct}%`,
-            `Multi-enfants : ${bestLTV.multiChildrenPct}%`,
-            `AOV : ${bestLTV.aov.toFixed(0)}€`,
-          ].join(" · ") : ""}
-          explanation="Le persona avec le plus fort potentiel à long terme. Enfants jeunes, forte capacité de recontact email et potentiel multi-produits."
-        />
+        {(() => {
+          const ageText = bestLTV?.scoreAge === 3
+            ? "Enfants jeunes (4-6 ans), très longue durée de vie client potentielle"
+            : bestLTV?.scoreAge === 2
+            ? "Enfants en âge intermédiaire (7-9 ans), bonne durée de vie client"
+            : "Enfants pré-ados (10-11 ans), durée de vie plus courte mais valeur immédiate";
+          const multiText = bestLTV?.coeffMulti > 1 ? "fort potentiel multi-produits" : "potentiel mono-produit";
+          const ltvExplanation = bestLTV
+            ? `${ageText}, forte capacité de recontact email (${Math.round(bestLTV.optinEmailPct)}%) et ${multiText}.`
+            : "";
+          return (
+            <CategoryCard
+              emoji="💎"
+              title="Meilleur potentiel de fidélisation"
+              borderColor="hsl(270 60% 55%)"
+              personaCode={bestLTV?.code || null}
+              mainMetric={bestLTV?.dominantAgeRange ? `Tranche dominante : ${bestLTV.dominantAgeRange} ans` : "–"}
+              mainMetricColor="hsl(270 55% 50%)"
+              secondaryMetrics={bestLTV ? [
+                `Opt-in email : ${bestLTV.optinEmailPct}%`,
+                `Multi-enfants : ${bestLTV.multiChildrenPct}%`,
+                `AOV : ${bestLTV.aov.toFixed(0)}€`,
+              ].join(" · ") : ""}
+              explanation={ltvExplanation}
+            />
+          );
+        })()}
       </div>
     </div>
   );
