@@ -14,9 +14,12 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Domaine permanent Shopify + token admin
+  // Domaine permanent Shopify + token Admin API
   const SHOPIFY_STORE = "www-ouate-paris-com.myshopify.com";
-  const SHOPIFY_TOKEN = Deno.env.get("SHOPIFY_ACCESS_TOKEN");
+  const SHOPIFY_TOKEN = Deno.env.get("SHOPIFY_ADMIN_ACCESS_TOKEN");
+
+  console.log(`[sync] Store: ${SHOPIFY_STORE} | Token present: ${!!SHOPIFY_TOKEN} | Token prefix: ${SHOPIFY_TOKEN?.substring(0, 8)}`);
+
 
   if (!SHOPIFY_TOKEN) {
     return new Response(JSON.stringify({
