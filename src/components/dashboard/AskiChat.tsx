@@ -36,6 +36,7 @@ export function AskiChat() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSendingRef = useRef(false);
   const { toast } = useToast();
 
   const questionsLimit = 200;
@@ -104,8 +105,9 @@ export function AskiChat() {
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || isLoading || questionsUsed >= questionsLimit) return;
+    if (!text || isLoading || isSendingRef.current || questionsUsed >= questionsLimit) return;
 
+    isSendingRef.current = true;
     setInput("");
     setIsLoading(true);
 
@@ -162,6 +164,7 @@ export function AskiChat() {
       toast({ title: "Erreur", description: msg, variant: "destructive" });
     } finally {
       setIsLoading(false);
+      isSendingRef.current = false;
     }
   };
 
