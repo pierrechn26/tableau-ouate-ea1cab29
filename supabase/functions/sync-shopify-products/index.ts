@@ -14,140 +14,155 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Domaine permanent Shopify + token Admin API
   const SHOPIFY_STORE = "www-ouate-paris-com.myshopify.com";
-  const SHOPIFY_TOKEN = Deno.env.get("SHOPIFY_ADMIN_ACCESS_TOKEN");
+  const STOREFRONT_TOKEN = Deno.env.get("SHOPIFY_STOREFRONT_ACCESS_TOKEN");
 
-  console.log(`[sync] Store: ${SHOPIFY_STORE} | Token present: ${!!SHOPIFY_TOKEN} | Token prefix: ${SHOPIFY_TOKEN?.substring(0, 8)}`);
+  console.log(`[sync] Store: ${SHOPIFY_STORE} | Storefront token present: ${!!STOREFRONT_TOKEN} | prefix: ${STOREFRONT_TOKEN?.substring(0, 8)}`);
 
-
-  if (!SHOPIFY_TOKEN) {
-    return new Response(JSON.stringify({
-      error: "SHOPIFY_ACCESS_TOKEN manquant",
-    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!STOREFRONT_TOKEN) {
+    return new Response(JSON.stringify({ error: "SHOPIFY_STOREFRONT_ACCESS_TOKEN manquant" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 
+  const STOREFRONT_URL = `https://${SHOPIFY_STORE}/api/2024-01/graphql.json`;
+
+  const query = `
+    query GetAllProducts($cursor: String) {
+      products(first: 250, after: $cursor) {
+        edges {
+          node {
+            id
+            title
+            handle
+            description
+            productType
+            vendor
+            tags
+            availableForSale
+            publishedAt
+            priceRange {
+              minVariantPrice { amount currencyCode }
+              maxVariantPrice { amount currencyCode }
+            }
+            variants(first: 50) {
+              edges {
+                node {
+                  id
+                  title
+                  price { amount }
+                  availableForSale
+                  sku
+                }
+              }
+            }
+            images(first: 5) {
+              edges {
+                node { url altText }
+              }
+            }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  `;
+
   try {
-    // Shopify Admin API — tous les produits actifs (max 250 par appel)
     let allProducts: any[] = [];
-    let pageInfo: string | null = null;
+    let cursor: string | null = null;
     let hasNextPage = true;
 
     while (hasNextPage) {
-      const url = pageInfo
-        ? `https://${SHOPIFY_STORE}/admin/api/2024-01/products.json?status=active&limit=250&page_info=${pageInfo}`
-        : `https://${SHOPIFY_STORE}/admin/api/2024-01/products.json?status=active&limit=250`;
-
-      const response = await fetch(url, {
-        headers: { "X-Shopify-Access-Token": SHOPIFY_TOKEN }
+      const response = await fetch(STOREFRONT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN,
+        },
+        body: JSON.stringify({ query, variables: { cursor } }),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Shopify API error ${response.status}: ${errText}`);
+        throw new Error(`Storefront API error ${response.status}: ${errText}`);
       }
 
-      const data = await response.json();
-      allProducts = [...allProducts, ...(data.products || [])];
+      const { data, errors } = await response.json();
 
-      // Pagination via Link header
-      const linkHeader = response.headers.get("Link") || "";
-      const nextMatch = linkHeader.match(/<[^>]*page_info=([^>&"]+)[^>]*>;\s*rel="next"/);
-      if (nextMatch) {
-        pageInfo = nextMatch[1];
-      } else {
-        hasNextPage = false;
+      if (errors?.length) {
+        throw new Error(`GraphQL errors: ${errors.map((e: any) => e.message).join(", ")}`);
       }
+
+      const edges = data?.products?.edges || [];
+      allProducts = [...allProducts, ...edges.map((e: any) => e.node)];
+
+      const pageInfo = data?.products?.pageInfo;
+      hasNextPage = pageInfo?.hasNextPage ?? false;
+      cursor = pageInfo?.endCursor ?? null;
     }
 
+    console.log(`[sync] Fetched ${allProducts.length} products from Storefront API`);
+
     let synced = 0;
-    let errors = 0;
+    let errors_count = 0;
 
     for (const product of allProducts) {
       try {
-        const variants = (product.variants || []).map((v: any) => ({
-          id: v.id,
-          title: v.title,
-          price: parseFloat(v.price) || 0,
-          sku: v.sku || "",
-          available: (v.inventory_quantity ?? 1) > 0,
-          option1: v.option1,
-          option2: v.option2,
-          grams: v.grams,
+        const shopifyId = parseInt(product.id.replace("gid://shopify/Product/", ""));
+
+        const variants = product.variants.edges.map((e: any) => ({
+          id: e.node.id,
+          title: e.node.title,
+          price: parseFloat(e.node.price?.amount || "0"),
+          sku: e.node.sku || "",
+          available: e.node.availableForSale,
         }));
 
-        const prices = (product.variants || []).map((v: any) => parseFloat(v.price) || 0).filter(p => p > 0);
-        const priceMin = prices.length > 0 ? Math.min(...prices) : 0;
-        const priceMax = prices.length > 0 ? Math.max(...prices) : 0;
-
-        const cleanDescription = (product.body_html || "")
-          .replace(/<[^>]*>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .substring(0, 500);
-
-        const tags = product.tags
-          ? product.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
-          : [];
-
-        const images = (product.images || []).map((img: any) => ({
-          src: img.src,
-          alt: img.alt || product.title,
-          position: img.position,
+        const images = product.images.edges.map((e: any) => ({
+          src: e.node.url,
+          alt: e.node.altText || product.title,
         }));
 
-        // Construire l'URL boutique Ouate
-        const storeFriendlyDomain = SHOPIFY_STORE.replace(".myshopify.com", ".com");
-        const shopifyUrl = `https://${storeFriendlyDomain}/products/${product.handle}`;
+        const shopifyUrl = `https://www.ouate-paris.com/products/${product.handle}`;
 
         const { error: upsertError } = await supabase.from("ouate_products").upsert({
-          shopify_product_id: product.id,
+          shopify_product_id: shopifyId,
           title: product.title,
           handle: product.handle,
-          description: cleanDescription,
-          product_type: product.product_type || null,
+          description: (product.description || "").substring(0, 500),
+          product_type: product.productType || null,
           vendor: product.vendor || null,
-          tags,
-          price_min: priceMin,
-          price_max: priceMax,
+          tags: product.tags || [],
+          price_min: parseFloat(product.priceRange.minVariantPrice.amount),
+          price_max: parseFloat(product.priceRange.maxVariantPrice.amount),
           variants,
           images,
-          status: product.status || "active",
-          published_at: product.published_at || null,
+          status: product.availableForSale ? "active" : "archived",
+          published_at: product.publishedAt || null,
           shopify_url: shopifyUrl,
           synced_at: new Date().toISOString(),
         }, { onConflict: "shopify_product_id" });
 
         if (upsertError) {
           console.error(`Error upserting ${product.title}:`, upsertError.message);
-          errors++;
+          errors_count++;
         } else {
           synced++;
         }
       } catch (err) {
         console.error(`Error processing product ${product.id}:`, err);
-        errors++;
+        errors_count++;
       }
     }
 
-    // Archiver les produits Shopify inactifs/retirés
-    const activeIds = allProducts.map((p: any) => p.id);
-    if (activeIds.length > 0) {
-      const { error: archiveError } = await supabase
-        .from("ouate_products")
-        .update({ status: "archived" })
-        .not("shopify_product_id", "in", `(${activeIds.join(",")})`);
-      if (archiveError) console.error("Archive error:", archiveError.message);
-    }
-
-    console.log(`Sync Shopify Products: ${synced} synced, ${errors} errors, ${allProducts.length} total`);
+    console.log(`[sync] Done: ${synced} synced, ${errors_count} errors`);
 
     return new Response(JSON.stringify({
       success: true,
       synced,
-      errors,
+      errors: errors_count,
       total: allProducts.length,
-      archived: allProducts.length > 0 ? "non-listed products archived" : "no products found",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err: unknown) {
