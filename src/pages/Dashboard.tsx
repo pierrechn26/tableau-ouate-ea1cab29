@@ -552,7 +552,7 @@ export default function Dashboard() {
               <div className="flex flex-col items-center py-8 px-4 border-b border-border bg-gradient-to-b from-card to-background">
                 <AskiAvatar size={96} />
                 <h2 className="mt-4 text-2xl font-bold text-foreground tracking-tight">Aski</h2>
-                <p className="mt-6 text-base text-muted-foreground text-center leading-relaxed">Hello !</p>
+                <p className="mt-6 text-lg text-muted-foreground text-center leading-relaxed">Hello !</p>
                 <p className="mt-1 text-lg text-muted-foreground text-center max-w-lg leading-relaxed">
                   Moi c'est Aski, votre assistant personnel IA pour répondre à toutes vos questions stratégie marketing et performances, alors on démarre ?
                 </p>
