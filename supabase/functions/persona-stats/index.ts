@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       const children = ((s.diagnostic_children || []) as any[]).sort(
         (a: any, b: any) => (a.child_index ?? 0) - (b.child_index ?? 0)
       );
-      const code = s.persona_code || assignPersonaCode(s, children);
+      const code = (s.persona_code && s.persona_code !== 'P0') ? s.persona_code : assignPersonaCode(s, children);
       if (!personaGroups[code]) personaGroups[code] = [];
       personaGroups[code].push({ ...s, _children: children, _code: code });
     }

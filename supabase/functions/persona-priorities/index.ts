@@ -22,16 +22,16 @@ serve(async (req) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const fromDate = thirtyDaysAgo.toISOString();
 
-    // Fetch completed sessions from last 30 days WITH first child nested (avoids pagination issue)
+    // Fetch completed sessions from last 30 days WITH first child nested
     const { data: sessions, error: sessionsErr } = await supabase
       .from("diagnostic_sessions")
       .select(`
         id, session_code, persona_code, engagement_score, optin_email, number_of_children,
-        diagnostic_children!inner(age, age_range, child_index)
+        is_existing_client,
+        diagnostic_children(age, age_range, child_index, skin_concern, has_routine)
       `)
       .eq("status", "termine")
       .gte("created_at", fromDate)
-      .eq("diagnostic_children.child_index", 0)
       .limit(10000);
 
     if (sessionsErr) throw new Error(`Sessions fetch error: ${sessionsErr.message}`);
@@ -42,13 +42,34 @@ serve(async (req) => {
       });
     }
 
-    // Build child map from nested data
+    // Assign persona codes (ignore P0, recalculate)
+    function assignPersonaCode(session: any, children: any[]): string {
+      const c1 = children.find((c: any) => c.child_index === 0) || children[0];
+      const c2 = children.find((c: any) => c.child_index === 1);
+      if (!c1) return "P6";
+      if (session.is_existing_client) return c1.skin_concern === "imperfections" ? "P8" : "P9";
+      if (session.number_of_children >= 2 && c2 && c1.skin_concern !== c2.skin_concern) return "P5";
+      if (c1.has_routine === true) return "P7";
+      if (c1.skin_concern === "imperfections" && c1.age_range === "10-11") return "P2";
+      if (c1.skin_concern === "imperfections") return "P1";
+      if (c1.skin_concern === "atopique") return "P3";
+      if (c1.skin_concern === "sensible") return "P4";
+      return "P6";
+    }
+
+    // Build child map + effective persona code per session
     const childBySession: Record<string, { age_range: string | null; age: number | null }> = {};
+    const sessionPersonaCode: Record<string, string> = {};
     for (const s of sessions) {
-      const children = (s as any).diagnostic_children;
-      if (Array.isArray(children) && children.length > 0) {
-        childBySession[s.id] = { age: children[0].age, age_range: children[0].age_range };
+      const children = ((s as any).diagnostic_children || []) as any[];
+      const sortedChildren = children.sort((a: any, b: any) => (a.child_index ?? 0) - (b.child_index ?? 0));
+      if (sortedChildren.length > 0) {
+        childBySession[s.id] = { age: sortedChildren[0].age, age_range: sortedChildren[0].age_range };
       }
+      const effectiveCode = (s.persona_code && s.persona_code !== 'P0')
+        ? s.persona_code
+        : assignPersonaCode(s, sortedChildren);
+      sessionPersonaCode[s.id] = effectiveCode;
     }
 
     // Fetch orders
@@ -58,7 +79,7 @@ serve(async (req) => {
       .select("diagnostic_session_id, total_price, is_from_diagnostic")
       .in("diagnostic_session_id", sessionCodes);
 
-    // Build order lookup
+    // Build order lookup by session_code
     const ordersByCode: Record<string, any[]> = {};
     for (const o of (orders || [])) {
       const sc = o.diagnostic_session_id;
@@ -94,7 +115,7 @@ serve(async (req) => {
     const personaStats: Record<string, any> = {};
 
     for (const code of personaCodes) {
-      const pSessions = sessions.filter((s: any) => s.persona_code === code);
+      const pSessions = sessions.filter((s: any) => sessionPersonaCode[s.id] === code);
       const volume = pSessions.length;
       if (volume === 0) continue;
 
