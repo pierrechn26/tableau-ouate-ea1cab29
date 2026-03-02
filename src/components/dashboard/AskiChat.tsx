@@ -114,6 +114,8 @@ export function AskiChat() {
     setMessages(prev => [...prev, { id: tempId, role: "user", content: text, created_at: new Date().toISOString() }]);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120_000);
       const res = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -121,7 +123,9 @@ export function AskiChat() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ chatId: selectedChatId, userMessage: text }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const data = await res.json();
 
