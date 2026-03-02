@@ -75,24 +75,15 @@ async function collectPersonaData(supabase: any) {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const fromDate = thirtyDaysAgo.toISOString();
 
-  // Fetch completed sessions from last 30 days
+  // Fetch completed sessions + children in a single join query (avoids URL-too-long bug with .in())
   const { data: sessions, error: sessionsErr } = await supabase
     .from("diagnostic_sessions")
-    .select("*")
+    .select("*, diagnostic_children(*)")
     .eq("status", "termine")
     .gte("created_at", fromDate);
 
   if (sessionsErr) throw new Error(`Sessions fetch error: ${sessionsErr.message}`);
   if (!sessions || sessions.length === 0) throw new Error("No completed sessions in last 30 days");
-
-  // Fetch children for these sessions
-  const sessionIds = sessions.map((s: any) => s.id);
-  const { data: children, error: childErr } = await supabase
-    .from("diagnostic_children")
-    .select("*")
-    .in("session_id", sessionIds);
-
-  if (childErr) throw new Error(`Children fetch error: ${childErr.message}`);
 
   // Fetch orders
   const sessionCodes = sessions.map((s: any) => s.session_code);
@@ -113,11 +104,12 @@ async function collectPersonaData(supabase: any) {
     }
   }
 
-  // Children lookup by session_id
+  // Children are now embedded in session via join: session.diagnostic_children[]
+  // Build lookup for backwards compatibility
   const childrenBySession: Record<string, any[]> = {};
-  for (const c of (children || [])) {
-    if (!childrenBySession[c.session_id]) childrenBySession[c.session_id] = [];
-    childrenBySession[c.session_id].push(c);
+  for (const s of sessions) {
+    const kids = (s as any).diagnostic_children || [];
+    if (kids.length > 0) childrenBySession[s.id] = kids;
   }
 
   // Global metrics for comparison
@@ -411,6 +403,7 @@ async function collectPersonaData(supabase: any) {
 
   return {
     personaData,
+    personaRows,
     priorities: {
       best_roi: bestROI,
       best_roi_value: Math.round(bestROIValue * 100) / 100,
@@ -583,7 +576,7 @@ async function callGemini(collectedData: any, perplexityResearch: { adsResearch:
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-  const { personaData, priorities, globalMetrics, previousUncompletedTasks } = collectedData;
+  const { personaData, personaRows, priorities, globalMetrics, previousUncompletedTasks } = collectedData;
 
   const now = new Date();
   const currentMonth = now.toLocaleString("fr-FR", { month: "long" });
