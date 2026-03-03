@@ -2,7 +2,7 @@ import { useEffect, useState, ReactNode } from "react";
 import askItLogo from "@/assets/ask-it-logo.png";
 
 // URL of the Ask-It portal's Supabase Edge Function
-const ASKIT_PORTAL_API = "https://[SUPABASE_PROJECT_REF_DU_PORTAIL].supabase.co/functions/v1";
+const ASKIT_PORTAL_API = "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1";
 
 const SESSION_KEY = "askit_access";
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
