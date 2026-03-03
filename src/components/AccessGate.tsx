@@ -179,12 +179,16 @@ export function AccessGate({ children }: AccessGateProps) {
           return;
         }
 
-        if (data?.valid && data?.user) {
+        console.log("GATE 5 - Storing session", { valid: data?.valid, hasUser: !!data?.user, data });
+
+        if (data?.valid) {
           storeSession({
-            user_email: data.user.email || "",
-            user_role: data.user.role || "client",
-            organization_id: data.user.organization_id || "",
+            user_email: data.user?.email || data.email || "",
+            user_role: data.user?.role || data.role || "client",
+            organization_id: data.user?.organization_id || data.organization_id || "",
           });
+
+          console.log("GATE 6 - Session stored", { stored: sessionStorage.getItem("askit_access") });
 
           // Clean token from URL
           const url = new URL(window.location.href);
@@ -192,7 +196,9 @@ export function AccessGate({ children }: AccessGateProps) {
           window.history.replaceState({}, "", url.toString());
 
           setState("granted");
+          console.log("GATE 7 - State updated to granted");
         } else {
+          console.log("GATE 5b - Access denied, valid is falsy", { valid: data?.valid });
           setState("denied");
         }
       } catch (error) {
