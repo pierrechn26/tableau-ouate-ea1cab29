@@ -140,6 +140,12 @@ export function AccessGate({ children }: AccessGateProps) {
     async function verify() {
       // Step 1: Check existing session
       const session = getStoredSession();
+
+      console.log("GATE 1 - Init", {
+        hasSessionStorage: !!sessionStorage.getItem(SESSION_KEY),
+        urlToken: new URLSearchParams(window.location.search).get("access_token"),
+      });
+
       if (session) {
         setState("granted");
         return;
@@ -156,21 +162,22 @@ export function AccessGate({ children }: AccessGateProps) {
 
       // Step 3: Verify token with Ask-It portal
       try {
-        const response = await fetch(
-          `${ASKIT_PORTAL_API}/verify-dashboard-token`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
-          }
-        );
+        const verifyUrl = `${ASKIT_PORTAL_API}/verify-dashboard-token`;
+        console.log("GATE 2 - Calling verify", { token, url: verifyUrl });
+
+        const response = await fetch(verifyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        const data = await response.json();
+        console.log("GATE 3 - Verify response", { status: response.status, data });
 
         if (!response.ok) {
           setState("denied");
           return;
         }
-
-        const data = await response.json();
 
         if (data?.valid && data?.user) {
           storeSession({
@@ -188,7 +195,8 @@ export function AccessGate({ children }: AccessGateProps) {
         } else {
           setState("denied");
         }
-      } catch {
+      } catch (error) {
+        console.error("GATE 4 - Fetch error", error);
         setState("denied");
       }
     }
