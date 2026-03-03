@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { clearAccessSession } from "@/components/AccessGate";
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -242,6 +243,23 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-3">
               <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/10 transition-all"
+                onClick={() => {
+                  clearAccessSession();
+                  window.location.href = "https://app.ask-it.ai/login";
+                }}
+                title="Se déconnecter"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Déconnexion
+              </Button>
               <Dialog open={exportOpen} onOpenChange={setExportOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="hover:bg-primary/70 hover:brightness-110 transition-all">
