@@ -141,11 +141,6 @@ export function AccessGate({ children }: AccessGateProps) {
       // Step 1: Check existing session
       const session = getStoredSession();
 
-      console.log("GATE 1 - Init", {
-        hasSessionStorage: !!sessionStorage.getItem(SESSION_KEY),
-        urlToken: new URLSearchParams(window.location.search).get("access_token"),
-      });
-
       if (session) {
         setState("granted");
         return;
@@ -163,8 +158,6 @@ export function AccessGate({ children }: AccessGateProps) {
       // Step 3: Verify token with Ask-It portal
       try {
         const verifyUrl = `${ASKIT_PORTAL_API}/verify-dashboard-token`;
-        console.log("GATE 2 - Calling verify", { token, url: verifyUrl });
-
         const response = await fetch(verifyUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -172,14 +165,11 @@ export function AccessGate({ children }: AccessGateProps) {
         });
 
         const data = await response.json();
-        console.log("GATE 3 - Verify response", { status: response.status, data });
 
         if (!response.ok) {
           setState("denied");
           return;
         }
-
-        console.log("GATE 5 - Storing session", { valid: data?.valid, hasUser: !!data?.user, data });
 
         if (data?.valid) {
           storeSession({
@@ -188,21 +178,16 @@ export function AccessGate({ children }: AccessGateProps) {
             organization_id: data.user?.organization_id || data.organization_id || "",
           });
 
-          console.log("GATE 6 - Session stored", { stored: sessionStorage.getItem("askit_access") });
-
           // Clean token from URL
           const url = new URL(window.location.href);
           url.searchParams.delete("access_token");
           window.history.replaceState({}, "", url.toString());
 
           setState("granted");
-          console.log("GATE 7 - State updated to granted");
         } else {
-          console.log("GATE 5b - Access denied, valid is falsy", { valid: data?.valid });
           setState("denied");
         }
       } catch (error) {
-        console.error("GATE 4 - Fetch error", error);
         setState("denied");
       }
     }
