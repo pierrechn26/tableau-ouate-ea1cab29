@@ -65,6 +65,14 @@ serve(async (req) => {
       0
     );
 
+    // Count diagnostic sessions this month
+    const { count: diagnosticSessions, error: sessionsError } = await supabase
+      .from("diagnostic_sessions")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+
+    if (sessionsError) throw sessionsError;
+
     const now = new Date();
     const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -74,6 +82,7 @@ serve(async (req) => {
         period,
         questions_asked: questionsAsked ?? 0,
         tokens_used: tokensUsed,
+        diagnostic_sessions: diagnosticSessions ?? 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
