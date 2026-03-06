@@ -56,6 +56,12 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
     });
 
     const data = await response.json();
+    // Fire-and-forget: log Perplexity usage
+    const perplexityTokens = data.usage?.total_tokens || 0;
+    createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+      .from("api_usage_logs")
+      .insert({ edge_function: "aski-chat", api_provider: "perplexity", model: "sonar-pro", tokens_used: perplexityTokens, api_calls: 1 })
+      .then(() => {}).catch(() => {});
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
     console.error("Perplexity call failed:", err);
@@ -479,6 +485,13 @@ ${recosContext}` : ""}
         });
         const titleData = await titleResponse.json();
         chatTitle = titleData.choices?.[0]?.message?.content?.trim() ?? "Nouvelle conversation";
+        // Fire-and-forget: log title Gemini usage
+        const titleTokens = titleData.usage?.total_tokens || 0;
+        if (titleTokens > 0) {
+          supabase.from("api_usage_logs")
+            .insert({ edge_function: "aski-chat", api_provider: "gemini", model: "gemini-2.5-flash-lite", tokens_used: titleTokens, api_calls: 1 })
+            .then(() => {}).catch(() => {});
+        }
       } catch {
         chatTitle = userMessage.slice(0, 40);
       }

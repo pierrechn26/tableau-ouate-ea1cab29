@@ -73,6 +73,30 @@ serve(async (req) => {
 
     if (sessionsError) throw sessionsError;
 
+    // Gemini other tokens (from api_usage_logs, this month)
+    const { data: geminiData, error: geminiError } = await supabase
+      .from("api_usage_logs")
+      .select("tokens_used, api_calls")
+      .eq("api_provider", "gemini")
+      .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+
+    if (geminiError) throw geminiError;
+
+    const geminiOtherTokens = (geminiData ?? []).reduce((sum, row) => sum + (row.tokens_used ?? 0), 0);
+    const geminiOtherCalls = (geminiData ?? []).reduce((sum, row) => sum + (row.api_calls ?? 0), 0);
+
+    // Perplexity tokens and calls (from api_usage_logs, this month)
+    const { data: perplexityData, error: perplexityError } = await supabase
+      .from("api_usage_logs")
+      .select("tokens_used, api_calls")
+      .eq("api_provider", "perplexity")
+      .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+
+    if (perplexityError) throw perplexityError;
+
+    const perplexityTokens = (perplexityData ?? []).reduce((sum, row) => sum + (row.tokens_used ?? 0), 0);
+    const perplexityCalls = (perplexityData ?? []).reduce((sum, row) => sum + (row.api_calls ?? 0), 0);
+
     const now = new Date();
     const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -83,6 +107,13 @@ serve(async (req) => {
         questions_asked: questionsAsked ?? 0,
         tokens_used: tokensUsed,
         diagnostic_sessions: diagnosticSessions ?? 0,
+        costs: {
+          gemini_aski_tokens: tokensUsed,
+          gemini_other_tokens: geminiOtherTokens,
+          gemini_other_calls: geminiOtherCalls,
+          perplexity_tokens: perplexityTokens,
+          perplexity_calls: perplexityCalls,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -154,6 +154,13 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content ?? "[]";
 
+    // Fire-and-forget: log Gemini usage
+    const geminiTokens = aiData.usage?.total_tokens || 0;
+    supabase
+      .from("api_usage_logs")
+      .insert({ edge_function: "generate-funnel-recommendations", api_provider: "gemini", model: "gemini-2.5-flash", tokens_used: geminiTokens, api_calls: 1 })
+      .then(() => {}).catch(() => {});
+
     // Parse JSON from AI response (handle possible markdown wrapping)
     let recommendations: { step: string; issue: string; recommendation: string; kept_from_previous?: boolean }[];
     try {
