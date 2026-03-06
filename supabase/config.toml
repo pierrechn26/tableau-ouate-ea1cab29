@@ -45,4 +45,7 @@ verify_jwt = false
 [functions.detect-persona-clusters]
 verify_jwt = false
 
+[functions.get-usage-stats]
+verify_jwt = false
+
 
