@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_usage_logs: {
+        Row: {
+          api_calls: number | null
+          api_provider: string
+          created_at: string | null
+          edge_function: string
+          id: string
+          metadata: Json | null
+          model: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          api_calls?: number | null
+          api_provider: string
+          created_at?: string | null
+          edge_function: string
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          api_calls?: number | null
+          api_provider?: string
+          created_at?: string | null
+          edge_function?: string
+          id?: string
+          metadata?: Json | null
+          model?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
       aski_chats: {
         Row: {
           created_at: string | null

@@ -475,6 +475,12 @@ async function callPerplexityResearch(globalAggregates: any): Promise<{ adsResea
         return "";
       }
       const data = await response.json();
+      // Fire-and-forget: log Perplexity usage
+      const perplexityTokens = data.usage?.total_tokens || 0;
+      createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+        .from("api_usage_logs")
+        .insert({ edge_function: "generate-marketing-recommendations", api_provider: "perplexity", model: "sonar-pro", tokens_used: perplexityTokens, api_calls: 1, metadata: { category: label } })
+        .then(() => {}).catch(() => {});
       return data.choices?.[0]?.message?.content || "";
     } catch (err) {
       console.error(`[generate-marketing] Perplexity ${label} failed:`, err instanceof Error ? err.message : err);
@@ -822,6 +828,13 @@ Génère les recommandations marketing de la semaine. Retourne UNIQUEMENT du JSO
 
   const aiResponse = await response.json();
   const rawContent = aiResponse.choices?.[0]?.message?.content;
+
+  // Fire-and-forget: log Gemini usage
+  const geminiTokens = aiResponse.usage?.total_tokens || 0;
+  createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+    .from("api_usage_logs")
+    .insert({ edge_function: "generate-marketing-recommendations", api_provider: "gemini", model: "gemini-2.5-pro", tokens_used: geminiTokens, api_calls: 1 })
+    .then(() => {}).catch(() => {});
 
   if (!rawContent) throw new Error("Empty response from AI Gateway");
 
