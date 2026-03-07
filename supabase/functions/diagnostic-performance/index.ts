@@ -29,11 +29,13 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Validate Authorization header (must carry the Supabase publishable/anon key)
+  // Validate Authorization header — accept anon key or publishable key (same JWT, different env var names)
   const authHeader = req.headers.get("authorization") || req.headers.get("apikey");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   const bearerToken = authHeader?.replace("Bearer ", "").trim();
-  if (!bearerToken || !anonKey || bearerToken !== anonKey) {
+  const validKey = anonKey || publishableKey;
+  if (!bearerToken || !validKey || (bearerToken !== anonKey && bearerToken !== publishableKey)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
