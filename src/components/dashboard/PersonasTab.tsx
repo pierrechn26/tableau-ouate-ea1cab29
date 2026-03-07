@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package, Sparkles, ChevronDown, ChevronUp, Calendar, BarChart2, Edit2, PowerOff } from "lucide-react";
+import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package, Sparkles, ChevronDown, ChevronUp, Edit2, PowerOff } from "lucide-react";
 import { usePersonaStats, PersonaStat } from "@/hooks/usePersonaStats";
 import { usePersonaProfiles, PersonaDBProfile } from "@/hooks/usePersonaProfiles";
 import { DateRange } from "react-day-picker";
