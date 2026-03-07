@@ -8,7 +8,7 @@ import { usePersonaProfiles, PersonaDBProfile } from "@/hooks/usePersonaProfiles
 import { DateRange } from "react-day-picker";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { supabase } from "@/integrations/supabase/client";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
