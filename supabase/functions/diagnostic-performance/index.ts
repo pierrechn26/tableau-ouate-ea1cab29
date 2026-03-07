@@ -28,6 +28,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Validate Authorization header (must carry the Supabase publishable/anon key)
+  const authHeader = req.headers.get("authorization") || req.headers.get("apikey");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const bearerToken = authHeader?.replace("Bearer ", "").trim();
+  if (!bearerToken || !anonKey || bearerToken !== anonKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,

@@ -859,6 +859,17 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Validate Authorization header (must carry the Supabase publishable/anon key)
+  const authHeader = req.headers.get("authorization") || req.headers.get("apikey");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const bearerToken = authHeader?.replace("Bearer ", "").trim();
+  if (!bearerToken || !anonKey || bearerToken !== anonKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
