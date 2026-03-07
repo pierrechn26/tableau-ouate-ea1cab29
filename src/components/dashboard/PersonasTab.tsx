@@ -607,33 +607,12 @@ function PersonaCard({ persona, globalAvg, globalRevenue, dbProfile }: {
   );
 }
 
-/* ── Detection Log types ── */
-interface DetectionLog {
-  id: string;
-  created_at: string;
-  detection_type: string;
-  action_taken: string;
-  persona_code_created: string | null;
-  sessions_affected: number;
-  details: Record<string, unknown>;
-}
-
-const DETECTION_TYPE_LABELS: Record<string, string> = {
-  new_cluster: "Nouveau cluster",
-  split: "Scission",
-  recombination: "Recombinaison",
-  deactivation: "Désactivation",
-  scan_no_result: "Scan sans résultat",
-};
-
 /* ── Main Tab ────────────────────────────────────────── */
 
 export function PersonasTab({ dateRange }: PersonasTabProps) {
   const { personas, isLoading, error, totalCompleted, globalAvg } = usePersonaStats(dateRange);
   // deno-lint-ignore no-explicit-any
   const [dbProfiles, setDbProfiles] = useState<ExtendedPersonaProfile[]>([]);
-  const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([]);
-  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     supabase
@@ -641,13 +620,6 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
       .select("code, name, full_label, description, is_pool, is_active, is_auto_created, auto_created_at, session_count, avg_matching_score, detection_source")
       .eq("is_active", true)
       .then(({ data }) => { if (data) setDbProfiles(data); });
-
-    supabase
-      .from("persona_detection_log")
-      .select("id, created_at, detection_type, action_taken, persona_code_created, sessions_affected, details")
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { if (data) setDetectionLogs(data as DetectionLog[]); });
   }, []);
 
   if (isLoading) {
