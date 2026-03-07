@@ -2,13 +2,13 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package, Sparkles, ChevronDown, ChevronUp, Calendar, BarChart2, Edit2, PowerOff } from "lucide-react";
+import { Loader2, Users, TrendingUp, ShoppingCart, Zap, Lightbulb, AlertTriangle, CheckCircle, BarChart3, Package, Sparkles, ChevronDown, ChevronUp, Edit2, PowerOff } from "lucide-react";
 import { usePersonaStats, PersonaStat } from "@/hooks/usePersonaStats";
 import { usePersonaProfiles, PersonaDBProfile } from "@/hooks/usePersonaProfiles";
 import { DateRange } from "react-day-picker";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { supabase } from "@/integrations/supabase/client";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
 
 import personaP1 from "@/assets/persona-p1.png";
 import personaP2 from "@/assets/persona-sophie.png";
@@ -607,33 +607,12 @@ function PersonaCard({ persona, globalAvg, globalRevenue, dbProfile }: {
   );
 }
 
-/* ── Detection Log types ── */
-interface DetectionLog {
-  id: string;
-  created_at: string;
-  detection_type: string;
-  action_taken: string;
-  persona_code_created: string | null;
-  sessions_affected: number;
-  details: Record<string, unknown>;
-}
-
-const DETECTION_TYPE_LABELS: Record<string, string> = {
-  new_cluster: "Nouveau cluster",
-  split: "Scission",
-  recombination: "Recombinaison",
-  deactivation: "Désactivation",
-  scan_no_result: "Scan sans résultat",
-};
-
 /* ── Main Tab ────────────────────────────────────────── */
 
 export function PersonasTab({ dateRange }: PersonasTabProps) {
   const { personas, isLoading, error, totalCompleted, globalAvg } = usePersonaStats(dateRange);
   // deno-lint-ignore no-explicit-any
   const [dbProfiles, setDbProfiles] = useState<ExtendedPersonaProfile[]>([]);
-  const [detectionLogs, setDetectionLogs] = useState<DetectionLog[]>([]);
-  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     supabase
@@ -641,13 +620,6 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
       .select("code, name, full_label, description, is_pool, is_active, is_auto_created, auto_created_at, session_count, avg_matching_score, detection_source")
       .eq("is_active", true)
       .then(({ data }) => { if (data) setDbProfiles(data); });
-
-    supabase
-      .from("persona_detection_log")
-      .select("id, created_at, detection_type, action_taken, persona_code_created, sessions_affected, details")
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data }) => { if (data) setDetectionLogs(data as DetectionLog[]); });
   }, []);
 
   if (isLoading) {
@@ -715,60 +687,6 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
         ))}
       </div>
 
-      {/* Detection Log — collapsible */}
-      <Collapsible open={logOpen} onOpenChange={setLogOpen}>
-        <CollapsibleTrigger asChild>
-          <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2">
-            <BarChart2 className="w-4 h-4" />
-            Historique des détections automatiques ({detectionLogs.length})
-            {logOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <Card className="p-4 mt-2">
-            {detectionLogs.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Aucune détection automatique pour le moment.</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-5 gap-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-2 border-b border-border">
-                  <span>Date</span>
-                  <span>Type</span>
-                  <span>Persona créé</span>
-                  <span>Sessions</span>
-                  <span>Action</span>
-                </div>
-                {detectionLogs.map((log) => (
-                  <div key={log.id} className="grid grid-cols-5 gap-3 text-sm items-center py-2 border-b border-border/40 last:border-0">
-                    <span className="text-muted-foreground text-xs flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(log.created_at).toLocaleDateString("fr-FR")}
-                    </span>
-                    <span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          log.detection_type === "new_cluster" ? "border-blue-500/40 text-blue-600 bg-blue-50 dark:bg-blue-950/30" :
-                          log.detection_type === "split" ? "border-purple-500/40 text-purple-600 bg-purple-50 dark:bg-purple-950/30" :
-                          log.detection_type === "recombination" ? "border-amber-500/40 text-amber-600 bg-amber-50 dark:bg-amber-950/30" :
-                          log.detection_type === "deactivation" ? "border-red-500/40 text-red-600 bg-red-50 dark:bg-red-950/30" :
-                          "border-muted"
-                        }
-                      >
-                        {DETECTION_TYPE_LABELS[log.detection_type] || log.detection_type}
-                      </Badge>
-                    </span>
-                    <span className="font-medium">{log.persona_code_created || "—"}</span>
-                    <span className="text-muted-foreground">{log.sessions_affected}</span>
-                    <span className={log.action_taken === "created" ? "text-green-600" : log.action_taken === "deactivated" ? "text-destructive" : "text-muted-foreground"}>
-                      {log.action_taken === "created" ? "✓ Créé" : log.action_taken === "deactivated" ? "✗ Désactivé" : "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </CollapsibleContent>
-      </Collapsible>
     </div>
   );
 }
