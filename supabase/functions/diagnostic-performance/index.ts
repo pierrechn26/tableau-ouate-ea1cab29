@@ -28,6 +28,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Validate x-api-key
+  const apiKey = req.headers.get("x-api-key");
+  const expectedKey = Deno.env.get("USAGE_STATS_API_KEY");
+  if (!apiKey || !expectedKey || apiKey !== expectedKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
