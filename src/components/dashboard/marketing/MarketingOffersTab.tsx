@@ -1,6 +1,6 @@
 import { Gift } from "lucide-react";
-import { RecommendationCard } from "./RecommendationCard";
-import { LegacyOffers, safeString } from "./legacy/LegacyRecommendations";
+import { OffersRecommendationCard } from "./OffersRecommendationCard";
+import { LegacyOffers } from "./legacy/LegacyRecommendations";
 
 interface Props {
   offersData: any;
