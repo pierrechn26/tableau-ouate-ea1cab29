@@ -13,6 +13,13 @@ export interface MarketingRecommendationData {
   offers_recommendations: any;
   sources_consulted: any;
   status: string | null;
+  // V2 columns
+  ads_v2: any[];
+  offers_v2: any[];
+  emails_v2: any[];
+  campaigns_overview: any[];
+  recommendation_version: number;
+  generation_config: any;
 }
 
 export function useMarketingRecommendations() {
@@ -109,6 +116,21 @@ export function useMarketingRecommendations() {
     fetchRecommendations();
   }, [fetchRecommendations]);
 
+  // ── V2 derived data ──────────────────────────────────────────────
+  const version = data?.recommendation_version ?? 1;
+  const adsV2 = Array.isArray(data?.ads_v2) ? data!.ads_v2 : [];
+  const offersV2 = Array.isArray(data?.offers_v2) ? data!.offers_v2 : [];
+  const emailsV2 = Array.isArray(data?.emails_v2) ? data!.emails_v2 : [];
+  const campaignsV2 = Array.isArray(data?.campaigns_overview) ? data!.campaigns_overview : [];
+
+  const isV2 = version >= 2 && (adsV2.length > 0 || offersV2.length > 0 || emailsV2.length > 0);
+
+  const adsData = isV2 && adsV2.length > 0 ? { _v2: true, items: adsV2 } : { _v2: false, ...(data?.ads_recommendations || {}) };
+  const offersData = isV2 && offersV2.length > 0 ? { _v2: true, items: offersV2 } : { _v2: false, ...(data?.offers_recommendations || {}) };
+  const emailsData = isV2 && emailsV2.length > 0 ? { _v2: true, items: emailsV2 } : { _v2: false, ...(data?.email_recommendations || {}) };
+  const campaignsData = isV2 ? campaignsV2 : [];
+  const generationConfig = data?.generation_config ?? {};
+
   return {
     data,
     isLoading,
@@ -117,5 +139,12 @@ export function useMarketingRecommendations() {
     generateRecommendations,
     updateChecklistItem,
     refetch: fetchRecommendations,
+    // V2 extras
+    isV2,
+    adsData,
+    offersData,
+    emailsData,
+    campaignsData,
+    generationConfig,
   };
 }
