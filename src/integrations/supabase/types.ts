@@ -462,36 +462,54 @@ export type Database = {
       marketing_recommendations: {
         Row: {
           ads_recommendations: Json | null
+          ads_v2: Json
+          campaigns_overview: Json
           checklist: Json | null
           email_recommendations: Json | null
+          emails_v2: Json
           generated_at: string | null
+          generation_config: Json
           id: string
           offers_recommendations: Json | null
+          offers_v2: Json
           persona_focus: Json | null
+          recommendation_version: number
           sources_consulted: Json | null
           status: string | null
           week_start: string
         }
         Insert: {
           ads_recommendations?: Json | null
+          ads_v2?: Json
+          campaigns_overview?: Json
           checklist?: Json | null
           email_recommendations?: Json | null
+          emails_v2?: Json
           generated_at?: string | null
+          generation_config?: Json
           id?: string
           offers_recommendations?: Json | null
+          offers_v2?: Json
           persona_focus?: Json | null
+          recommendation_version?: number
           sources_consulted?: Json | null
           status?: string | null
           week_start: string
         }
         Update: {
           ads_recommendations?: Json | null
+          ads_v2?: Json
+          campaigns_overview?: Json
           checklist?: Json | null
           email_recommendations?: Json | null
+          emails_v2?: Json
           generated_at?: string | null
+          generation_config?: Json
           id?: string
           offers_recommendations?: Json | null
+          offers_v2?: Json
           persona_focus?: Json | null
+          recommendation_version?: number
           sources_consulted?: Json | null
           status?: string | null
           week_start?: string
