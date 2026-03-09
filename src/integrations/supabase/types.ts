@@ -468,7 +468,9 @@ export type Database = {
           email_recommendations: Json | null
           emails_v2: Json
           generated_at: string | null
+          generated_categories: Json | null
           generation_config: Json
+          generation_type: string | null
           id: string
           offers_recommendations: Json | null
           offers_v2: Json
@@ -486,7 +488,9 @@ export type Database = {
           email_recommendations?: Json | null
           emails_v2?: Json
           generated_at?: string | null
+          generated_categories?: Json | null
           generation_config?: Json
+          generation_type?: string | null
           id?: string
           offers_recommendations?: Json | null
           offers_v2?: Json
@@ -504,7 +508,9 @@ export type Database = {
           email_recommendations?: Json | null
           emails_v2?: Json
           generated_at?: string | null
+          generated_categories?: Json | null
           generation_config?: Json
+          generation_type?: string | null
           id?: string
           offers_recommendations?: Json | null
           offers_v2?: Json
@@ -665,6 +671,42 @@ export type Database = {
           name?: string
           session_count?: number | null
           source_personas?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      recommendation_usage: {
+        Row: {
+          created_at: string | null
+          generations_log: Json | null
+          id: string
+          month_year: string
+          monthly_limit: number
+          plan: string
+          project_id: string
+          total_generated: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          generations_log?: Json | null
+          id?: string
+          month_year: string
+          monthly_limit?: number
+          plan?: string
+          project_id: string
+          total_generated?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          generations_log?: Json | null
+          id?: string
+          month_year?: string
+          monthly_limit?: number
+          plan?: string
+          project_id?: string
+          total_generated?: number
           updated_at?: string | null
         }
         Relationships: []
