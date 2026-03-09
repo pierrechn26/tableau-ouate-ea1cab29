@@ -49,7 +49,7 @@ interface Props {
   updateChecklistItem: (id: string, completed: boolean) => void;
 }
 
-export function MarketingOverviewTab({ checklist, campaignsData, updateChecklistItem }: Props) {
+export function MarketingOverviewTab({ checklist, updateChecklistItem }: Props) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const completedCount = checklist.filter((item) => item.completed).length;
@@ -63,27 +63,7 @@ export function MarketingOverviewTab({ checklist, campaignsData, updateChecklist
   };
 
   return (
-    <div className="space-y-8">
-      {/* ── Campagnes ─────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <LayoutGrid className="w-5 h-5 text-primary" />
-          <h3 className="text-xl font-bold text-foreground font-heading">Campagnes de la semaine</h3>
-        </div>
-
-        {campaignsData.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground bg-muted/20">
-            Les campagnes orchestrées seront disponibles avec la prochaine génération.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {campaignsData.map((c: any, idx: number) => (
-              <CampaignCard key={c.id ?? idx} campaign={c} />
-            ))}
-          </div>
-        )}
-      </div>
-
+    <div className="space-y-6">
       {/* ── Checklist ─────────────────────────────────────────────── */}
       <Card className="p-6 bg-gradient-to-br from-primary/5 via-card to-accent/5 border-2 border-primary/20 shadow-lg">
         <div className="flex items-center justify-between mb-6">
