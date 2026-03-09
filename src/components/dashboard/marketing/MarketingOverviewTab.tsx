@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +13,7 @@ import {
   ChevronDown,
   ChevronRight,
   RotateCcw,
-  Zap,
-  LayoutGrid,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { CampaignCard } from "./CampaignCard";
 import { PersonaBadges } from "./shared/PersonaBadge";
 import { renderChecklistDetail, safeString } from "./legacy/LegacyRecommendations";
 
