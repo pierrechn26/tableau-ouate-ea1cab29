@@ -61,9 +61,9 @@ function formatDateShort(dateStr: string): string {
 
 const TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   global: { label: "Global", icon: <Sparkles className="w-3 h-3" />, color: "bg-primary/15 text-primary border-primary/30" },
-  ads: { label: "Ads", icon: <Megaphone className="w-3 h-3" />, color: "bg-orange-500/15 text-orange-600 border-orange-500/30" },
-  offers: { label: "Offres", icon: <Gift className="w-3 h-3" />, color: "bg-green-500/15 text-green-600 border-green-500/30" },
-  emails: { label: "Emails", icon: <Mail className="w-3 h-3" />, color: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
+  ads: { label: "Ads", icon: <Megaphone className="w-3 h-3" />, color: "bg-accent/20 text-accent-foreground border-accent/30" },
+  offers: { label: "Offres", icon: <Gift className="w-3 h-3" />, color: "bg-secondary/20 text-secondary-foreground border-secondary/30" },
+  emails: { label: "Emails", icon: <Mail className="w-3 h-3" />, color: "bg-muted/60 text-muted-foreground border-muted-foreground/20" },
 };
 
 interface Props {
