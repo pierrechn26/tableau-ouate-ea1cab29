@@ -197,7 +197,7 @@ export function MarketingRecommendations() {
         </TabsContent>
 
         <TabsContent value="ads" className="mt-0">
-          <MarketingAdsTab adsData={adsData} isV2={isV2} />
+          <MarketingAdsTab adsData={adsData} isV2={isV2} campaignsData={campaignsData} />
         </TabsContent>
 
         <TabsContent value="offers" className="mt-0">
