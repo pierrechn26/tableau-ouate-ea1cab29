@@ -448,7 +448,7 @@ export function AdsRecommendationCard({ ad, campaignsData = [] }: Props) {
               {ad.ab_test_suggestion && (
                 <section>
                   <SectionHeader icon={SplitSquareVertical} label="A/B Test suggéré" />
-                  <div className="bg-accent/8 border border-accent/20 rounded-lg px-4 py-3 space-y-2">
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg px-4 py-3 space-y-2">
                     <p className="text-xs">
                       <span className="font-semibold text-foreground">Élément à tester : </span>
                       <span className="font-bold text-accent">{safeString(ad.ab_test_suggestion.element_a_tester)}</span>

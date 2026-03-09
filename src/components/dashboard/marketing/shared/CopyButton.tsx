@@ -32,7 +32,7 @@ export function CopyButton({ text, label = "Copier", className, size = "sm" }: C
       className={cn(
         "h-6 px-2 text-[10px] font-medium gap-1 shrink-0",
         copied
-          ? "text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/10"
+          ? "text-primary bg-primary/10 hover:bg-primary/10"
           : "text-muted-foreground hover:text-foreground",
         className
       )}
