@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -73,27 +72,24 @@ export function MarketingRecommendations() {
     return startOfDay(nextMonday(now));
   }, []);
 
-  // Auto-generate logic (unchanged)
-  useMemo(() => {
-    // intentionally not using useEffect so as not to change behaviour
-  }, []);
+  // Auto-generate logic (preserved from original)
+  useEffect(() => {
+    if (isLoading || isGenerating || autoGenerateTriggered) return;
 
-  // We mirror the original auto-generate logic with a ref guard
-  const autoTriggerRef = { current: autoGenerateTriggered };
-  if (!isLoading && !isGenerating && !autoTriggerRef.current) {
     if (!data) {
       setAutoGenerateTriggered(true);
       generateRecommendations();
-    } else {
-      const weekStart = new Date(data.week_start);
-      const now = new Date();
-      const diffDays = (now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays >= 7) {
-        setAutoGenerateTriggered(true);
-        generateRecommendations();
-      }
+      return;
     }
-  }
+
+    const weekStart = new Date(data.week_start);
+    const now = new Date();
+    const diffDays = (now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays >= 7) {
+      setAutoGenerateTriggered(true);
+      generateRecommendations();
+    }
+  }, [isLoading, data, isGenerating, autoGenerateTriggered, generateRecommendations]);
 
   // ── Loading states ────────────────────────────────────────────────
 
