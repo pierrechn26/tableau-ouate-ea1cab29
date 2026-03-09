@@ -205,7 +205,7 @@ export function MarketingRecommendations() {
         </TabsContent>
 
         <TabsContent value="emails" className="mt-0">
-          <MarketingEmailsTab emailsData={emailsData} isV2={isV2} />
+          <MarketingEmailsTab emailsData={emailsData} isV2={isV2} campaignsData={campaignsData} />
         </TabsContent>
       </Tabs>
     </div>
