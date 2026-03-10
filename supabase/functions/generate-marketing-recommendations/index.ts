@@ -703,7 +703,7 @@ serve(async (req) => {
       // Try Claude Opus (sub-calls)
       let opusSuccess = false;
       try {
-        console.log(`[generate-marketing] Opus generation type="${type}"...`);
+        console.log(`[generate-marketing] Sonnet 4.6 generation type="${type}"...`);
         const { result: opusResult, actualCount } = await callClaudeOpus(geminiSynthesis, collectedData, clientContext, perplexityResearch, type);
 
         if (actualCount === 0) throw new Error("All Opus sub-calls failed — no content generated");
