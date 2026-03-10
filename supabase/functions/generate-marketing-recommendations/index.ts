@@ -369,7 +369,7 @@ async function callClaudeOpus(
         `Génère 2 tâches actionnables liées aux ${catLabel} recommandées.`,
         `Retourne : { "checklist": [...], "persona_focus": { "roi": {"code":"string","name":"string","reason":"string"}, "growth": {"code":"string","name":"string","reason":"string"}, "ltv": {"code":"string","name":"string","reason":"string"} } }`,
       ].join("\n");
-      const miniRaw = await callOpusSingle(miniSys, commonCtx, 1500, 30000);
+      const miniRaw = await callOpusSingle(miniSys, commonCtx, 1500, 25000);
       const mini = JSON.parse(cleanJsonResponse(miniRaw));
       checklistResult = mini.checklist || [];
       personaFocus = mini.persona_focus || {};
