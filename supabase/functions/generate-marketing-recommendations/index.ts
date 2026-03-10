@@ -736,8 +736,8 @@ serve(async (req) => {
 
       } catch (opusErr) {
         const errMsg = opusErr instanceof Error ? opusErr.message : "unknown";
-        console.error("[generate-marketing] Opus FAILED:", errMsg);
-        logUsage("anthropic", "claude-opus-4-20250514", 0, { error: errMsg });
+        console.error("[generate-marketing] Sonnet 4.6 FAILED:", errMsg);
+        logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", 0, { error: errMsg });
         await supabase.from("recommendation_staging").update({ status: "error", error_message: errMsg }).eq("id", staging_id);
       }
 
