@@ -42,7 +42,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGenerating, generatingType, onGenerate }: Props) {
+export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate }: Props) {
   const isV2Mode = isV2 && adsData._v2 && Array.isArray(adsData.items) && adsData.items.length > 0;
   const items: any[] = isV2Mode ? adsData.items : [];
   const groups = groupByDate(items);
@@ -70,6 +70,7 @@ export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGe
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={onGenerate}
           />
         </div>

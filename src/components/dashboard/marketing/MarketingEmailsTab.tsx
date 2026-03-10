@@ -41,7 +41,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function MarketingEmailsTab({ emailsData, isV2, campaignsData = [], quota, isGenerating, generatingType, onGenerate }: Props) {
+export function MarketingEmailsTab({ emailsData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate }: Props) {
   const isV2Mode = isV2 && emailsData._v2 && Array.isArray(emailsData.items) && emailsData.items.length > 0;
   const items: any[] = isV2Mode ? emailsData.items : [];
   const groups = groupByDate(items);
@@ -69,6 +69,7 @@ export function MarketingEmailsTab({ emailsData, isV2, campaignsData = [], quota
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={onGenerate}
           />
         </div>
