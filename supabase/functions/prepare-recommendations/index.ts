@@ -363,11 +363,35 @@ async function callPerplexityResearch(
     }
   }
 
+  const adsUserMsg = [
+    `Recherche les dernières tendances en publicité Meta/TikTok/Instagram pour le secteur ${CLIENT_CONTEXT.sector}.`,
+    `Inclure : formats qui performent le mieux en ce moment (Reels, Stories, Carrousel, Feed),`,
+    `hooks qui captent l'attention des mamans 25-45 ans, tendances de ciblage (Broad vs Lookalike vs Advantage+),`,
+    `coûts par résultat moyens en beauté DTC.`,
+    `Notre audience valorise "${trustTriggerGlobalDominant}" et préfère "${contentFormatGlobalDominant}".`,
+    `Focus sur les marques DTC similaires. ${currentWeek}, ${currentMonth} ${currentYear}.`,
+  ].join(" ");
+
+  const emailUserMsg = [
+    `Recherche les meilleures pratiques actuelles en email marketing e-commerce pour le secteur ${CLIENT_CONTEXT.sector}.`,
+    `Inclure : taux d'ouverture benchmarks beauté DTC, tendances de segmentation,`,
+    `innovations en flows automatisés Klaviyo, lignes d'objet qui performent pour les mamans.`,
+    `Notre taux d'opt-in email est de ${avgOptinEmailGlobal}%. Focus sur Klaviyo et les marques DTC.`,
+    `${currentWeek}, ${currentMonth} ${currentYear}.`,
+  ].join(" ");
+
+  const offersUserMsg = [
+    `Recherche les stratégies d'offres, bundles et pricing qui fonctionnent en e-commerce ${CLIENT_CONTEXT.sector}.`,
+    `AOV moyen ${avgAovGlobal}€ (range: ${aovRange}), ${multiChildrenRateGlobal}% de clientes multi-enfants.`,
+    `Inclure : techniques de bundling, prix psychologiques, urgence et scarcity qui convertissent, upsells post-achat performants.`,
+    `${currentWeek}, ${currentMonth} ${currentYear}.`,
+  ].join(" ");
+
   const adsPromise = (type === "global" || type === "ads") ? safeFetch("ads", {
     model: "sonar-pro",
     messages: [
       { role: "system", content: "Tu es un analyste marketing spécialisé en publicités Meta Ads et TikTok Ads pour les marques e-commerce DTC beauté et skincare. Réponds de manière structurée avec des données chiffrées." },
-      { role: "user", content: `Recherche les dernières tendances en publicité Meta/TikTok/Instagram pour le secteur ${CLIENT_CONTEXT.sector}. Inclure : formats qui performent le mieux en ce moment (Reels, Stories, Carrousel, Feed), hooks qui captent l'attention des mamans 25-45 ans, tendances de ciblage (Broad vs Lookalike vs Advantage+), coûts par résultat moyens en beauté DTC. Notre audience valorise "${trustTriggerGlobalDominant}" et préfère "${contentFormatGlobalDominant}". Focus sur les marques DTC similaires. ${currentWeek}, ${currentMonth} ${currentYear}.` },
+      { role: "user", content: adsUserMsg },
     ],
   }) : Promise.resolve("");
 
@@ -375,7 +399,7 @@ async function callPerplexityResearch(
     model: "sonar-pro",
     messages: [
       { role: "system", content: "Tu es un expert en email marketing e-commerce et stratégie CRM Klaviyo. Réponds avec des benchmarks chiffrés (taux d'ouverture, taux de clic, CA par email)." },
-      { role: "user", content: `Recherche les meilleures pratiques actuelles en email marketing e-commerce pour le secteur ${CLIENT_CONTEXT.sector}. Inclure : taux d'ouverture benchmarks beauté DTC, tendances de segmentation, innovations en flows automatisés Klaviyo, lignes d'objet qui performent pour les mamans. Notre taux d'opt-in email est de ${avgOptinEmailGlobal}%. Focus sur Klaviyo et les marques DTC. ${currentWeek}, ${currentMonth} ${currentYear}.` },
+      { role: "user", content: emailUserMsg },
     ],
   }) : Promise.resolve("");
 
@@ -383,7 +407,7 @@ async function callPerplexityResearch(
     model: "sonar-pro",
     messages: [
       { role: "system", content: "Tu es un expert en stratégie commerciale e-commerce DTC spécialisé en pricing, bundles, upsells et cross-sells. Réponds avec des données chiffrées et des exemples concrets." },
-      { role: "user", content: `Recherche les stratégies d'offres, bundles et pricing qui fonctionnent en e-commerce ${CLIENT_CONTEXT.sector}. AOV moyen ${avgAovGlobal}€ (range: ${aovRange}), ${multiChildrenRateGlobal}% de clientes multi-enfants. Inclure : techniques de bundling, prix psychologiques, urgence et scarcity qui convertissent, upsells post-achat performants. ${currentWeek}, ${currentMonth} ${currentYear}.` },
+      { role: "user", content: offersUserMsg },
     ],
   }) : Promise.resolve("");
 
