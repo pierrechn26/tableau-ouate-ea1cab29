@@ -304,7 +304,7 @@ async function callClaudeOpus(
     }
 
     const sysPrompt = baseSystem + "\n\n" + schemaLine;
-    const raw = await callOpusSingle(sysPrompt, commonCtx, 2000, 30000);
+    const raw = await callOpusSingle(sysPrompt, commonCtx, 3000, 25000);
     const parsed = JSON.parse(cleanJsonResponse(raw));
     const items = parsed[retKey] || [];
     console.log(`[generate-marketing] Single ${category}: ${items.length} reco ✅`);
