@@ -252,7 +252,7 @@ function buildCommonContext(geminiSynthesis: any, perplexityResearch: any, colle
 }
 
 // ============================================
-// CLAUDE OPUS — ORCHESTRATED GENERATION
+// CLAUDE SONNET 4.6 — ORCHESTRATED GENERATION
 // ============================================
 async function callClaudeOpus(
   geminiSynthesis: any,
