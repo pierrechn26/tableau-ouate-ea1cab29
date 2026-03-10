@@ -65,13 +65,14 @@ export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGe
         <div className="w-64 shrink-0">
           <GenerateCategoryButton
             type="ads"
-            label="Générer 3 Ads"
+            label="Générer 3 recommandations Ads"
             icon={<Megaphone className="w-3.5 h-3.5" />}
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
             generationStep={generationStep}
             onGenerate={onGenerate}
+            singleType="single_ad"
           />
         </div>
       </div>
