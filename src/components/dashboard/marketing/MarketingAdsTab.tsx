@@ -1,8 +1,8 @@
-import { Megaphone, Sparkles } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import { AdsRecommendationCard } from "./AdsRecommendationCard";
 import { LegacyAds } from "./legacy/LegacyRecommendations";
 import { GenerateCategoryButton } from "./GenerateCategoryButton";
-import { GenerationType, QuotaData } from "@/hooks/useMarketingRecommendations";
+import { GenerationType, GenerationStep, QuotaData } from "@/hooks/useMarketingRecommendations";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ interface Props {
   quota: QuotaData;
   isGenerating: boolean;
   generatingType: GenerationType | null;
+  generationStep: GenerationStep;
   onGenerate: (type: GenerationType) => void;
 }
 
