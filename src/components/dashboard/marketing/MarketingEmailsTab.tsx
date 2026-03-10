@@ -64,13 +64,14 @@ export function MarketingEmailsTab({ emailsData, isV2, campaignsData = [], quota
         <div className="w-64 shrink-0">
           <GenerateCategoryButton
             type="emails"
-            label="Générer 3 Emails"
+            label="Générer 3 recommandations Emails"
             icon={<Mail className="w-3.5 h-3.5" />}
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
             generationStep={generationStep}
             onGenerate={onGenerate}
+            singleType="single_email"
           />
         </div>
       </div>
