@@ -400,7 +400,7 @@ async function callClaudeOpus(
       `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
       `Schéma : ${ADS_V2_SCHEMA}`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
     adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
     console.log(`[generate-marketing] Ads: ${adsResult.length} ✅`);
   } catch (e) { console.error(`[generate-marketing] Ads FAILED:`, (e as Error).message); }
