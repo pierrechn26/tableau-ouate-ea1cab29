@@ -146,7 +146,7 @@ async function updateQuota(supabase: any, type: GenerationType, recommendationId
 }
 
 // ============================================
-// CLAUDE OPUS — SINGLE SUB-CALL HELPER
+// CLAUDE SONNET 4.6 — SINGLE SUB-CALL HELPER
 // ============================================
 async function callOpusSingle(systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs: number): Promise<string> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -159,7 +159,7 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: "claude-opus-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -169,13 +169,13 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
     clearTimeout(timeout);
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Claude Opus ${response.status}: ${errText}`);
+      throw new Error(`Claude Sonnet 4.6 ${response.status}: ${errText}`);
     }
     const data = await response.json();
     const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-    logUsage("anthropic", "claude-opus-4-20250514", tokens);
+    logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", tokens);
     const text = data.content?.[0]?.text;
-    if (!text) throw new Error("Empty response from Claude Opus");
+    if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
     return text;
   } catch (e) {
     clearTimeout(timeout);
