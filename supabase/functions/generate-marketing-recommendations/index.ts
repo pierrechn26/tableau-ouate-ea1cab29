@@ -706,7 +706,7 @@ serve(async (req) => {
         console.log(`[generate-marketing] Sonnet 4.6 generation type="${type}"...`);
         const { result: opusResult, actualCount } = await callClaudeOpus(geminiSynthesis, collectedData, clientContext, perplexityResearch, type);
 
-        if (actualCount === 0) throw new Error("All Opus sub-calls failed — no content generated");
+        if (actualCount === 0) throw new Error("All Sonnet 4.6 sub-calls failed — no content generated");
 
         const inserted = await saveRecommendations(supabase, opusResult, {
           version: 2, weekStart,
