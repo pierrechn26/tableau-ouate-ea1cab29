@@ -7,7 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────
+type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
+
 function getMonday(d: Date): string {
   const date = new Date(d);
   const day = date.getDay();
@@ -25,17 +26,12 @@ function getCurrentMonthYear(): string {
 
 function countOccurrences(arr: (string | null | undefined)[]): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const v of arr) {
-    if (v) counts[v] = (counts[v] || 0) + 1;
-  }
+  for (const v of arr) { if (v) counts[v] = (counts[v] || 0) + 1; }
   return counts;
 }
 
 function topN(counts: Record<string, number>, n: number): { value: string; count: number }[] {
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
-    .map(([value, count]) => ({ value, count }));
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n).map(([value, count]) => ({ value, count }));
 }
 
 function splitAndCount(values: (string | null | undefined)[]): Record<string, number> {
@@ -57,24 +53,17 @@ function logUsage(provider: string, model: string, tokens: number, metadata?: Re
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
-  efficacite: "Efficacité",
-  ludique: "Côté ludique",
-  clean: "Naturalité/Clean",
-  autonomie: "Autonomie de l'enfant",
-  science: "Validation scientifique",
+  efficacite: "Efficacité", ludique: "Côté ludique", clean: "Naturalité/Clean",
+  autonomie: "Autonomie de l'enfant", science: "Validation scientifique",
 };
 
 const TRUST_LABELS: Record<string, string> = {
-  ingredient_transparency: "Transparence des ingrédients",
-  proof_results: "Preuves de résultats",
-  parent_testimonials: "Témoignages de parents",
-  scientific_validation: "Validation scientifique",
+  ingredient_transparency: "Transparence des ingrédients", proof_results: "Preuves de résultats",
+  parent_testimonials: "Témoignages de parents", scientific_validation: "Validation scientifique",
 };
 
 const FORMAT_LABELS: Record<string, string> = {
-  visual: "Contenu visuel",
-  short: "Contenu court et direct",
-  complete: "Contenu détaillé",
+  visual: "Contenu visuel", short: "Contenu court et direct", complete: "Contenu détaillé",
 };
 
 const SOURCES_CONSULTED = [
@@ -102,28 +91,23 @@ export const CLIENT_CONTEXT = {
 
 const PROJECT_ID = "ouate";
 
+/** Cost in credits per type */
+function costForType(type: GenerationType): number {
+  if (type === "global") return 9;
+  if (type === "ads" || type === "offers" || type === "emails") return 3;
+  return 1; // single_*
+}
+
 // ============================================
-// QUOTA CHECK (dry run only — no update)
+// QUOTA CHECK (dry run)
 // ============================================
-async function checkQuota(
-  supabase: any,
-  generationType: "global" | "ads" | "offers" | "emails"
-): Promise<{ allowed: boolean; usage: any; countForType: number }> {
+async function checkQuota(supabase: any, type: GenerationType): Promise<{ allowed: boolean; usage: any; countForType: number }> {
   const monthYear = getCurrentMonthYear();
-  const countForType = generationType === "global" ? 9 : 3;
-
+  const countForType = costForType(type);
   const { data: existing } = await supabase
-    .from("recommendation_usage")
-    .select("*")
-    .eq("project_id", PROJECT_ID)
-    .eq("month_year", monthYear)
-    .maybeSingle();
-
-  if (!existing) {
-    // No row yet — quota is fine
-    return { allowed: true, usage: { total_generated: 0, monthly_limit: 36, plan: "starter" }, countForType };
-  }
-
+    .from("recommendation_usage").select("*")
+    .eq("project_id", PROJECT_ID).eq("month_year", monthYear).maybeSingle();
+  if (!existing) return { allowed: true, usage: { total_generated: 0, monthly_limit: 36, plan: "starter" }, countForType };
   const allowed = existing.total_generated + countForType <= existing.monthly_limit;
   return { allowed, usage: existing, countForType };
 }
@@ -137,29 +121,20 @@ async function collectPersonaData(supabase: any) {
   const fromDate = thirtyDaysAgo.toISOString();
 
   const { data: sessions, error: sessionsErr } = await supabase
-    .from("diagnostic_sessions")
-    .select("*, diagnostic_children(*)")
-    .eq("status", "termine")
-    .gte("created_at", fromDate);
-
+    .from("diagnostic_sessions").select("*, diagnostic_children(*)")
+    .eq("status", "termine").gte("created_at", fromDate);
   if (sessionsErr) throw new Error(`Sessions fetch error: ${sessionsErr.message}`);
   if (!sessions || sessions.length === 0) throw new Error("No completed sessions in last 30 days");
 
   const sessionCodes = sessions.map((s: any) => s.session_code);
   const { data: orders, error: ordersErr } = await supabase
-    .from("shopify_orders")
-    .select("*")
-    .in("diagnostic_session_id", sessionCodes);
-
+    .from("shopify_orders").select("*").in("diagnostic_session_id", sessionCodes);
   if (ordersErr) throw new Error(`Orders fetch error: ${ordersErr.message}`);
 
   const ordersBySessionCode: Record<string, any[]> = {};
   for (const o of (orders || [])) {
     const sc = o.diagnostic_session_id;
-    if (sc) {
-      if (!ordersBySessionCode[sc]) ordersBySessionCode[sc] = [];
-      ordersBySessionCode[sc].push(o);
-    }
+    if (sc) { if (!ordersBySessionCode[sc]) ordersBySessionCode[sc] = []; ordersBySessionCode[sc].push(o); }
   }
 
   const childrenBySession: Record<string, any[]> = {};
@@ -171,40 +146,26 @@ async function collectPersonaData(supabase: any) {
   const allOrders = orders || [];
   const globalConversion = sessions.length > 0 ? allOrders.length / sessions.length : 0;
   const globalAOV = allOrders.length > 0
-    ? allOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0) / allOrders.length
-    : 0;
+    ? allOrders.reduce((s: number, o: any) => s + (Number(o.total_price) || 0), 0) / allOrders.length : 0;
 
   const { data: personaRows, error: personaErr } = await supabase
-    .from("personas")
-    .select("code, name, full_label, description, criteria, is_pool")
-    .eq("is_active", true)
-    .order("code");
-
+    .from("personas").select("code, name, full_label, description, criteria, is_pool")
+    .eq("is_active", true).order("code");
   if (personaErr) throw new Error(`Personas fetch error: ${personaErr.message}`);
 
-  const activePersonaCodes = (personaRows || [])
-    .filter((p: any) => !p.is_pool)
-    .map((p: any) => p.code);
-
+  const activePersonaCodes = (personaRows || []).filter((p: any) => !p.is_pool).map((p: any) => p.code);
   const personaLabelMap: Record<string, string> = {};
   const personaDescMap: Record<string, string> = {};
-  for (const p of (personaRows || [])) {
-    personaLabelMap[p.code] = p.full_label;
-    personaDescMap[p.code] = p.description || "";
-  }
-
+  for (const p of (personaRows || [])) { personaLabelMap[p.code] = p.full_label; personaDescMap[p.code] = p.description || ""; }
   const getPersonaFullLabel = (code: string) => personaLabelMap[code] || code;
 
   const personaData: Record<string, any> = {};
-
   for (const code of activePersonaCodes) {
     const pSessions = sessions.filter((s: any) => s.persona_code === code);
     const pSessionCodes = pSessions.map((s: any) => s.session_code);
     const pOrders = allOrders.filter((o: any) => pSessionCodes.includes(o.diagnostic_session_id));
     const pChildren: any[] = [];
-    for (const s of pSessions) {
-      if (childrenBySession[s.id]) pChildren.push(...childrenBySession[s.id]);
-    }
+    for (const s of pSessions) { if (childrenBySession[s.id]) pChildren.push(...childrenBySession[s.id]); }
 
     const volume = pSessions.length;
     const conversions = pOrders.length;
@@ -220,15 +181,13 @@ async function collectPersonaData(supabase: any) {
     const deviceDist = countOccurrences(pSessions.map((s: any) => s.device));
 
     const prioritiesList = pSessions.map((s: any) => s.priorities_ordered?.split(",").map((x: string) => x.trim())[0]).filter(Boolean);
-    const prioritiesCounts = countOccurrences(prioritiesList);
-    const topPriorities = topN(prioritiesCounts, 3).map((t) => ({
+    const topPriorities = topN(countOccurrences(prioritiesList), 3).map((t) => ({
       code: t.value, label: PRIORITY_LABELS[t.value] || t.value,
       count: t.count, pct: volume > 0 ? Math.round((t.count / volume) * 100) : 0,
     }));
 
     const trustList = pSessions.map((s: any) => s.trust_triggers_ordered?.split(",").map((x: string) => x.trim())[0]).filter(Boolean);
-    const trustCounts = countOccurrences(trustList);
-    const topTrust = topN(trustCounts, 3).map((t) => ({
+    const topTrust = topN(countOccurrences(trustList), 3).map((t) => ({
       code: t.value, label: TRUST_LABELS[t.value] || t.value,
       count: t.count, pct: volume > 0 ? Math.round((t.count / volume) * 100) : 0,
     }));
@@ -248,9 +207,7 @@ async function collectPersonaData(supabase: any) {
     const toneLabels: Record<string, string> = { playful: "Ludique", factual: "Factuel", empowering: "Autonomisant", transparent: "Transparent", expert: "Expert" };
     const toneDistPct: Record<string, number> = {};
     const toneTotal = Object.values(toneDist).reduce((a, b) => a + b, 0);
-    for (const [t, n] of Object.entries(toneDist)) {
-      toneDistPct[toneLabels[t] || t] = toneTotal > 0 ? Math.round((n / toneTotal) * 100) : 0;
-    }
+    for (const [t, n] of Object.entries(toneDist)) { toneDistPct[toneLabels[t] || t] = toneTotal > 0 ? Math.round((n / toneTotal) * 100) : 0; }
     const dominantTone = topN(toneDist, 1)[0];
 
     personaData[code] = {
@@ -264,7 +221,6 @@ async function collectPersonaData(supabase: any) {
   }
 
   const activePersonas = Object.values(personaData).filter((p: any) => p.business.volume >= 1);
-
   let bestROI: any = null, bestROIValue = 0;
   for (const p of activePersonas) {
     const v = (p.business.conversion_rate / 100) * p.business.aov;
@@ -297,11 +253,9 @@ async function collectPersonaData(supabase: any) {
   const allTrustTriggers = sessions.map((s: any) => s.trust_triggers_ordered?.split(",").map((x: string) => x.trim())[0]).filter(Boolean);
   const trustGlobalTop = topN(countOccurrences(allTrustTriggers), 1)[0];
   const trustTriggerGlobalDominant = trustGlobalTop ? (TRUST_LABELS[trustGlobalTop.value] || trustGlobalTop.value) : "Transparence des ingrédients";
-
   const allFormats = sessions.map((s: any) => s.content_format_preference).filter(Boolean);
   const formatGlobalTop = topN(countOccurrences(allFormats), 1)[0];
   const contentFormatGlobalDominant = formatGlobalTop ? (FORMAT_LABELS[formatGlobalTop.value] || formatGlobalTop.value) : "Contenu court et direct";
-
   const avgAovGlobal = Math.round(globalAOV);
   const personaAOVs = activePersonas.filter((p: any) => p.business.conversions > 0).map((p: any) => p.business.aov);
   const aovMin = personaAOVs.length > 0 ? Math.round(Math.min(...personaAOVs)) : avgAovGlobal;
@@ -326,7 +280,7 @@ async function collectPersonaData(supabase: any) {
 // ============================================
 async function callPerplexityResearch(
   globalAggregates: any,
-  type: "global" | "ads" | "offers" | "emails"
+  type: GenerationType
 ): Promise<{ adsResearch: string; emailResearch: string; offersResearch: string }> {
   const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
   if (!PERPLEXITY_API_KEY) {
@@ -413,7 +367,7 @@ async function callPerplexityResearch(
 
   const [adsResearch, emailResearch, offersResearch] = await Promise.all([adsPromise, emailPromise, offersPromise]);
   const successCount = [adsResearch, emailResearch, offersResearch].filter((r) => r.length > 0).length;
-  console.log(`[prepare-recommendations] Perplexity research: ${successCount}/3 calls succeeded`);
+  console.log(`[prepare-recommendations] Perplexity research: ${successCount} calls succeeded`);
   return { adsResearch, emailResearch, offersResearch };
 }
 
@@ -432,45 +386,49 @@ serve(async (req) => {
 
     let body: any = {};
     try { const text = await req.text(); if (text) body = JSON.parse(text); } catch (_) {}
-    const generationType: "global" | "ads" | "offers" | "emails" = body.type || "global";
+    const generationType: GenerationType = body.type || "global";
 
     console.log(`[prepare-recommendations] POST type="${generationType}"`);
 
-    // Step 0: Check quota (dry run)
+    // Step 0: Quota check
     const quotaCheck = await checkQuota(supabase, generationType);
     if (!quotaCheck.allowed) {
       const q = quotaCheck.usage;
       return new Response(JSON.stringify({
-        error: "quota_exceeded",
-        current: q.total_generated,
-        limit: q.monthly_limit,
-        remaining: q.monthly_limit - q.total_generated,
+        error: "quota_exceeded", current: q.total_generated,
+        limit: q.monthly_limit, remaining: q.monthly_limit - q.total_generated,
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Clean up expired staging rows
     await supabase.from("recommendation_staging").delete().lt("expires_at", new Date().toISOString());
 
-    // Step 1: Create staging row
+    // Create staging row
     const { data: stagingRow, error: createErr } = await supabase
       .from("recommendation_staging")
       .insert({ status: "step1_pending", generation_type: generationType })
-      .select()
-      .single();
+      .select().single();
     if (createErr) throw new Error(`Staging create error: ${createErr.message}`);
     const stagingId = stagingRow.id;
 
-    // Step 2: Collect persona data
-    console.log("[prepare-recommendations] Step 1: Collecting persona data...");
+    // Collect persona data (always — fast ~5s)
+    console.log("[prepare-recommendations] Collecting persona data...");
     const collectedData = await collectPersonaData(supabase);
-    console.log("[prepare-recommendations] Step 1 done. Sessions:", collectedData.globalMetrics.total_sessions);
+    console.log(`[prepare-recommendations] Persona data done. Sessions: ${collectedData.globalMetrics.total_sessions}`);
 
-    // Step 3: Perplexity research
-    console.log("[prepare-recommendations] Step 2: Perplexity web research...");
-    const perplexityResearch = await callPerplexityResearch(collectedData.globalAggregates, generationType);
-    console.log("[prepare-recommendations] Step 2 done.");
+    // Perplexity research — SKIP for single_* types
+    let perplexityResearch: { adsResearch: string; emailResearch: string; offersResearch: string } | null = null;
+    const isSingle = generationType.startsWith("single_");
+    if (!isSingle) {
+      console.log("[prepare-recommendations] Perplexity research...");
+      perplexityResearch = await callPerplexityResearch(collectedData.globalAggregates, generationType);
+      console.log("[prepare-recommendations] Perplexity done.");
+    } else {
+      console.log("[prepare-recommendations] Single type — skipping Perplexity.");
+      perplexityResearch = { adsResearch: "", emailResearch: "", offersResearch: "" };
+    }
 
-    // Step 4: Save to staging
+    // Save to staging
     const { error: updateErr } = await supabase
       .from("recommendation_staging")
       .update({
@@ -482,18 +440,16 @@ serve(async (req) => {
       .eq("id", stagingId);
     if (updateErr) throw new Error(`Staging update error: ${updateErr.message}`);
 
-    console.log(`[prepare-recommendations] Done. staging_id=${stagingId}`);
+    console.log(`[prepare-recommendations] Done. staging_id=${stagingId} is_single=${isSingle}`);
     return new Response(JSON.stringify({ staging_id: stagingId, status: "step1_done" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err: any) {
     const errMsg = err?.message || "Unknown error";
     console.error("[prepare-recommendations] Fatal error:", errMsg);
     return new Response(JSON.stringify({ error: errMsg }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

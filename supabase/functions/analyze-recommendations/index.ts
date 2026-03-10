@@ -175,18 +175,25 @@ serve(async (req) => {
 
     const { persona_data: collectedData, perplexity_results: perplexityResearch, client_context: clientContext, generation_type: generationType } = staging;
 
-    // Call Gemini analysis (non-fatal — we continue even if it fails)
+    const isSingle = (generationType as string).startsWith("single_");
+
+    // Skip Gemini for single_* types — not needed for 1 reco
     let geminiSynthesis: any = null;
     let geminiSuccess = false;
-    try {
-      geminiSynthesis = await callGeminiAnalysis(collectedData, perplexityResearch, clientContext, generationType as any);
-      geminiSuccess = true;
-      console.log("[analyze-recommendations] Gemini analysis done.");
-    } catch (geminiErr) {
-      const errMsg = geminiErr instanceof Error ? geminiErr.message : "unknown";
-      console.error("[analyze-recommendations] Gemini FAILED:", errMsg);
-      logUsage("gemini", "gemini-3.1-pro-preview", 0, { error: errMsg, step: "analysis" });
-      // Non-fatal: Opus will use raw Perplexity data as fallback
+    if (isSingle) {
+      console.log(`[analyze-recommendations] Single type "${generationType}" — skipping Gemini analysis.`);
+      geminiSuccess = true; // treated as success (intentional skip)
+    } else {
+      try {
+        geminiSynthesis = await callGeminiAnalysis(collectedData, perplexityResearch, clientContext, generationType as any);
+        geminiSuccess = true;
+        console.log("[analyze-recommendations] Gemini analysis done.");
+      } catch (geminiErr) {
+        const errMsg = geminiErr instanceof Error ? geminiErr.message : "unknown";
+        console.error("[analyze-recommendations] Gemini FAILED:", errMsg);
+        logUsage("gemini", "gemini-3.1-pro-preview", 0, { error: errMsg, step: "analysis" });
+        // Non-fatal: Opus will use raw Perplexity data as fallback
+      }
     }
 
     // Update staging with synthesis
