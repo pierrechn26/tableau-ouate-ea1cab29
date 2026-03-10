@@ -37,7 +37,7 @@ export interface MarketingRecommendationData {
   generation_config: any;
 }
 
-export type GenerationType = "global" | "ads" | "offers" | "emails";
+export type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
 export type GenerationStep = "prepare" | "analyze" | "generate" | null;
 
 export function useMarketingRecommendations() {
