@@ -39,6 +39,7 @@ export function MarketingRecommendations() {
     isLoading,
     isGenerating,
     generatingType,
+    generationStep,
     generateByCategory,
     updateChecklistItem,
     isV2,
