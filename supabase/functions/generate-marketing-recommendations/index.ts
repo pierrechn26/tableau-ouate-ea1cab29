@@ -336,7 +336,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
         `Schéma par reco : ${ADS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
     } else if (type === "offers") {
       const sys = baseSystem + [
