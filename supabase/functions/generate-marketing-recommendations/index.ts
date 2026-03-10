@@ -430,7 +430,7 @@ async function callClaudeOpus(
       `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
       `Schéma : ${EMAILS_V2_SCHEMA}`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
     emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
     console.log(`[generate-marketing] Emails: ${emailsResult.length} ✅`);
   } catch (e) { console.error(`[generate-marketing] Emails FAILED:`, (e as Error).message); }
