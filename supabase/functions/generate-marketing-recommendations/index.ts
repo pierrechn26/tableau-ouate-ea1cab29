@@ -457,7 +457,7 @@ async function callClaudeOpus(
       `3. persona_focus : {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}}`,
       `Retourne UNIQUEMENT : { "campaigns_overview": [...], "checklist": [...], "persona_focus": {...} }`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 3000, 45000);
+    const raw = await callOpusSingle(sys, commonCtx, 4000, 30000);
     const parsed = JSON.parse(cleanJsonResponse(raw));
     campaignsResult = parsed.campaigns_overview || [];
     checklistResult = parsed.checklist || [];
