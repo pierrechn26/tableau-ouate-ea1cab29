@@ -39,6 +39,7 @@ export function MarketingRecommendations() {
     isLoading,
     isGenerating,
     generatingType,
+    generationStep,
     generateByCategory,
     updateChecklistItem,
     isV2,
@@ -120,6 +121,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>
@@ -132,6 +134,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>
@@ -144,6 +147,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>

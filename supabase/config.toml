@@ -48,4 +48,10 @@ verify_jwt = false
 [functions.get-usage-stats]
 verify_jwt = false
 
+[functions.prepare-recommendations]
+verify_jwt = false
+
+[functions.analyze-recommendations]
+verify_jwt = false
+
 
