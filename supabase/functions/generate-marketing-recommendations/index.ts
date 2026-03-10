@@ -324,7 +324,7 @@ async function callClaudeOpus(
 
   // ── CASE 2: CATEGORY GENERATION (3 recos, 3 crédits) ──────────────
   if (type === "ads" || type === "offers" || type === "emails") {
-    console.log(`[generate-marketing] Opus: category ${type}...`);
+    console.log(`[generate-marketing] Sonnet 4.6: category ${type}...`);
 
     let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
 
