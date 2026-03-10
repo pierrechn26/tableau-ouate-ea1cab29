@@ -121,6 +121,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>
@@ -133,6 +134,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>
@@ -145,6 +147,7 @@ export function MarketingRecommendations() {
             quota={quota}
             isGenerating={isGenerating}
             generatingType={generatingType}
+            generationStep={generationStep}
             onGenerate={generateByCategory}
           />
         </TabsContent>
