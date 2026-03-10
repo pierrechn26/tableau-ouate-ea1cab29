@@ -356,7 +356,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
         `Schéma par reco : ${EMAILS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
     }
 
