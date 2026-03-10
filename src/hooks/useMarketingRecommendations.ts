@@ -147,7 +147,10 @@ export function useMarketingRecommendations() {
       const typeLabel = type === "global" ? "toutes les recommandations" :
         type === "ads" ? "les recommandations Ads" :
         type === "offers" ? "les recommandations Offres" :
-        "les recommandations Emails";
+        type === "emails" ? "les recommandations Emails" :
+        type === "single_ad" ? "la recommandation Ads" :
+        type === "single_offer" ? "la recommandation Offre" :
+        "la recommandation Email";
 
       toast({
         title: "Recommandations générées",
