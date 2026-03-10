@@ -9,7 +9,7 @@ interface Step {
   Icon: React.ElementType;
 }
 
-const STEPS: Step[] = [
+const STEPS_FULL: Step[] = [
   {
     id: "prepare",
     label: "Analyse de vos données et recherche marché...",
@@ -30,38 +30,61 @@ const STEPS: Step[] = [
   },
 ];
 
-const stepIndex = (step: GenerationStep): number =>
-  STEPS.findIndex((s) => s.id === step);
+const STEPS_SINGLE: Step[] = [
+  {
+    id: "prepare",
+    label: "Préparation...",
+    sublabel: "Étape 1/2 · ~20 secondes",
+    Icon: Search,
+  },
+  {
+    id: "generate",
+    label: "Génération de votre recommandation...",
+    sublabel: "Étape 2/2 · ~20 secondes",
+    Icon: Sparkles,
+  },
+];
+
+const stepIndex = (step: GenerationStep, steps: Step[]): number =>
+  steps.findIndex((s) => s.id === step);
 
 interface Props {
   generationStep: GenerationStep;
   generatingType: GenerationType | null;
 }
 
-export function GenerationProgressLoader({ generationStep, generatingType }: Props) {
-  const currentIdx = stepIndex(generationStep);
+function typeLabelFor(t: GenerationType | null): string {
+  if (!t) return "";
+  if (t === "global") return "toutes les recommandations";
+  if (t === "ads") return "Ads (×3)";
+  if (t === "offers") return "Offres (×3)";
+  if (t === "emails") return "Emails (×3)";
+  if (t === "single_ad") return "1 recommandation Ads";
+  if (t === "single_offer") return "1 recommandation Offre";
+  if (t === "single_email") return "1 recommandation Email";
+  return "";
+}
 
-  const typeLabel =
-    generatingType === "global" ? "toutes les recommandations" :
-    generatingType === "ads" ? "Ads" :
-    generatingType === "offers" ? "Offres" :
-    generatingType === "emails" ? "Emails" : "";
+export function GenerationProgressLoader({ generationStep, generatingType }: Props) {
+  const isSingle = generatingType?.startsWith("single_") ?? false;
+  const steps = isSingle ? STEPS_SINGLE : STEPS_FULL;
+  const currentIdx = stepIndex(generationStep, steps);
 
   return (
     <div className="w-full rounded-xl border border-border bg-card/60 p-5 space-y-4">
       <p className="text-sm font-semibold text-foreground">
-        Génération en cours — {typeLabel}
+        Génération en cours — {typeLabelFor(generatingType)}
       </p>
 
       <div className="space-y-3">
-        {STEPS.map((step, idx) => {
+        {steps.map((step, idx) => {
           const isDone = idx < currentIdx;
           const isActive = idx === currentIdx;
           const isPending = idx > currentIdx;
 
           return (
             <div
-              key={step.id}
+              key={step.id + idx}
               className={cn(
                 "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all",
                 isActive && "bg-primary/8 border border-primary/20",
@@ -97,7 +120,7 @@ export function GenerationProgressLoader({ generationStep, generatingType }: Pro
                     isPending && "text-muted-foreground"
                   )}
                 >
-                  {isDone ? step.label.replace("...", " ✓").replace(" ✓", "") : step.label}
+                  {isDone ? step.label.replace("...", "") : step.label}
                 </p>
                 <p
                   className={cn(
@@ -107,7 +130,6 @@ export function GenerationProgressLoader({ generationStep, generatingType }: Pro
                 >
                   {step.sublabel}
                 </p>
-                {/* Indeterminate progress bar for active step */}
                 {isActive && (
                   <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-primary/20">
                     <div className="h-full bg-primary animate-[shimmer_1.5s_ease-in-out_infinite] w-1/3 rounded-full" />
@@ -115,7 +137,6 @@ export function GenerationProgressLoader({ generationStep, generatingType }: Pro
                 )}
               </div>
 
-              {/* Spinner for active */}
               {isActive && (
                 <Loader2 className="w-4 h-4 shrink-0 animate-spin text-primary mt-0.5" />
               )}
