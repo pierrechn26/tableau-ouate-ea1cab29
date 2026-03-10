@@ -7,7 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────
 function getMonday(d: Date): string {
   const date = new Date(d);
   const day = date.getDay();
@@ -45,6 +44,122 @@ const SOURCES_CONSULTED = [
 ];
 
 const PROJECT_ID = "ouate";
+
+// ── JSON Schema fragments (split to avoid bundler timeout) ────────────
+const ADS_V2_SCHEMA = JSON.stringify({
+  id: "string",
+  title: "string",
+  persona_cible: "PX",
+  format: "reel|story|carousel|static|ugc",
+  funnel_stage: "awareness|consideration|conversion|retention",
+  contenu_creatif: {
+    hook_text: "string|null",
+    hook_audio: "string|null",
+    script_complet: "string|null",
+    descriptif_visuel: "string",
+    headline_image: "string|null",
+    body_copy: "string|null",
+    slides: null,
+    direction_artistique: "string",
+  },
+  ad_copy: { primary_text: "string", headline: "string", description: "string" },
+  cta: "string",
+  angle_psychologique: "string",
+  ciblage_detaille: {
+    audiences_suggested: ["string"],
+    exclusions: ["string"],
+    custom_audience_source: "string|null",
+  },
+  ab_test_suggestion: {
+    element_a_tester: "string",
+    variante_a: "string",
+    variante_b: "string",
+    raison: "string",
+    duree_test_recommandee: "string",
+  },
+  landing_page_alignement: { url_destination: null, elements_coherence: ["string"] },
+  prompt_ia_generation: "string en anglais",
+  inspirations: [{ description: "string", marque: "string", pourquoi: "string", url: null }],
+  budget_suggere: "string",
+  placement: "string",
+  plateforme: "meta|tiktok|both",
+  kpi_attendu: "string",
+  campaign_id: "string|null",
+  priorite: "haute|moyenne|basse",
+  sources_utilisees: ["string"],
+});
+
+const OFFERS_V2_SCHEMA = JSON.stringify({
+  id: "string",
+  title: "string",
+  persona_cible: "PX",
+  type_offre: "bundle|upsell|cross_sell|offre_limitee|prix_psychologique|fidelite",
+  concept: "string",
+  composition: [{ produit: "string", role_dans_bundle: "string" }],
+  pricing_strategy: {
+    prix_unitaire_total: "string",
+    prix_bundle: "string",
+    economie_affichee: "string",
+    ancrage_prix: "string",
+  },
+  marge_estimee: { cout_revient_estime: "string", marge_brute_pourcent: "string", commentaire: "string" },
+  plan_de_lancement: {
+    phase_teasing: { duree: "string", actions: ["string"] },
+    phase_lancement: { duree: "string", actions: ["string"] },
+    phase_relance: { duree: "string", actions: ["string"] },
+  },
+  messaging_par_canal: { ads: "string", email: "string", site: "string" },
+  angle_marketing: "string",
+  urgency_trigger: "string|null",
+  canal_distribution: "site|email|ads|tous",
+  periode_recommandee: "string",
+  metriques_succes: { kpis_a_surveiller: ["string"], seuil_succes: "string", action_si_echec: "string" },
+  campaign_id: "string|null",
+  priorite: "haute|moyenne|basse",
+  sources_utilisees: ["string"],
+});
+
+const EMAILS_V2_SCHEMA = JSON.stringify({
+  id: "string",
+  title: "string",
+  persona_cible: "PX",
+  type_email: "newsletter|flow_automation|campagne_promo|relance|post_diagnostic|winback",
+  objet: "string",
+  objet_variante: "string",
+  preview_text: "string",
+  structure_sections: [{ section: "string", contenu: "string", conseil_design: "string" }],
+  messaging_principal: "string",
+  cta_principal: { texte: "string", url_destination: null, couleur_suggeree: "string" },
+  segment_klaviyo: "string",
+  trigger: "string",
+  timing: "string",
+  position_dans_flow: {
+    flow_name: "string",
+    position: "string",
+    email_precedent: "string|null",
+    email_suivant: "string|null",
+    logique_branchement: "string",
+  },
+  dynamic_content_rules: [{ bloc_concerne: "string", regle: "string", fallback: "string" }],
+  metriques_cibles: { taux_ouverture_vise: "string", taux_clic_vise: "string", benchmark_industrie: "string" },
+  tone_of_voice: "string",
+  campaign_id: "string|null",
+  priorite: "haute|moyenne|basse",
+  sources_utilisees: ["string"],
+});
+
+const CAMPAIGNS_SCHEMA = JSON.stringify({
+  id: "string",
+  nom: "string",
+  objectif: "string",
+  persona_principal: "string",
+  duree: "string",
+  strategie_resumee: "string",
+  recos_ads_ids: ["string"],
+  recos_offers_ids: ["string"],
+  recos_emails_ids: ["string"],
+  timeline: [{ jour: "string", action: "string", canal: "string" }],
+});
 
 // ============================================
 // QUOTA: GET CURRENT
@@ -164,75 +279,79 @@ async function callClaudeOpus(
 - persona_focus : les 3 personas prioritaires
 - checklist : 2 tâches actionnables uniquement liées à l'email marketing`;
 
-  const systemPrompt = `Tu es le directeur marketing IA d'Ask-It. Tu génères des recommandations marketing pour des marques e-commerce.
-
-RÈGLES ABSOLUES :
-- Ne recommande JAMAIS un produit qui n'existe pas dans le catalogue
-- Chaque recommandation doit être IMMÉDIATEMENT ACTIONNABLE
-- Scripts, hooks, ad copies et lignes d'objet EN FRANÇAIS, prêts à l'emploi
-- Prompts IA EN ANGLAIS
-- Utilise les vrais prix des produits
-- Cible un persona spécifique pour chaque recommandation
-- Inspirations = VRAIES marques connues
-- Ne pas inventer d'URLs — mettre null
-- Ton : ${CLIENT_CONTEXT.tone}
-- Recommandations VARIÉES en formats, angles et personas
-- Prénoms des personas dans les textes visibles (pas les codes PX)
-- INTERDICTION : emojis, jargon non expliqué
-
-CATALOGUE :
-${CLIENT_CONTEXT.products.map((p: any) => `- ${p.name} (${p.type}) — ${p.price}€`).join("\n")}
-
-PERSONAS :
-${personaDescriptions}
-
-${typeInstructions}
-
-POUR LES IDs : "rec-ads-001", "rec-offers-001", "rec-emails-001", "camp-001" etc.
-
-Retourne un JSON STRICT. Aucun texte avant ou après. Pas de markdown. Juste le JSON.
-
-STRUCTURE JSON :
-{
-  "ads_v2": [{ "id":"string","title":"string","persona_cible":"PX","format":"reel|story|carousel|static|ugc","funnel_stage":"awareness|consideration|conversion|retention","contenu_creatif":{"hook_text":"string|null","hook_audio":"string|null","script_complet":"string|null","descriptif_visuel":"string","headline_image":"string|null","body_copy":"string|null","slides":null,"direction_artistique":"string"},"ad_copy":{"primary_text":"string","headline":"string","description":"string"},"cta":"string","angle_psychologique":"string","ciblage_detaille":{"audiences_suggested":["string"],"exclusions":["string"],"custom_audience_source":"string|null"},"ab_test_suggestion":{"element_a_tester":"string","variante_a":"string","variante_b":"string","raison":"string","duree_test_recommandee":"string"},"landing_page_alignement":{"url_destination":null,"elements_coherence":["string"]},"prompt_ia_generation":"string en anglais","inspirations":[{"description":"string","marque":"string","pourquoi":"string","url":null}],"budget_suggere":"string","placement":"string","plateforme":"meta|tiktok|both","kpi_attendu":"string","campaign_id":"string|null","priorite":"haute|moyenne|basse","sources_utilisees":["string"]}],
-  "offers_v2": [{"id":"string","title":"string","persona_cible":"PX","type_offre":"bundle|upsell|cross_sell|offre_limitee|prix_psychologique|fidelite","concept":"string","composition":[{"produit":"string","role_dans_bundle":"string"}],"pricing_strategy":{"prix_unitaire_total":"string","prix_bundle":"string","economie_affichee":"string","ancrage_prix":"string"},"marge_estimee":{"cout_revient_estime":"string","marge_brute_pourcent":"string","commentaire":"string"},"plan_de_lancement":{"phase_teasing":{"duree":"string","actions":["string"]},"phase_lancement":{"duree":"string","actions":["string"]},"phase_relance":{"duree":"string","actions":["string"]}},"messaging_par_canal":{"ads":"string","email":"string","site":"string"},"angle_marketing":"string","urgency_trigger":"string|null","canal_distribution":"site|email|ads|tous","periode_recommandee":"string","metriques_succes":{"kpis_a_surveiller":["string"],"seuil_succes":"string","action_si_echec":"string"},"campaign_id":"string|null","priorite":"haute|moyenne|basse","sources_utilisees":["string"]}],
-  "emails_v2": [{"id":"string","title":"string","persona_cible":"PX","type_email":"newsletter|flow_automation|campagne_promo|relance|post_diagnostic|winback","objet":"string","objet_variante":"string","preview_text":"string","structure_sections":[{"section":"string","contenu":"string","conseil_design":"string"}],"messaging_principal":"string","cta_principal":{"texte":"string","url_destination":null,"couleur_suggeree":"string"},"segment_klaviyo":"string","trigger":"string","timing":"string","position_dans_flow":{"flow_name":"string","position":"string","email_precedent":"string|null","email_suivant":"string|null","logique_branchement":"string"},"dynamic_content_rules":[{"bloc_concerne":"string","regle":"string","fallback":"string"}],"metriques_cibles":{"taux_ouverture_vise":"string","taux_clic_vise":"string","benchmark_industrie":"string"},"tone_of_voice":"string","campaign_id":"string|null","priorite":"haute|moyenne|basse","sources_utilisees":["string"]}],
-  "campaigns_overview": [{"id":"string","nom":"string","objectif":"string","persona_principal":"string","duree":"string","strategie_resumee":"string","recos_ads_ids":["string"],"recos_offers_ids":["string"],"recos_emails_ids":["string"],"timeline":[{"jour":"string","action":"string","canal":"string"}]}],
-  "persona_focus": {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}},
-  "checklist": [{"id":"string","title":"string","category":"ads|email|offers","completed":false,"detail":{}}]
-}`;
+  const systemPrompt = [
+    `Tu es le directeur marketing IA d'Ask-It. Tu génères des recommandations marketing pour des marques e-commerce.`,
+    ``,
+    `RÈGLES ABSOLUES :`,
+    `- Ne recommande JAMAIS un produit qui n'existe pas dans le catalogue`,
+    `- Chaque recommandation doit être IMMÉDIATEMENT ACTIONNABLE`,
+    `- Scripts, hooks, ad copies et lignes d'objet EN FRANÇAIS, prêts à l'emploi`,
+    `- Prompts IA EN ANGLAIS`,
+    `- Utilise les vrais prix des produits`,
+    `- Cible un persona spécifique pour chaque recommandation`,
+    `- Inspirations = VRAIES marques connues`,
+    `- Ne pas inventer d'URLs — mettre null`,
+    `- Ton : ${CLIENT_CONTEXT.tone}`,
+    `- Recommandations VARIÉES en formats, angles et personas`,
+    `- Prénoms des personas dans les textes visibles (pas les codes PX)`,
+    `- INTERDICTION : emojis, jargon non expliqué`,
+    ``,
+    `CATALOGUE :`,
+    CLIENT_CONTEXT.products.map((p: any) => `- ${p.name} (${p.type}) — ${p.price}€`).join("\n"),
+    ``,
+    `PERSONAS :`,
+    personaDescriptions,
+    ``,
+    typeInstructions,
+    ``,
+    `POUR LES IDs : "rec-ads-001", "rec-offers-001", "rec-emails-001", "camp-001" etc.`,
+    ``,
+    `Retourne un JSON STRICT. Aucun texte avant ou après. Pas de markdown. Juste le JSON.`,
+    ``,
+    `STRUCTURE JSON :`,
+    `{`,
+    `  "ads_v2": [${ADS_V2_SCHEMA}],`,
+    `  "offers_v2": [${OFFERS_V2_SCHEMA}],`,
+    `  "emails_v2": [${EMAILS_V2_SCHEMA}],`,
+    `  "campaigns_overview": [${CAMPAIGNS_SCHEMA}],`,
+    `  "persona_focus": {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}},`,
+    `  "checklist": [{"id":"string","title":"string","category":"ads|email|offers","completed":false,"detail":{}}]`,
+    `}`,
+  ].join("\n");
 
   // Build user prompt: prefer geminiSynthesis, fallback to raw perplexity
   const p = priorities;
   let contextBlock = "";
   if (geminiSynthesis) {
-    contextBlock = `=== SYNTHÈSE ANALYTIQUE (Gemini) ===
-${JSON.stringify(geminiSynthesis, null, 2)}`;
+    contextBlock = `=== SYNTHÈSE ANALYTIQUE (Gemini) ===\n${JSON.stringify(geminiSynthesis, null, 2)}`;
   } else {
-    // Fallback: use raw perplexity data directly
     const { adsResearch = "", emailResearch = "", offersResearch = "" } = perplexityResearch || {};
-    contextBlock = `=== DONNÉES MARCHÉ BRUTES (Perplexity) ===
---- Ads ---
-${adsResearch || "Non disponible"}
---- Email ---
-${emailResearch || "Non disponible"}
---- Offres ---
-${offersResearch || "Non disponible"}`;
+    contextBlock = [
+      `=== DONNÉES MARCHÉ BRUTES (Perplexity) ===`,
+      `--- Ads ---`,
+      adsResearch || "Non disponible",
+      `--- Email ---`,
+      emailResearch || "Non disponible",
+      `--- Offres ---`,
+      offersResearch || "Non disponible",
+    ].join("\n");
   }
 
-  const userPrompt = `${contextBlock}
-
-=== DONNÉES PERSONAS PRIORITAIRES ===
-- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — valeur/session: ${p.best_roi_value}€
-- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — CA potentiel: +${p.best_growth_ca}€
-- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score: ${p.best_ltv_score}
-
-=== CONTEXTE MARQUE ===
-${CLIENT_CONTEXT.brand} — ${CLIENT_CONTEXT.description}
-Produits : ${CLIENT_CONTEXT.products.map((p: any) => `${p.name} (${p.price}€)`).join(", ")}
-Code promo : ${CLIENT_CONTEXT.promoCode}
-
-Génère les recommandations v2 au format JSON strict. Type de génération : ${type}.`;
+  const userPrompt = [
+    contextBlock,
+    ``,
+    `=== DONNÉES PERSONAS PRIORITAIRES ===`,
+    `- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — valeur/session: ${p.best_roi_value}€`,
+    `- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — CA potentiel: +${p.best_growth_ca}€`,
+    `- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score: ${p.best_ltv_score}`,
+    ``,
+    `=== CONTEXTE MARQUE ===`,
+    `${CLIENT_CONTEXT.brand} — ${CLIENT_CONTEXT.description}`,
+    `Produits : ${CLIENT_CONTEXT.products.map((p: any) => `${p.name} (${p.price}€)`).join(", ")}`,
+    `Code promo : ${CLIENT_CONTEXT.promoCode}`,
+    ``,
+    `Génère les recommandations v2 au format JSON strict. Type de génération : ${type}.`,
+  ].join("\n");
 
   console.log(`[generate-marketing] Calling Claude Opus for ${type} generation...`);
 
@@ -297,35 +416,39 @@ async function callGeminiLegacy(collectedData: any, perplexityResearch: any, cli
     .map((p: any) => `- ${p.code} : ${p.full_label} : ${p.description || ""}`)
     .join("\n");
 
-  const systemPrompt = `Tu es un directeur marketing senior spécialisé en e-commerce DTC skincare et cosmétiques pour enfants.
-${CLIENT_CONTEXT.brand} — ${CLIENT_CONTEXT.description}
-Gamme : ${CLIENT_CONTEXT.products.map((p: any) => `${p.name} (${p.type}) — ~${p.price}€`).join(", ")}
-
-=== PERSONAS ===
-${personaDescriptions}
-P0 — Non attribué : Ne pas cibler.
-
-=== INTELLIGENCE MARCHÉ (${currentMonth} ${currentYear}) ===
---- Ads ---
-${adsResearch || "Non disponible"}
---- Email ---
-${emailResearch || "Non disponible"}
---- Offres ---
-${offersResearch || "Non disponible"}
-
-RÈGLES : Utiliser les prénoms des personas, hooks en français, pas d'emojis, métriques lisibles.`;
+  const systemPrompt = [
+    `Tu es un directeur marketing senior spécialisé en e-commerce DTC skincare et cosmétiques pour enfants.`,
+    `${CLIENT_CONTEXT.brand} — ${CLIENT_CONTEXT.description}`,
+    `Gamme : ${CLIENT_CONTEXT.products.map((p: any) => `${p.name} (${p.type}) — ~${p.price}€`).join(", ")}`,
+    ``,
+    `=== PERSONAS ===`,
+    personaDescriptions,
+    `P0 — Non attribué : Ne pas cibler.`,
+    ``,
+    `=== INTELLIGENCE MARCHÉ (${currentMonth} ${currentYear}) ===`,
+    `--- Ads ---`,
+    adsResearch || "Non disponible",
+    `--- Email ---`,
+    emailResearch || "Non disponible",
+    `--- Offres ---`,
+    offersResearch || "Non disponible",
+    ``,
+    `RÈGLES : Utiliser les prénoms des personas, hooks en français, pas d'emojis, métriques lisibles.`,
+  ].join("\n");
 
   const p = priorities;
-  const userPrompt = `Données personas (30 jours) :
-${JSON.stringify(personaData, null, 2)}
-Métriques globales : ${JSON.stringify(globalMetrics)}
-Personas prioritaires :
-- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — ${p.best_roi_value}€/session
-- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — +${p.best_growth_ca}€ potentiel
-- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score ${p.best_ltv_score}
-Contexte temporel : ${currentMonth} ${currentYear}.
-Génère les recommandations v1. JSON uniquement :
-{ "persona_focus": {...}, "checklist": [...], "ads_recommendations": {...}, "email_recommendations": {...}, "offers_recommendations": {...} }`;
+  const userPrompt = [
+    `Données personas (30 jours) :`,
+    JSON.stringify(personaData, null, 2),
+    `Métriques globales : ${JSON.stringify(globalMetrics)}`,
+    `Personas prioritaires :`,
+    `- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — ${p.best_roi_value}€/session`,
+    `- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — +${p.best_growth_ca}€ potentiel`,
+    `- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score ${p.best_ltv_score}`,
+    `Contexte temporel : ${currentMonth} ${currentYear}.`,
+    `Génère les recommandations v1. JSON uniquement :`,
+    `{ "persona_focus": {...}, "checklist": [...], "ads_recommendations": {...}, "email_recommendations": {...}, "offers_recommendations": {...} }`,
+  ].join("\n");
 
   console.log("[generate-marketing] [FALLBACK] Calling Gemini 2.5 Pro...");
 
@@ -357,24 +480,79 @@ function convertV2toV1(opusResult: any): { ads_recommendations: any; email_recom
   const offers = opusResult.offers_v2 || [];
 
   const ads_recommendations = {
-    hooks_creatifs: ads.map((a: any) => ({ text: a.contenu_creatif?.hook_text || a.title, personas: [a.persona_cible], rationale: a.angle_psychologique || "" })),
-    concepts_video: ads.filter((a: any) => ["reel", "ugc", "story"].includes(a.format)).map((a: any) => ({ title: a.title, personas: [a.persona_cible], description: a.contenu_creatif?.descriptif_visuel || a.contenu_creatif?.script_complet || "" })),
-    angles_psychologiques: ads.map((a: any) => ({ angle: a.angle_psychologique || "", personas: [a.persona_cible], source: a.sources_utilisees?.[0] || "" })),
-    ciblage: ads.map((a: any) => ({ audience: (a.ciblage_detaille?.audiences_suggested || []).join(", "), personas: [a.persona_cible] })),
+    hooks_creatifs: ads.map((a: any) => ({
+      text: a.contenu_creatif?.hook_text || a.title,
+      personas: [a.persona_cible],
+      rationale: a.angle_psychologique || "",
+    })),
+    concepts_video: ads
+      .filter((a: any) => ["reel", "ugc", "story"].includes(a.format))
+      .map((a: any) => ({
+        title: a.title,
+        personas: [a.persona_cible],
+        description: a.contenu_creatif?.descriptif_visuel || a.contenu_creatif?.script_complet || "",
+      })),
+    angles_psychologiques: ads.map((a: any) => ({
+      angle: a.angle_psychologique || "",
+      personas: [a.persona_cible],
+      source: a.sources_utilisees?.[0] || "",
+    })),
+    ciblage: ads.map((a: any) => ({
+      audience: (a.ciblage_detaille?.audiences_suggested || []).join(", "),
+      personas: [a.persona_cible],
+    })),
   };
-  if (ads_recommendations.hooks_creatifs.length === 0) ads_recommendations.hooks_creatifs = [{ text: "", personas: [], rationale: "" }];
+  if (ads_recommendations.hooks_creatifs.length === 0) {
+    ads_recommendations.hooks_creatifs = [{ text: "", personas: [], rationale: "" }];
+  }
 
   const email_recommendations = {
-    newsletters: emails.filter((e: any) => e.type_email === "newsletter").map((e: any) => ({ title: e.title, personas: [e.persona_cible], type: "educatif", sujet: e.objet, contenu_cle: e.messaging_principal, cta: e.cta_principal?.texte || "", frequence: e.timing, segment: e.segment_klaviyo, justification: "" })),
-    flows_automatises: emails.filter((e: any) => e.type_email !== "newsletter").map((e: any) => ({ title: e.title, personas: [e.persona_cible], sequence: e.position_dans_flow?.position || "", trigger: e.trigger || "", justification: "" })),
+    newsletters: emails
+      .filter((e: any) => e.type_email === "newsletter")
+      .map((e: any) => ({
+        title: e.title,
+        personas: [e.persona_cible],
+        type: "educatif",
+        sujet: e.objet,
+        contenu_cle: e.messaging_principal,
+        cta: e.cta_principal?.texte || "",
+        frequence: e.timing,
+        segment: e.segment_klaviyo,
+        justification: "",
+      })),
+    flows_automatises: emails
+      .filter((e: any) => e.type_email !== "newsletter")
+      .map((e: any) => ({
+        title: e.title,
+        personas: [e.persona_cible],
+        sequence: e.position_dans_flow?.position || "",
+        trigger: e.trigger || "",
+        justification: "",
+      })),
     lignes_objet: emails.map((e: any) => ({ text: e.objet, personas: [e.persona_cible], context: e.type_email })),
     segmentation: emails.map((e: any) => ({ segment: e.segment_klaviyo, personas: [e.persona_cible], action: e.title })),
   };
 
   const offers_recommendations = {
-    bundles: offers.filter((o: any) => ["bundle", "offre_limitee"].includes(o.type_offre)).map((o: any) => ({ name: o.title, personas: [o.persona_cible], produits: (o.composition || []).map((c: any) => c.produit).join(", "), prix: `${o.pricing_strategy?.prix_bundle || ""} (au lieu de ${o.pricing_strategy?.prix_unitaire_total || ""}, soit ${o.pricing_strategy?.economie_affichee || ""})`, rationale: o.concept })),
-    prix_psychologiques: offers.filter((o: any) => o.type_offre === "prix_psychologique").map((o: any) => ({ strategie: o.concept, rationale: o.pricing_strategy?.ancrage_prix || "" })),
-    upsells: offers.filter((o: any) => ["upsell", "cross_sell"].includes(o.type_offre)).map((o: any) => ({ trigger: o.title, action: o.concept, taux_acceptation_estime: o.metriques_succes?.seuil_succes || "" })),
+    bundles: offers
+      .filter((o: any) => ["bundle", "offre_limitee"].includes(o.type_offre))
+      .map((o: any) => ({
+        name: o.title,
+        personas: [o.persona_cible],
+        produits: (o.composition || []).map((c: any) => c.produit).join(", "),
+        prix: `${o.pricing_strategy?.prix_bundle || ""} (au lieu de ${o.pricing_strategy?.prix_unitaire_total || ""}, soit ${o.pricing_strategy?.economie_affichee || ""})`,
+        rationale: o.concept,
+      })),
+    prix_psychologiques: offers
+      .filter((o: any) => o.type_offre === "prix_psychologique")
+      .map((o: any) => ({ strategie: o.concept, rationale: o.pricing_strategy?.ancrage_prix || "" })),
+    upsells: offers
+      .filter((o: any) => ["upsell", "cross_sell"].includes(o.type_offre))
+      .map((o: any) => ({
+        trigger: o.title,
+        action: o.concept,
+        taux_acceptation_estime: o.metriques_succes?.seuil_succes || "",
+      })),
   };
 
   return { ads_recommendations, email_recommendations, offers_recommendations };
@@ -503,7 +681,12 @@ serve(async (req) => {
       let body: any = {};
       try { const text = await req.text(); if (text) body = JSON.parse(text); } catch (_) {}
       const { staging_id } = body;
-      if (!staging_id) return new Response(JSON.stringify({ error: "staging_id is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!staging_id) {
+        return new Response(JSON.stringify({ error: "staging_id is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       console.log(`[generate-marketing] POST staging_id="${staging_id}"`);
 
@@ -515,13 +698,26 @@ serve(async (req) => {
         .single();
 
       if (stagingErr || !staging) {
-        return new Response(JSON.stringify({ error: "Staging row not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "Staging row not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (staging.status !== "step2_done") {
-        return new Response(JSON.stringify({ error: `Invalid staging status: ${staging.status}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: `Invalid staging status: ${staging.status}` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const { persona_data: collectedData, perplexity_results: perplexityResearch, gemini_synthesis: geminiSynthesis, client_context: clientContext, generation_type: generationType } = staging;
+      const {
+        persona_data: collectedData,
+        perplexity_results: perplexityResearch,
+        gemini_synthesis: geminiSynthesis,
+        client_context: clientContext,
+        generation_type: generationType,
+      } = staging;
+
       const generatedCategories = generationType === "global" ? ["ads", "offers", "emails"] : [generationType];
       const weekStart = getMonday(new Date());
       const personasCount = Object.keys(collectedData?.personaData || {}).length;
@@ -550,13 +746,8 @@ serve(async (req) => {
         });
         console.log("[generate-marketing] Saved. ID:", inserted.id);
 
-        // Update quota
         await updateQuota(supabase, generationType as any, inserted.id);
-
-        // Mark staging as consumed
         await supabase.from("recommendation_staging").update({ status: "consumed" }).eq("id", staging_id);
-
-        // Cleanup old consumed/expired staging rows
         await supabase.from("recommendation_staging").delete().or(`status.eq.consumed,expires_at.lt.${new Date().toISOString()}`);
 
         opusSuccess = true;
@@ -578,7 +769,6 @@ serve(async (req) => {
       }
 
       if (!opusSuccess) {
-        // FALLBACK: Legacy Gemini 2.5 Pro (v1 only)
         console.log("[generate-marketing] FALLBACK: Using Gemini 2.5 Pro...");
         try {
           const legacyResult = await callGeminiLegacy(collectedData, perplexityResearch, clientContext);
