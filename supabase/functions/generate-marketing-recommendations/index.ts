@@ -386,7 +386,7 @@ async function callClaudeOpus(
   }
 
   // ── CASE 3: GLOBAL GENERATION (3+3+3 sub-calls + campaigns) ───────
-  console.log("[generate-marketing] Opus: global generation (4 sub-calls)...");
+  console.log("[generate-marketing] Sonnet 4.6: global generation (4 sub-calls)...");
   let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
   let campaignsResult: any[] = [], checklistResult: any[] = [], personaFocus: any = {};
 
