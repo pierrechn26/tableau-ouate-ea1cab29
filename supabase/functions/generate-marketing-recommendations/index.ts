@@ -346,7 +346,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
         `Schéma par reco : ${OFFERS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       offersResult = (JSON.parse(cleanJsonResponse(raw))).offers_v2 || [];
     } else {
       const sys = baseSystem + [
