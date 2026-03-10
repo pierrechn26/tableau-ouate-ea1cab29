@@ -714,7 +714,7 @@ serve(async (req) => {
           modelsUsed: {
             research: perplexityResearch ? "perplexity/sonar-pro" : "none",
             analysis: geminiSynthesis ? "google/gemini-3.1-pro-preview" : "none",
-            generation: "anthropic/claude-opus-4-20250514",
+            generation: "anthropic/claude-sonnet-4.6",
           },
           sessionsAnalyzed: collectedData?.globalMetrics?.total_sessions || 0,
           personasCount, perplexityResearch, generationType: type, generatedCategories,
