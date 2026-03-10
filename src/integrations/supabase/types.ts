@@ -675,6 +675,45 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_staging: {
+        Row: {
+          client_context: Json | null
+          created_at: string | null
+          error_message: string | null
+          expires_at: string | null
+          gemini_synthesis: Json | null
+          generation_type: string
+          id: string
+          perplexity_results: Json | null
+          persona_data: Json | null
+          status: string
+        }
+        Insert: {
+          client_context?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          gemini_synthesis?: Json | null
+          generation_type: string
+          id?: string
+          perplexity_results?: Json | null
+          persona_data?: Json | null
+          status?: string
+        }
+        Update: {
+          client_context?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          gemini_synthesis?: Json | null
+          generation_type?: string
+          id?: string
+          perplexity_results?: Json | null
+          persona_data?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       recommendation_usage: {
         Row: {
           created_at: string | null
