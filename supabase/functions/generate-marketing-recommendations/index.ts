@@ -146,7 +146,7 @@ async function updateQuota(supabase: any, type: GenerationType, recommendationId
 }
 
 // ============================================
-// CLAUDE OPUS — SINGLE SUB-CALL HELPER
+// CLAUDE SONNET 4.6 — SINGLE SUB-CALL HELPER
 // ============================================
 async function callOpusSingle(systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs: number): Promise<string> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -159,7 +159,7 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: "claude-opus-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -169,13 +169,13 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
     clearTimeout(timeout);
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Claude Opus ${response.status}: ${errText}`);
+      throw new Error(`Claude Sonnet 4.6 ${response.status}: ${errText}`);
     }
     const data = await response.json();
     const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-    logUsage("anthropic", "claude-opus-4-20250514", tokens);
+    logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", tokens);
     const text = data.content?.[0]?.text;
-    if (!text) throw new Error("Empty response from Claude Opus");
+    if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
     return text;
   } catch (e) {
     clearTimeout(timeout);
@@ -252,7 +252,7 @@ function buildCommonContext(geminiSynthesis: any, perplexityResearch: any, colle
 }
 
 // ============================================
-// CLAUDE OPUS — ORCHESTRATED GENERATION
+// CLAUDE SONNET 4.6 — ORCHESTRATED GENERATION
 // ============================================
 async function callClaudeOpus(
   geminiSynthesis: any,
@@ -269,7 +269,7 @@ async function callClaudeOpus(
   // ── CASE 1: SINGLE GENERATION (1 reco, 1 crédit) ──────────────────
   if (type.startsWith("single_")) {
     const category = type.replace("single_", ""); // ad | offer | email
-    console.log(`[generate-marketing] Opus: single ${category}...`);
+    console.log(`[generate-marketing] Sonnet 4.6: single ${category}...`);
 
     let schemaLine = "";
     let retKey = "";
@@ -304,7 +304,7 @@ async function callClaudeOpus(
     }
 
     const sysPrompt = baseSystem + "\n\n" + schemaLine;
-    const raw = await callOpusSingle(sysPrompt, commonCtx, 2000, 30000);
+    const raw = await callOpusSingle(sysPrompt, commonCtx, 3000, 25000);
     const parsed = JSON.parse(cleanJsonResponse(raw));
     const items = parsed[retKey] || [];
     console.log(`[generate-marketing] Single ${category}: ${items.length} reco ✅`);
@@ -324,7 +324,7 @@ async function callClaudeOpus(
 
   // ── CASE 2: CATEGORY GENERATION (3 recos, 3 crédits) ──────────────
   if (type === "ads" || type === "offers" || type === "emails") {
-    console.log(`[generate-marketing] Opus: category ${type}...`);
+    console.log(`[generate-marketing] Sonnet 4.6: category ${type}...`);
 
     let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
 
@@ -336,7 +336,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
         `Schéma par reco : ${ADS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
     } else if (type === "offers") {
       const sys = baseSystem + [
@@ -346,7 +346,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
         `Schéma par reco : ${OFFERS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       offersResult = (JSON.parse(cleanJsonResponse(raw))).offers_v2 || [];
     } else {
       const sys = baseSystem + [
@@ -356,7 +356,7 @@ async function callClaudeOpus(
         `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
         `Schéma par reco : ${EMAILS_V2_SCHEMA}`,
       ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
       emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
     }
 
@@ -369,7 +369,7 @@ async function callClaudeOpus(
         `Génère 2 tâches actionnables liées aux ${catLabel} recommandées.`,
         `Retourne : { "checklist": [...], "persona_focus": { "roi": {"code":"string","name":"string","reason":"string"}, "growth": {"code":"string","name":"string","reason":"string"}, "ltv": {"code":"string","name":"string","reason":"string"} } }`,
       ].join("\n");
-      const miniRaw = await callOpusSingle(miniSys, commonCtx, 1500, 30000);
+      const miniRaw = await callOpusSingle(miniSys, commonCtx, 1500, 25000);
       const mini = JSON.parse(cleanJsonResponse(miniRaw));
       checklistResult = mini.checklist || [];
       personaFocus = mini.persona_focus || {};
@@ -386,7 +386,7 @@ async function callClaudeOpus(
   }
 
   // ── CASE 3: GLOBAL GENERATION (3+3+3 sub-calls + campaigns) ───────
-  console.log("[generate-marketing] Opus: global generation (4 sub-calls)...");
+  console.log("[generate-marketing] Sonnet 4.6: global generation (4 sub-calls)...");
   let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
   let campaignsResult: any[] = [], checklistResult: any[] = [], personaFocus: any = {};
 
@@ -400,7 +400,7 @@ async function callClaudeOpus(
       `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
       `Schéma : ${ADS_V2_SCHEMA}`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
     adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
     console.log(`[generate-marketing] Ads: ${adsResult.length} ✅`);
   } catch (e) { console.error(`[generate-marketing] Ads FAILED:`, (e as Error).message); }
@@ -415,7 +415,7 @@ async function callClaudeOpus(
       `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
       `Schéma : ${OFFERS_V2_SCHEMA}`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
     offersResult = (JSON.parse(cleanJsonResponse(raw))).offers_v2 || [];
     console.log(`[generate-marketing] Offers: ${offersResult.length} ✅`);
   } catch (e) { console.error(`[generate-marketing] Offers FAILED:`, (e as Error).message); }
@@ -430,7 +430,7 @@ async function callClaudeOpus(
       `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
       `Schéma : ${EMAILS_V2_SCHEMA}`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 5000, 60000);
+    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
     emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
     console.log(`[generate-marketing] Emails: ${emailsResult.length} ✅`);
   } catch (e) { console.error(`[generate-marketing] Emails FAILED:`, (e as Error).message); }
@@ -457,7 +457,7 @@ async function callClaudeOpus(
       `3. persona_focus : {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}}`,
       `Retourne UNIQUEMENT : { "campaigns_overview": [...], "checklist": [...], "persona_focus": {...} }`,
     ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 3000, 45000);
+    const raw = await callOpusSingle(sys, commonCtx, 4000, 30000);
     const parsed = JSON.parse(cleanJsonResponse(raw));
     campaignsResult = parsed.campaigns_overview || [];
     checklistResult = parsed.checklist || [];
@@ -703,10 +703,10 @@ serve(async (req) => {
       // Try Claude Opus (sub-calls)
       let opusSuccess = false;
       try {
-        console.log(`[generate-marketing] Opus generation type="${type}"...`);
+        console.log(`[generate-marketing] Sonnet 4.6 generation type="${type}"...`);
         const { result: opusResult, actualCount } = await callClaudeOpus(geminiSynthesis, collectedData, clientContext, perplexityResearch, type);
 
-        if (actualCount === 0) throw new Error("All Opus sub-calls failed — no content generated");
+        if (actualCount === 0) throw new Error("All Sonnet 4.6 sub-calls failed — no content generated");
 
         const inserted = await saveRecommendations(supabase, opusResult, {
           version: 2, weekStart,
@@ -714,7 +714,7 @@ serve(async (req) => {
           modelsUsed: {
             research: perplexityResearch ? "perplexity/sonar-pro" : "none",
             analysis: geminiSynthesis ? "google/gemini-3.1-pro-preview" : "none",
-            generation: "anthropic/claude-opus-4-20250514",
+            generation: "anthropic/claude-sonnet-4.6",
           },
           sessionsAnalyzed: collectedData?.globalMetrics?.total_sessions || 0,
           personasCount, perplexityResearch, generationType: type, generatedCategories,
@@ -736,8 +736,8 @@ serve(async (req) => {
 
       } catch (opusErr) {
         const errMsg = opusErr instanceof Error ? opusErr.message : "unknown";
-        console.error("[generate-marketing] Opus FAILED:", errMsg);
-        logUsage("anthropic", "claude-opus-4-20250514", 0, { error: errMsg });
+        console.error("[generate-marketing] Sonnet 4.6 FAILED:", errMsg);
+        logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", 0, { error: errMsg });
         await supabase.from("recommendation_staging").update({ status: "error", error_message: errMsg }).eq("id", staging_id);
       }
 
