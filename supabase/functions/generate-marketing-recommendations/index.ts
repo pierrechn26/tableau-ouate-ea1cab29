@@ -269,7 +269,7 @@ async function callClaudeOpus(
   // ── CASE 1: SINGLE GENERATION (1 reco, 1 crédit) ──────────────────
   if (type.startsWith("single_")) {
     const category = type.replace("single_", ""); // ad | offer | email
-    console.log(`[generate-marketing] Opus: single ${category}...`);
+    console.log(`[generate-marketing] Sonnet 4.6: single ${category}...`);
 
     let schemaLine = "";
     let retKey = "";
