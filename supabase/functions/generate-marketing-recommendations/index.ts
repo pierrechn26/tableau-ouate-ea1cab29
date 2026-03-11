@@ -718,7 +718,7 @@ serve(async (req) => {
         console.log("[generate-marketing] Finalize: generating campaigns + checklist...");
         const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
 
-        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 4000, 120000);
+        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
         logUsage(supabase, "anthropic", "claude-sonnet-4-6", tokens, { type: "finalize", rec_id: recommendation_id });
 
         let parsed: any;
@@ -813,7 +813,7 @@ serve(async (req) => {
 
       const userPrompt = buildUserPrompt(type, intelligence);
       const isSingle = type.startsWith("single_");
-      const maxTokens = isSingle ? 3000 : 8000;
+      const maxTokens = 16000;
 
       console.log(`[generate-marketing] Calling Sonnet 4.6 for type="${type}" maxTokens=${maxTokens}...`);
 
@@ -821,7 +821,7 @@ serve(async (req) => {
       let sonnetTokens: number;
 
       try {
-        const result = await callSonnet(baseSystem, userPrompt, maxTokens, 120000);
+        const result = await callSonnet(baseSystem, userPrompt, maxTokens, 130000);
         sonnetText = result.text;
         sonnetTokens = result.tokens;
       } catch (sonnetErr: any) {
