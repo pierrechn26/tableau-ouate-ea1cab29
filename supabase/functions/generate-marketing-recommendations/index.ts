@@ -821,7 +821,7 @@ serve(async (req) => {
       let sonnetTokens: number;
 
       try {
-        const result = await callSonnet(baseSystem, userPrompt, maxTokens, 120000);
+        const result = await callSonnet(baseSystem, userPrompt, maxTokens, 130000);
         sonnetText = result.text;
         sonnetTokens = result.tokens;
       } catch (sonnetErr: any) {
