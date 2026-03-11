@@ -1,3 +1,10 @@
+// ============================================================
+// generate-marketing-recommendations — Phase B (v3)
+// Architecture : Intelligence pré-calculée (market_intelligence)
+// + Claude Sonnet 4.6 pour génération finale
+// UN SEUL appel Sonnet par invocation (~25-35s)
+// Aucun appel Perplexity ni Gemini ici — tout est pré-calculé.
+// ============================================================
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,7 +14,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
+type GenerationType =
+  | "global"
+  | "ads"
+  | "offers"
+  | "emails"
+  | "single_ad"
+  | "single_offer"
+  | "single_email"
+  | "finalize";
+
+// ── Helpers ────────────────────────────────────────────────────────────
 
 function getMonday(d: Date): string {
   const date = new Date(d);
@@ -32,90 +49,186 @@ function cleanJsonResponse(raw: string): string {
   return cleaned.trim();
 }
 
-function logUsage(provider: string, model: string, tokens: number, metadata?: Record<string, any>) {
-  createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+function logUsage(
+  supabase: any,
+  provider: string,
+  model: string,
+  tokens: number,
+  metadata?: Record<string, any>
+) {
+  supabase
     .from("api_usage_logs")
-    .insert({ edge_function: "generate-marketing-recommendations", api_provider: provider, model, tokens_used: tokens, api_calls: 1, metadata: metadata || {} })
-    .then(() => {}).catch(() => {});
+    .insert({
+      edge_function: "generate-marketing-recommendations",
+      api_provider: provider,
+      model,
+      tokens_used: tokens,
+      api_calls: 1,
+      metadata: metadata || {},
+    })
+    .then(() => {})
+    .catch(() => {});
 }
-
-/** Cost in credits per type */
-function costForType(type: GenerationType): number {
-  if (type === "global") return 9;
-  if (type === "ads" || type === "offers" || type === "emails") return 3;
-  return 1; // single_*
-}
-
-const SOURCES_CONSULTED = [
-  "motionapp.com", "klaviyo.com", "flighted.co", "triplewhale.com",
-  "rebuyengine.com", "j7media.com", "commonthreadco.com", "chasedimond.com",
-  "baymard.com", "growth.design", "shopify.com", "bigcommerce.com",
-];
 
 const PROJECT_ID = "ouate";
 
-// ── Schema fragments ──────────────────────────────────────────────────
-const ADS_V2_SCHEMA = JSON.stringify({
-  id: "string", title: "string", persona_cible: "PX",
-  format: "reel|story|carousel|static|ugc",
-  funnel_stage: "awareness|consideration|conversion|retention",
-  contenu_creatif: { hook_text: "string|null", hook_audio: "string|null", script_complet: "string|null", descriptif_visuel: "string", headline_image: "string|null", body_copy: "string|null", slides: null, direction_artistique: "string" },
-  ad_copy: { primary_text: "string", headline: "string", description: "string" },
-  cta: "string", angle_psychologique: "string",
-  ciblage_detaille: { audiences_suggested: ["string"], exclusions: ["string"], custom_audience_source: "string|null" },
-  ab_test_suggestion: { element_a_tester: "string", variante_a: "string", variante_b: "string", raison: "string", duree_test_recommandee: "string" },
-  landing_page_alignement: { url_destination: null, elements_coherence: ["string"] },
-  prompt_ia_generation: "string en anglais",
-  inspirations: [{ description: "string", marque: "string", pourquoi: "string", url: null }],
-  budget_suggere: "string", placement: "string", plateforme: "meta|tiktok|both",
-  kpi_attendu: "string", campaign_id: "string|null", priorite: "haute|moyenne|basse", sources_utilisees: ["string"],
-});
+// ── Schemas (for prompts) ──────────────────────────────────────────────
 
-const OFFERS_V2_SCHEMA = JSON.stringify({
-  id: "string", title: "string", persona_cible: "PX",
-  type_offre: "bundle|upsell|cross_sell|offre_limitee|prix_psychologique|fidelite",
-  concept: "string",
-  composition: [{ produit: "string", role_dans_bundle: "string" }],
-  pricing_strategy: { prix_unitaire_total: "string", prix_bundle: "string", economie_affichee: "string", ancrage_prix: "string" },
-  marge_estimee: { cout_revient_estime: "string", marge_brute_pourcent: "string", commentaire: "string" },
-  plan_de_lancement: { phase_teasing: { duree: "string", actions: ["string"] }, phase_lancement: { duree: "string", actions: ["string"] }, phase_relance: { duree: "string", actions: ["string"] } },
-  messaging_par_canal: { ads: "string", email: "string", site: "string" },
-  angle_marketing: "string", urgency_trigger: "string|null",
-  canal_distribution: "site|email|ads|tous", periode_recommandee: "string",
-  metriques_succes: { kpis_a_surveiller: ["string"], seuil_succes: "string", action_si_echec: "string" },
-  campaign_id: "string|null", priorite: "haute|moyenne|basse", sources_utilisees: ["string"],
-});
+const ADS_V2_SCHEMA = `{
+  "id": "string",
+  "title": "string",
+  "persona_cible": "code du persona ex: P1",
+  "format": "reel|story_video|ugc_video|static_image|carousel|before_after",
+  "funnel_stage": "tofu_awareness|mofu_consideration|bofu_conversion|retargeting",
+  "contenu_creatif": {
+    "hook_text": "string|null",
+    "hook_audio": "string|null (si vidéo)",
+    "script_complet": "string|null (si vidéo)",
+    "descriptif_visuel": "string",
+    "headline_image": "string|null (si statique)",
+    "body_copy": "string|null (si statique)",
+    "slides": [],
+    "direction_artistique": "string"
+  },
+  "ad_copy": { "primary_text": "string", "headline": "string", "description": "string" },
+  "cta": "string",
+  "angle_psychologique": "string",
+  "ciblage_detaille": {
+    "audiences_suggested": ["string"],
+    "exclusions": ["string"],
+    "custom_audience_source": "string|null"
+  },
+  "ab_test_suggestion": {
+    "element_a_tester": "string",
+    "variante_a": "string",
+    "variante_b": "string",
+    "raison": "string",
+    "duree_test_recommandee": "string"
+  },
+  "landing_page_alignement": { "url_destination": null, "elements_coherence": ["string"] },
+  "prompt_ia_generation": "string EN ANGLAIS",
+  "inspirations": [{ "description": "string", "marque": "string vraie marque", "pourquoi": "string", "url": null }],
+  "budget_suggere": "string",
+  "placement": "string",
+  "plateforme": "meta|tiktok|both",
+  "kpi_attendu": "string",
+  "campaign_id": null,
+  "priorite": "haute|moyenne|basse",
+  "sources_utilisees": ["string"]
+}`;
 
-const EMAILS_V2_SCHEMA = JSON.stringify({
-  id: "string", title: "string", persona_cible: "PX",
-  type_email: "newsletter|flow_automation|campagne_promo|relance|post_diagnostic|winback",
-  objet: "string", objet_variante: "string", preview_text: "string",
-  structure_sections: [{ section: "string", contenu: "string", conseil_design: "string" }],
-  messaging_principal: "string",
-  cta_principal: { texte: "string", url_destination: null, couleur_suggeree: "string" },
-  segment_klaviyo: "string", trigger: "string", timing: "string",
-  position_dans_flow: { flow_name: "string", position: "string", email_precedent: "string|null", email_suivant: "string|null", logique_branchement: "string" },
-  dynamic_content_rules: [{ bloc_concerne: "string", regle: "string", fallback: "string" }],
-  metriques_cibles: { taux_ouverture_vise: "string", taux_clic_vise: "string", benchmark_industrie: "string" },
-  tone_of_voice: "string", campaign_id: "string|null", priorite: "haute|moyenne|basse", sources_utilisees: ["string"],
-});
+const OFFERS_V2_SCHEMA = `{
+  "id": "string",
+  "title": "string",
+  "persona_cible": "code du persona",
+  "type_offre": "bundle|upsell|cross_sell|offre_limitee|prix_psychologique|fidelite",
+  "concept": "string",
+  "composition": [{ "produit": "string (VRAI produit du catalogue)", "role_dans_bundle": "string" }],
+  "pricing_strategy": {
+    "prix_unitaire_total": "string",
+    "prix_bundle": "string",
+    "economie_affichee": "string",
+    "ancrage_prix": "string"
+  },
+  "marge_estimee": { "cout_revient_estime": "string", "marge_brute_pourcent": "string", "commentaire": "string" },
+  "plan_de_lancement": {
+    "phase_teasing": { "duree": "string", "actions": ["string"] },
+    "phase_lancement": { "duree": "string", "actions": ["string"] },
+    "phase_relance": { "duree": "string", "actions": ["string"] }
+  },
+  "messaging_par_canal": { "ads": "string", "email": "string", "site": "string" },
+  "angle_marketing": "string",
+  "urgency_trigger": "string|null",
+  "canal_distribution": "site|email|ads|tous",
+  "periode_recommandee": "string",
+  "metriques_succes": {
+    "kpis_a_surveiller": ["string"],
+    "seuil_succes": "string",
+    "action_si_echec": "string"
+  },
+  "campaign_id": null,
+  "priorite": "haute|moyenne|basse",
+  "sources_utilisees": ["string"]
+}`;
 
-const CAMPAIGNS_SCHEMA = JSON.stringify({
-  id: "string", nom: "string", objectif: "string", persona_principal: "string",
-  duree: "string", strategie_resumee: "string",
-  recos_ads_ids: ["string"], recos_offers_ids: ["string"], recos_emails_ids: ["string"],
-  timeline: [{ jour: "string", action: "string", canal: "string" }],
-});
+const EMAILS_V2_SCHEMA = `{
+  "id": "string",
+  "title": "string",
+  "persona_cible": "code du persona",
+  "type_email": "newsletter|flow_automation|campagne_promo|relance|post_diagnostic|winback",
+  "objet": "string",
+  "objet_variante": "string",
+  "preview_text": "string",
+  "structure_sections": [{ "section": "string", "contenu": "string", "conseil_design": "string" }],
+  "messaging_principal": "string",
+  "cta_principal": { "texte": "string", "url_destination": null, "couleur_suggeree": "string" },
+  "segment_klaviyo": "string",
+  "trigger": "string",
+  "timing": "string",
+  "position_dans_flow": {
+    "flow_name": "string",
+    "position": "string",
+    "email_precedent": "string|null",
+    "email_suivant": "string|null",
+    "logique_branchement": "string"
+  },
+  "dynamic_content_rules": [{ "bloc_concerne": "string", "regle": "string", "fallback": "string" }],
+  "metriques_cibles": { "taux_ouverture_vise": "string", "taux_clic_vise": "string", "benchmark_industrie": "string" },
+  "tone_of_voice": "string",
+  "campaign_id": null,
+  "priorite": "haute|moyenne|basse",
+  "sources_utilisees": ["string"]
+}`;
 
-// ============================================
-// QUOTA
-// ============================================
+const CAMPAIGNS_SCHEMA = `{
+  "id": "string (camp-001, camp-002)",
+  "nom": "string",
+  "objectif": "string",
+  "persona_principal": "string",
+  "duree": "string",
+  "strategie_resumee": "string",
+  "recos_ads_ids": ["string"],
+  "recos_offers_ids": ["string"],
+  "recos_emails_ids": ["string"],
+  "timeline": [{ "jour": "string", "action": "string", "canal": "string" }]
+}`;
+
+// ── Base system prompt ─────────────────────────────────────────────────
+
+function buildBaseSystemPrompt(): string {
+  return `Tu es le directeur marketing IA d'Ask-It. Tu génères des recommandations marketing ultra-détaillées et immédiatement actionnables pour des marques e-commerce DTC.
+
+RÈGLES ABSOLUES :
+1. Ne recommande JAMAIS un produit hors du catalogue fourni dans le contexte marque
+2. Tout le contenu visible (scripts, hooks, ad copies, lignes d'objet) EN FRANÇAIS, prêt à l'emploi
+3. Les prompts IA de génération visuelle doivent être EN ANGLAIS
+4. Utilise les VRAIS prix des produits du catalogue
+5. Cible un persona SPÉCIFIQUE identifié dans les données pour chaque recommandation
+6. Ne pas inventer d'URLs — mettre null si pas de lien vérifié
+7. Les inspirations doivent citer des VRAIES marques connues (pas fictives)
+8. Ton de la marque : bienveillant, expert, naturel, rassurant pour les parents
+9. INTERDICTION : emojis dans les textes, jargon non expliqué
+10. Chaque recommandation doit être UNIQUE — formats, personas et angles variés
+
+Retourne UNIQUEMENT un JSON valide. Pas de markdown, pas de backticks, pas de texte avant ou après.`;
+}
+
+// ── Quota helpers ──────────────────────────────────────────────────────
+
 async function getQuota(supabase: any) {
   const monthYear = getCurrentMonthYear();
   const { data } = await supabase
-    .from("recommendation_usage").select("*")
-    .eq("project_id", PROJECT_ID).eq("month_year", monthYear).maybeSingle();
-  const usage = data || { total_generated: 0, monthly_limit: 36, plan: "starter", generations_log: [] };
+    .from("recommendation_usage")
+    .select("*")
+    .eq("project_id", PROJECT_ID)
+    .eq("month_year", monthYear)
+    .maybeSingle();
+  const usage = data || {
+    total_generated: 0,
+    monthly_limit: 36,
+    plan: "starter",
+    generations_log: [],
+  };
   return {
     total_generated: usage.total_generated,
     monthly_limit: usage.monthly_limit,
@@ -125,30 +238,55 @@ async function getQuota(supabase: any) {
   };
 }
 
-async function updateQuota(supabase: any, type: GenerationType, recommendationId: string, actualCount: number) {
+async function updateQuota(
+  supabase: any,
+  type: string,
+  recommendationId: string,
+  count: number
+) {
   const monthYear = getCurrentMonthYear();
   const { data: existing } = await supabase
-    .from("recommendation_usage").select("*")
-    .eq("project_id", PROJECT_ID).eq("month_year", monthYear).maybeSingle();
-  const logEntry = { timestamp: new Date().toISOString(), type, count: actualCount, recommendation_id: recommendationId };
+    .from("recommendation_usage")
+    .select("*")
+    .eq("project_id", PROJECT_ID)
+    .eq("month_year", monthYear)
+    .maybeSingle();
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    type,
+    count,
+    recommendation_id: recommendationId,
+  };
   if (!existing) {
     await supabase.from("recommendation_usage").insert({
-      project_id: PROJECT_ID, month_year: monthYear, total_generated: actualCount,
-      monthly_limit: 36, plan: "starter", generations_log: [logEntry],
+      project_id: PROJECT_ID,
+      month_year: monthYear,
+      total_generated: count,
+      monthly_limit: 36,
+      plan: "starter",
+      generations_log: [logEntry],
     });
   } else {
-    await supabase.from("recommendation_usage").update({
-      total_generated: existing.total_generated + actualCount,
-      generations_log: [...(existing.generations_log || []), logEntry],
-      updated_at: new Date().toISOString(),
-    }).eq("project_id", PROJECT_ID).eq("month_year", monthYear);
+    await supabase
+      .from("recommendation_usage")
+      .update({
+        total_generated: existing.total_generated + count,
+        generations_log: [...(existing.generations_log || []), logEntry],
+        updated_at: new Date().toISOString(),
+      })
+      .eq("project_id", PROJECT_ID)
+      .eq("month_year", monthYear);
   }
 }
 
-// ============================================
-// CLAUDE SONNET 4.6 — SINGLE SUB-CALL HELPER
-// ============================================
-async function callOpusSingle(systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs: number): Promise<string> {
+// ── Claude Sonnet 4.6 ─────────────────────────────────────────────────
+
+async function callSonnet(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+  timeoutMs = 120000
+): Promise<{ text: string; tokens: number }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -157,7 +295,11 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: maxTokens,
@@ -169,625 +311,691 @@ async function callOpusSingle(systemPrompt: string, userPrompt: string, maxToken
     clearTimeout(timeout);
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Claude Sonnet 4.6 ${response.status}: ${errText}`);
+      throw new Error(`Claude Sonnet 4.6 error ${response.status}: ${errText}`);
     }
     const data = await response.json();
-    const tokens = (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
-    logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", tokens);
+    const tokens =
+      (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
-    return text;
+    return { text, tokens };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
   }
 }
 
-// ============================================
-// BASE SYSTEM PROMPT (shared)
-// ============================================
-function buildBaseSystemPrompt(clientContext: any, personaRows: any[]): string {
-  const personaDescriptions = (personaRows || [])
-    .filter((p: any) => !p.is_pool)
-    .map((p: any) => `- ${p.code} : ${p.full_label} : ${p.description || ""}`)
-    .join("\n");
-  return [
-    `Tu es le directeur marketing IA d'Ask-It. Tu génères des recommandations marketing pour des marques e-commerce.`,
-    ``,
-    `RÈGLES ABSOLUES :`,
-    `- Ne recommande JAMAIS un produit qui n'existe pas dans le catalogue`,
-    `- Chaque recommandation doit être IMMÉDIATEMENT ACTIONNABLE`,
-    `- Scripts, hooks, ad copies et lignes d'objet EN FRANÇAIS, prêts à l'emploi`,
-    `- Prompts IA EN ANGLAIS`,
-    `- Utilise les vrais prix des produits`,
-    `- Cible un persona spécifique pour chaque recommandation`,
-    `- Inspirations = VRAIES marques connues`,
-    `- Ne pas inventer d'URLs — mettre null`,
-    `- Ton : ${clientContext.tone}`,
-    `- Recommandations VARIÉES en formats, angles et personas`,
-    `- Prénoms des personas dans les textes visibles (pas les codes PX)`,
-    `- INTERDICTION : emojis, jargon non expliqué`,
-    ``,
-    `CATALOGUE :`,
-    clientContext.products.map((p: any) => `- ${p.name} (${p.type}) — ${p.price}€`).join("\n"),
-    ``,
-    `PERSONAS :`,
-    personaDescriptions,
-    ``,
-    `Retourne un JSON STRICT. Aucun texte avant ou après. Pas de markdown. Juste le JSON.`,
-  ].join("\n");
-}
+// ── V2 → V1 conversion (backward compat) ──────────────────────────────
 
-// ============================================
-// COMMON CONTEXT BLOCK
-// ============================================
-function buildCommonContext(geminiSynthesis: any, perplexityResearch: any, collectedData: any, clientContext: any): string {
-  const { priorities } = collectedData;
-  const p = priorities;
-  let contextBlock = "";
-  if (geminiSynthesis) {
-    contextBlock = `=== SYNTHÈSE ANALYTIQUE (Gemini) ===\n${JSON.stringify(geminiSynthesis, null, 2)}`;
-  } else if (perplexityResearch) {
-    const { adsResearch = "", emailResearch = "", offersResearch = "" } = perplexityResearch;
-    contextBlock = [
-      `=== DONNÉES MARCHÉ BRUTES (Perplexity) ===`,
-      `--- Ads ---`, adsResearch || "Non disponible",
-      `--- Email ---`, emailResearch || "Non disponible",
-      `--- Offres ---`, offersResearch || "Non disponible",
-    ].join("\n");
-  }
-  return [
-    contextBlock,
-    ``,
-    `=== DONNÉES PERSONAS PRIORITAIRES ===`,
-    `- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — valeur/session: ${p.best_roi_value}€`,
-    `- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — CA potentiel: +${p.best_growth_ca}€`,
-    `- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score: ${p.best_ltv_score}`,
-    ``,
-    `=== CONTEXTE MARQUE ===`,
-    `${clientContext.brand} — ${clientContext.description}`,
-    `Produits : ${clientContext.products.map((p: any) => `${p.name} (${p.price}€)`).join(", ")}`,
-    `Code promo : ${clientContext.promoCode}`,
-  ].join("\n");
-}
+function convertV2toV1(result: any) {
+  const ads = result.ads_v2 || [];
+  const emails = result.emails_v2 || [];
+  const offers = result.offers_v2 || [];
 
-// ============================================
-// CLAUDE SONNET 4.6 — ORCHESTRATED GENERATION
-// ============================================
-async function callClaudeOpus(
-  geminiSynthesis: any,
-  collectedData: any,
-  clientContext: any,
-  perplexityResearch: any,
-  type: GenerationType
-): Promise<{ result: any; actualCount: number }> {
-  const personaRows = collectedData?.personaRows || [];
-  const baseSystem = buildBaseSystemPrompt(clientContext, personaRows);
-  const commonCtx = buildCommonContext(geminiSynthesis, perplexityResearch, collectedData, clientContext);
-  const ts = Date.now();
-
-  // ── CASE 1: SINGLE GENERATION (1 reco, 1 crédit) ──────────────────
-  if (type.startsWith("single_")) {
-    const category = type.replace("single_", ""); // ad | offer | email
-    console.log(`[generate-marketing] Sonnet 4.6: single ${category}...`);
-
-    let schemaLine = "";
-    let retKey = "";
-    let schema = "";
-    if (category === "ad") {
-      retKey = "ads_v2";
-      schema = ADS_V2_SCHEMA;
-      schemaLine = [
-        `GÉNÈRE EXACTEMENT 1 recommandation Ads. Choisis le format le plus pertinent.`,
-        `id = "rec-ads-single-${ts}"`,
-        `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
-        `Schéma : ${schema}`,
-      ].join("\n");
-    } else if (category === "offer") {
-      retKey = "offers_v2";
-      schema = OFFERS_V2_SCHEMA;
-      schemaLine = [
-        `GÉNÈRE EXACTEMENT 1 recommandation Offre/Bundle. Choisis le type le plus pertinent.`,
-        `id = "rec-offers-single-${ts}"`,
-        `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
-        `Schéma : ${schema}`,
-      ].join("\n");
-    } else {
-      retKey = "emails_v2";
-      schema = EMAILS_V2_SCHEMA;
-      schemaLine = [
-        `GÉNÈRE EXACTEMENT 1 recommandation Email. Choisis le type le plus pertinent.`,
-        `id = "rec-emails-single-${ts}"`,
-        `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
-        `Schéma : ${schema}`,
-      ].join("\n");
-    }
-
-    const sysPrompt = baseSystem + "\n\n" + schemaLine;
-    const raw = await callOpusSingle(sysPrompt, commonCtx, 3000, 25000);
-    const parsed = JSON.parse(cleanJsonResponse(raw));
-    const items = parsed[retKey] || [];
-    console.log(`[generate-marketing] Single ${category}: ${items.length} reco ✅`);
-
-    return {
-      result: {
-        ads_v2: retKey === "ads_v2" ? items : [],
-        offers_v2: retKey === "offers_v2" ? items : [],
-        emails_v2: retKey === "emails_v2" ? items : [],
-        campaigns_overview: [],
-        checklist: [],
-        persona_focus: {},
-      },
-      actualCount: items.length > 0 ? 1 : 0,
-    };
-  }
-
-  // ── CASE 2: CATEGORY GENERATION (3 recos, 3 crédits) ──────────────
-  if (type === "ads" || type === "offers" || type === "emails") {
-    console.log(`[generate-marketing] Sonnet 4.6: category ${type}...`);
-
-    let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
-
-    if (type === "ads") {
-      const sys = baseSystem + [
-        ``,
-        `GÉNÈRE EXACTEMENT 3 recommandations Ads. Varie les formats (au moins 1 vidéo et 1 statique/carousel).`,
-        `IDs : rec-ads-001, rec-ads-002, rec-ads-003`,
-        `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
-        `Schéma par reco : ${ADS_V2_SCHEMA}`,
-      ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-      adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
-    } else if (type === "offers") {
-      const sys = baseSystem + [
-        ``,
-        `GÉNÈRE EXACTEMENT 3 recommandations Offres & Bundles. Varie les types.`,
-        `IDs : rec-offers-001, rec-offers-002, rec-offers-003`,
-        `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
-        `Schéma par reco : ${OFFERS_V2_SCHEMA}`,
-      ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-      offersResult = (JSON.parse(cleanJsonResponse(raw))).offers_v2 || [];
-    } else {
-      const sys = baseSystem + [
-        ``,
-        `GÉNÈRE EXACTEMENT 3 recommandations Email. Varie les types.`,
-        `IDs : rec-emails-001, rec-emails-002, rec-emails-003`,
-        `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
-        `Schéma par reco : ${EMAILS_V2_SCHEMA}`,
-      ].join("\n");
-      const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-      emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
-    }
-
-    // Mini checklist for the category
-    let checklistResult: any[] = [], personaFocus: any = {};
-    try {
-      const catLabel = type === "ads" ? "publicités" : type === "offers" ? "offres" : "emails";
-      const miniSys = baseSystem + [
-        ``,
-        `Génère 2 tâches actionnables liées aux ${catLabel} recommandées.`,
-        `Retourne : { "checklist": [...], "persona_focus": { "roi": {"code":"string","name":"string","reason":"string"}, "growth": {"code":"string","name":"string","reason":"string"}, "ltv": {"code":"string","name":"string","reason":"string"} } }`,
-      ].join("\n");
-      const miniRaw = await callOpusSingle(miniSys, commonCtx, 1500, 25000);
-      const mini = JSON.parse(cleanJsonResponse(miniRaw));
-      checklistResult = mini.checklist || [];
-      personaFocus = mini.persona_focus || {};
-    } catch (e) {
-      console.warn("[generate-marketing] Mini checklist failed:", (e as Error).message);
-    }
-
-    const recoCount = adsResult.length + offersResult.length + emailsResult.length;
-    console.log(`[generate-marketing] Category ${type}: ${recoCount} recos ✅`);
-    return {
-      result: { ads_v2: adsResult, offers_v2: offersResult, emails_v2: emailsResult, campaigns_overview: [], checklist: checklistResult, persona_focus: personaFocus },
-      actualCount: recoCount > 0 ? 3 : 0,
-    };
-  }
-
-  // ── CASE 3: GLOBAL GENERATION (3+3+3 sub-calls + campaigns) ───────
-  console.log("[generate-marketing] Sonnet 4.6: global generation (4 sub-calls)...");
-  let adsResult: any[] = [], offersResult: any[] = [], emailsResult: any[] = [];
-  let campaignsResult: any[] = [], checklistResult: any[] = [], personaFocus: any = {};
-
-  // Sub-call 1/4: Ads
-  try {
-    console.log("[generate-marketing] Sub-call 1/4: Ads...");
-    const sys = baseSystem + [
-      ``,
-      `GÉNÈRE EXACTEMENT 3 recommandations Ads. Varie les formats (au moins 1 vidéo et 1 statique/carousel).`,
-      `IDs : rec-ads-001, rec-ads-002, rec-ads-003`,
-      `Retourne UNIQUEMENT : { "ads_v2": [ ... ] }`,
-      `Schéma : ${ADS_V2_SCHEMA}`,
-    ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-    adsResult = (JSON.parse(cleanJsonResponse(raw))).ads_v2 || [];
-    console.log(`[generate-marketing] Ads: ${adsResult.length} ✅`);
-  } catch (e) { console.error(`[generate-marketing] Ads FAILED:`, (e as Error).message); }
-
-  // Sub-call 2/4: Offers
-  try {
-    console.log("[generate-marketing] Sub-call 2/4: Offers...");
-    const sys = baseSystem + [
-      ``,
-      `GÉNÈRE EXACTEMENT 3 recommandations Offres & Bundles. Varie les types.`,
-      `IDs : rec-offers-001, rec-offers-002, rec-offers-003`,
-      `Retourne UNIQUEMENT : { "offers_v2": [ ... ] }`,
-      `Schéma : ${OFFERS_V2_SCHEMA}`,
-    ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-    offersResult = (JSON.parse(cleanJsonResponse(raw))).offers_v2 || [];
-    console.log(`[generate-marketing] Offers: ${offersResult.length} ✅`);
-  } catch (e) { console.error(`[generate-marketing] Offers FAILED:`, (e as Error).message); }
-
-  // Sub-call 3/4: Emails
-  try {
-    console.log("[generate-marketing] Sub-call 3/4: Emails...");
-    const sys = baseSystem + [
-      ``,
-      `GÉNÈRE EXACTEMENT 3 recommandations Email. Varie les types.`,
-      `IDs : rec-emails-001, rec-emails-002, rec-emails-003`,
-      `Retourne UNIQUEMENT : { "emails_v2": [ ... ] }`,
-      `Schéma : ${EMAILS_V2_SCHEMA}`,
-    ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 8000, 45000);
-    emailsResult = (JSON.parse(cleanJsonResponse(raw))).emails_v2 || [];
-    console.log(`[generate-marketing] Emails: ${emailsResult.length} ✅`);
-  } catch (e) { console.error(`[generate-marketing] Emails FAILED:`, (e as Error).message); }
-
-  // Sub-call 4/4: Campaigns + Checklist + Persona focus
-  try {
-    console.log("[generate-marketing] Sub-call 4/4: Campaigns & Checklist...");
-    const recoSummary = [
-      `Ads: ${JSON.stringify(adsResult.map((a: any) => ({ id: a.id, title: a.title, persona: a.persona_cible, format: a.format })))}`,
-      `Offres: ${JSON.stringify(offersResult.map((o: any) => ({ id: o.id, title: o.title, persona: o.persona_cible, type: o.type_offre })))}`,
-      `Emails: ${JSON.stringify(emailsResult.map((e: any) => ({ id: e.id, title: e.title, persona: e.persona_cible, type: e.type_email })))}`,
-    ].join("\n");
-    const sys = baseSystem + [
-      ``,
-      `Recos générées cette semaine :`,
-      recoSummary,
-      ``,
-      `GÉNÈRE :`,
-      `1. campaigns_overview : 1-2 campagnes transversales liant des recos.`,
-      `   Schéma : ${CAMPAIGNS_SCHEMA}`,
-      `   IDs : camp-001, camp-002`,
-      `2. checklist : 5 tâches actionnables pour la semaine`,
-      `   Schéma par tâche : {"id":"string","title":"string","category":"ads|email|offers","completed":false,"detail":{}}`,
-      `3. persona_focus : {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}}`,
-      `Retourne UNIQUEMENT : { "campaigns_overview": [...], "checklist": [...], "persona_focus": {...} }`,
-    ].join("\n");
-    const raw = await callOpusSingle(sys, commonCtx, 4000, 30000);
-    const parsed = JSON.parse(cleanJsonResponse(raw));
-    campaignsResult = parsed.campaigns_overview || [];
-    checklistResult = parsed.checklist || [];
-    personaFocus = parsed.persona_focus || {};
-    // Link campaign IDs into reco items
-    for (const camp of campaignsResult) {
-      for (const id of (camp.recos_ads_ids || [])) { const r = adsResult.find((a: any) => a.id === id); if (r) r.campaign_id = camp.id; }
-      for (const id of (camp.recos_offers_ids || [])) { const r = offersResult.find((o: any) => o.id === id); if (r) r.campaign_id = camp.id; }
-      for (const id of (camp.recos_emails_ids || [])) { const r = emailsResult.find((e: any) => e.id === id); if (r) r.campaign_id = camp.id; }
-    }
-    console.log(`[generate-marketing] Campaigns: ${campaignsResult.length}, Checklist: ${checklistResult.length} ✅`);
-  } catch (e) { console.error(`[generate-marketing] Campaigns FAILED:`, (e as Error).message); }
-
-  const actualCount = adsResult.length + offersResult.length + emailsResult.length;
-  console.log(`[generate-marketing] Global complete: ${actualCount} recos total`);
-  return {
-    result: { ads_v2: adsResult, offers_v2: offersResult, emails_v2: emailsResult, campaigns_overview: campaignsResult, checklist: checklistResult, persona_focus: personaFocus },
-    actualCount,
-  };
-}
-
-// ============================================
-// FALLBACK: LEGACY GEMINI 2.5 PRO (v1 only)
-// ============================================
-async function callGeminiLegacy(collectedData: any, perplexityResearch: any, clientContext: any): Promise<any> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-  const { personaData, personaRows, priorities, globalMetrics } = collectedData;
-  const CLIENT_CONTEXT = clientContext;
-  const now = new Date();
-  const currentMonth = now.toLocaleString("fr-FR", { month: "long" });
-  const currentYear = now.getFullYear();
-  const { adsResearch, emailResearch, offersResearch } = perplexityResearch || {};
-  const personaDescriptions = (personaRows || [])
-    .filter((p: any) => !p.is_pool)
-    .map((p: any) => `- ${p.code} : ${p.full_label} : ${p.description || ""}`)
-    .join("\n");
-  const systemPrompt = [
-    `Tu es un directeur marketing senior spécialisé en e-commerce DTC skincare et cosmétiques pour enfants.`,
-    `${CLIENT_CONTEXT.brand} — ${CLIENT_CONTEXT.description}`,
-    `Gamme : ${CLIENT_CONTEXT.products.map((p: any) => `${p.name} (${p.type}) — ~${p.price}€`).join(", ")}`,
-    ``,
-    `=== PERSONAS ===`,
-    personaDescriptions,
-    `P0 — Non attribué : Ne pas cibler.`,
-    ``,
-    `=== INTELLIGENCE MARCHÉ (${currentMonth} ${currentYear}) ===`,
-    `--- Ads ---`, adsResearch || "Non disponible",
-    `--- Email ---`, emailResearch || "Non disponible",
-    `--- Offres ---`, offersResearch || "Non disponible",
-    ``,
-    `RÈGLES : Utiliser les prénoms des personas, hooks en français, pas d'emojis, métriques lisibles.`,
-  ].join("\n");
-  const p = priorities;
-  const userPrompt = [
-    `Données personas (30 jours) :`,
-    JSON.stringify(personaData, null, 2),
-    `Métriques globales : ${JSON.stringify(globalMetrics)}`,
-    `Personas prioritaires :`,
-    `- ROI : ${p.best_roi?.code} ${p.best_roi?.name} — ${p.best_roi_value}€/session`,
-    `- Growth : ${p.best_growth?.code} ${p.best_growth?.name} — +${p.best_growth_ca}€ potentiel`,
-    `- LTV : ${p.best_ltv?.code} ${p.best_ltv?.name} — score ${p.best_ltv_score}`,
-    `Contexte temporel : ${currentMonth} ${currentYear}.`,
-    `Génère les recommandations v1. JSON uniquement :`,
-    `{ "persona_focus": {...}, "checklist": [...], "ads_recommendations": {...}, "email_recommendations": {...}, "offers_recommendations": {...} }`,
-  ].join("\n");
-  console.log("[generate-marketing] [FALLBACK] Calling Gemini 2.5 Pro...");
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-    }),
-  });
-  if (!response.ok) throw new Error(`Fallback Gemini error ${response.status}`);
-  const aiResponse = await response.json();
-  const rawContent = aiResponse.choices?.[0]?.message?.content;
-  logUsage("gemini", "gemini-2.5-pro", aiResponse.usage?.total_tokens || 0, { fallback: true });
-  if (!rawContent) throw new Error("Empty response from fallback Gemini");
-  try { return JSON.parse(cleanJsonResponse(rawContent)); }
-  catch (parseErr) { throw new Error(`Fallback JSON parse error: ${(parseErr as Error).message}`); }
-}
-
-// ============================================
-// V2 → V1 CONVERSION
-// ============================================
-function convertV2toV1(opusResult: any): { ads_recommendations: any; email_recommendations: any; offers_recommendations: any } {
-  const ads = opusResult.ads_v2 || [];
-  const emails = opusResult.emails_v2 || [];
-  const offers = opusResult.offers_v2 || [];
   const ads_recommendations = {
-    hooks_creatifs: ads.map((a: any) => ({ text: a.contenu_creatif?.hook_text || a.title, personas: [a.persona_cible], rationale: a.angle_psychologique || "" })),
-    concepts_video: ads.filter((a: any) => ["reel", "ugc", "story"].includes(a.format)).map((a: any) => ({ title: a.title, personas: [a.persona_cible], description: a.contenu_creatif?.descriptif_visuel || a.contenu_creatif?.script_complet || "" })),
-    angles_psychologiques: ads.map((a: any) => ({ angle: a.angle_psychologique || "", personas: [a.persona_cible], source: a.sources_utilisees?.[0] || "" })),
-    ciblage: ads.map((a: any) => ({ audience: (a.ciblage_detaille?.audiences_suggested || []).join(", "), personas: [a.persona_cible] })),
+    hooks_creatifs: ads.map((a: any) => ({
+      text: a.contenu_creatif?.hook_text || a.title,
+      personas: [a.persona_cible],
+      rationale: a.angle_psychologique || "",
+    })),
+    concepts_video: ads
+      .filter((a: any) => ["reel", "ugc_video", "story_video"].includes(a.format))
+      .map((a: any) => ({
+        title: a.title,
+        personas: [a.persona_cible],
+        description:
+          a.contenu_creatif?.descriptif_visuel ||
+          a.contenu_creatif?.script_complet ||
+          "",
+      })),
+    angles_psychologiques: ads.map((a: any) => ({
+      angle: a.angle_psychologique || "",
+      personas: [a.persona_cible],
+      source: a.sources_utilisees?.[0] || "",
+    })),
+    ciblage: ads.map((a: any) => ({
+      audience: (a.ciblage_detaille?.audiences_suggested || []).join(", "),
+      personas: [a.persona_cible],
+    })),
   };
-  if (ads_recommendations.hooks_creatifs.length === 0) ads_recommendations.hooks_creatifs = [{ text: "", personas: [], rationale: "" }];
+  if (ads_recommendations.hooks_creatifs.length === 0) {
+    ads_recommendations.hooks_creatifs = [{ text: "", personas: [], rationale: "" }];
+  }
+
   const email_recommendations = {
-    newsletters: emails.filter((e: any) => e.type_email === "newsletter").map((e: any) => ({ title: e.title, personas: [e.persona_cible], type: "educatif", sujet: e.objet, contenu_cle: e.messaging_principal, cta: e.cta_principal?.texte || "", frequence: e.timing, segment: e.segment_klaviyo, justification: "" })),
-    flows_automatises: emails.filter((e: any) => e.type_email !== "newsletter").map((e: any) => ({ title: e.title, personas: [e.persona_cible], sequence: e.position_dans_flow?.position || "", trigger: e.trigger || "", justification: "" })),
-    lignes_objet: emails.map((e: any) => ({ text: e.objet, personas: [e.persona_cible], context: e.type_email })),
-    segmentation: emails.map((e: any) => ({ segment: e.segment_klaviyo, personas: [e.persona_cible], action: e.title })),
+    newsletters: emails
+      .filter((e: any) => e.type_email === "newsletter")
+      .map((e: any) => ({
+        title: e.title,
+        personas: [e.persona_cible],
+        type: "educatif",
+        sujet: e.objet,
+        contenu_cle: e.messaging_principal,
+        cta: e.cta_principal?.texte || "",
+        frequence: e.timing,
+        segment: e.segment_klaviyo,
+        justification: "",
+      })),
+    flows_automatises: emails
+      .filter((e: any) => e.type_email !== "newsletter")
+      .map((e: any) => ({
+        title: e.title,
+        personas: [e.persona_cible],
+        sequence: e.position_dans_flow?.position || "",
+        trigger: e.trigger || "",
+        justification: "",
+      })),
+    lignes_objet: emails.map((e: any) => ({
+      text: e.objet,
+      personas: [e.persona_cible],
+      context: e.type_email,
+    })),
+    segmentation: emails.map((e: any) => ({
+      segment: e.segment_klaviyo,
+      personas: [e.persona_cible],
+      action: e.title,
+    })),
   };
+
   const offers_recommendations = {
-    bundles: offers.filter((o: any) => ["bundle", "offre_limitee"].includes(o.type_offre)).map((o: any) => ({ name: o.title, personas: [o.persona_cible], produits: (o.composition || []).map((c: any) => c.produit).join(", "), prix: `${o.pricing_strategy?.prix_bundle || ""} (au lieu de ${o.pricing_strategy?.prix_unitaire_total || ""}, soit ${o.pricing_strategy?.economie_affichee || ""})`, rationale: o.concept })),
-    prix_psychologiques: offers.filter((o: any) => o.type_offre === "prix_psychologique").map((o: any) => ({ strategie: o.concept, rationale: o.pricing_strategy?.ancrage_prix || "" })),
-    upsells: offers.filter((o: any) => ["upsell", "cross_sell"].includes(o.type_offre)).map((o: any) => ({ trigger: o.title, action: o.concept, taux_acceptation_estime: o.metriques_succes?.seuil_succes || "" })),
+    bundles: offers
+      .filter((o: any) => ["bundle", "offre_limitee"].includes(o.type_offre))
+      .map((o: any) => ({
+        name: o.title,
+        personas: [o.persona_cible],
+        produits: (o.composition || []).map((c: any) => c.produit).join(", "),
+        prix: `${o.pricing_strategy?.prix_bundle || ""} (au lieu de ${o.pricing_strategy?.prix_unitaire_total || ""}, soit ${o.pricing_strategy?.economie_affichee || ""})`,
+        rationale: o.concept,
+      })),
+    prix_psychologiques: offers
+      .filter((o: any) => o.type_offre === "prix_psychologique")
+      .map((o: any) => ({
+        strategie: o.concept,
+        rationale: o.pricing_strategy?.ancrage_prix || "",
+      })),
+    upsells: offers
+      .filter((o: any) => ["upsell", "cross_sell"].includes(o.type_offre))
+      .map((o: any) => ({
+        trigger: o.title,
+        action: o.concept,
+        taux_acceptation_estime: o.metriques_succes?.seuil_succes || "",
+      })),
   };
+
   return { ads_recommendations, email_recommendations, offers_recommendations };
 }
 
-// ============================================
-// PERSISTENCE
-// ============================================
-async function saveRecommendations(
-  supabase: any,
-  result: any,
-  config: {
-    version: number; weekStart: string; generationDurationMs: number;
-    modelsUsed: { research: string; analysis: string; generation: string };
-    sessionsAnalyzed: number; personasCount: number;
-    perplexityResearch: any; generationType: string; generatedCategories: string[];
+// ── Build user prompt from market intelligence ─────────────────────────
+
+function buildUserPrompt(
+  type: GenerationType,
+  intelligence: any
+): string {
+  const { gemini_ads_analysis, gemini_email_analysis, gemini_offers_analysis, personas_snapshot, client_context } = intelligence;
+
+  const personasStr = JSON.stringify(personas_snapshot || {}, null, 2);
+  const clientStr = JSON.stringify(client_context || {}, null, 2);
+
+  const contextFooter = `\n\n=== PERSONAS DE LA MARQUE ===\n${personasStr}\n\n=== CONTEXTE MARQUE (produits, prix, positionnement) ===\n${clientStr}`;
+
+  if (type === "single_ad" || type === "ads") {
+    const count = type === "single_ad" ? 1 : 3;
+    const idBase = type === "single_ad" ? `rec-ads-single-${Date.now()}` : "rec-ads-001, rec-ads-002, rec-ads-003";
+    return `Voici l'analyse de marché Ads pour le secteur de la marque :
+
+=== ANALYSE ADS (Gemini 3.1 Pro) ===
+${JSON.stringify(gemini_ads_analysis?.analysis || {}, null, 2)}
+
+=== INSIGHTS PAR PERSONA (Ads) ===
+${JSON.stringify(gemini_ads_analysis?.personas_insights || [], null, 2)}
+${contextFooter}
+
+Génère EXACTEMENT ${count} recommandation${count > 1 ? "s" : ""} Ads complète${count > 1 ? "s" : ""} et actionnable${count > 1 ? "s" : ""}.
+${count > 1 ? "Varie les formats (au moins 1 vidéo et 1 statique/carousel), les personas ciblés, et les funnel stages." : "Choisis le format le plus pertinent."}
+IDs : ${idBase}
+
+Retourne UNIQUEMENT : { "ads_v2": [ ... ] }
+Schéma par recommandation :
+${ADS_V2_SCHEMA}`;
   }
-) {
-  if (config.version === 2) {
-    const v1Data = convertV2toV1(result);
-    const allSources = new Set<string>([...SOURCES_CONSULTED]);
-    for (const list of [result.ads_v2, result.offers_v2, result.emails_v2]) {
-      for (const item of (list || [])) for (const src of (item.sources_utilisees || [])) allSources.add(src);
-    }
-    if (config.perplexityResearch?.adsResearch) allSources.add("perplexity:ads_research");
-    if (config.perplexityResearch?.emailResearch) allSources.add("perplexity:email_research");
-    if (config.perplexityResearch?.offersResearch) allSources.add("perplexity:offers_research");
-    const { data: inserted, error: insertErr } = await supabase.from("marketing_recommendations").insert({
-      week_start: config.weekStart, generated_at: new Date().toISOString(),
-      status: "active", recommendation_version: 2,
-      generation_type: config.generationType, generated_categories: config.generatedCategories,
-      ads_v2: result.ads_v2 || [], offers_v2: result.offers_v2 || [], emails_v2: result.emails_v2 || [],
-      campaigns_overview: result.campaigns_overview || [],
-      persona_focus: result.persona_focus || null, checklist: result.checklist || [],
-      ads_recommendations: v1Data.ads_recommendations,
-      email_recommendations: v1Data.email_recommendations,
-      offers_recommendations: v1Data.offers_recommendations,
-      sources_consulted: Array.from(allSources),
-      generation_config: {
-        models_used: config.modelsUsed, sources_count: allSources.size,
-        personas_count: config.personasCount, sessions_analyzed: config.sessionsAnalyzed,
-        generation_duration_ms: config.generationDurationMs,
-      },
-    }).select().single();
-    if (insertErr) throw new Error(`Insert error: ${insertErr.message}`);
-    return inserted;
-  } else {
-    const { data: inserted, error: insertErr } = await supabase.from("marketing_recommendations").insert({
-      week_start: config.weekStart, generated_at: new Date().toISOString(),
-      status: "active", recommendation_version: 1,
-      generation_type: config.generationType, generated_categories: config.generatedCategories,
-      persona_focus: result.persona_focus, checklist: result.checklist,
-      ads_recommendations: result.ads_recommendations,
-      email_recommendations: result.email_recommendations,
-      offers_recommendations: result.offers_recommendations,
-      sources_consulted: [...SOURCES_CONSULTED],
-      generation_config: {
-        models_used: config.modelsUsed, sessions_analyzed: config.sessionsAnalyzed,
-        personas_count: config.personasCount, generation_duration_ms: config.generationDurationMs, fallback: true,
-      },
-    }).select().single();
-    if (insertErr) throw new Error(`Insert error: ${insertErr.message}`);
-    return inserted;
+
+  if (type === "single_offer" || type === "offers") {
+    const count = type === "single_offer" ? 1 : 3;
+    const idBase = type === "single_offer" ? `rec-offers-single-${Date.now()}` : "rec-offers-001, rec-offers-002, rec-offers-003";
+    return `Voici l'analyse de marché Offres & Bundles pour le secteur de la marque :
+
+=== ANALYSE OFFRES (Gemini 3.1 Pro) ===
+${JSON.stringify(gemini_offers_analysis?.analysis || {}, null, 2)}
+
+=== INSIGHTS PAR PERSONA (Offres) ===
+${JSON.stringify(gemini_offers_analysis?.personas_insights || [], null, 2)}
+${contextFooter}
+
+Génère EXACTEMENT ${count} recommandation${count > 1 ? "s" : ""} Offres & Bundles complète${count > 1 ? "s" : ""} et actionnable${count > 1 ? "s" : ""}.
+${count > 1 ? "Varie les types d'offres (bundle, upsell, prix psychologique, offre limitée, etc.)." : "Choisis le type d'offre le plus pertinent."}
+IDs : ${idBase}
+
+Retourne UNIQUEMENT : { "offers_v2": [ ... ] }
+Schéma par recommandation :
+${OFFERS_V2_SCHEMA}`;
   }
+
+  if (type === "single_email" || type === "emails") {
+    const count = type === "single_email" ? 1 : 3;
+    const idBase = type === "single_email" ? `rec-emails-single-${Date.now()}` : "rec-emails-001, rec-emails-002, rec-emails-003";
+    return `Voici l'analyse de marché Email Marketing pour le secteur de la marque :
+
+=== ANALYSE EMAIL (Gemini 3.1 Pro) ===
+${JSON.stringify(gemini_email_analysis?.analysis || {}, null, 2)}
+
+=== INSIGHTS PAR PERSONA (Email) ===
+${JSON.stringify(gemini_email_analysis?.personas_insights || [], null, 2)}
+${contextFooter}
+
+Génère EXACTEMENT ${count} recommandation${count > 1 ? "s" : ""} Email complète${count > 1 ? "s" : ""} et actionnable${count > 1 ? "s" : ""}.
+${count > 1 ? "Varie les types (newsletter, flow automation, campagne promo, winback, etc.)." : "Choisis le type d'email le plus pertinent."}
+IDs : ${idBase}
+
+Retourne UNIQUEMENT : { "emails_v2": [ ... ] }
+Schéma par recommandation :
+${EMAILS_V2_SCHEMA}`;
+  }
+
+  return "";
 }
 
-// ============================================
-// MAIN HANDLER
-// ============================================
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+// ── Finalize prompt ───────────────────────────────────────────────────
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+function buildFinalizePrompt(
+  rec: any,
+  intelligence: any
+): string {
+  const adsSummary = (rec.ads_v2 || []).map((a: any) => ({
+    id: a.id, title: a.title, persona: a.persona_cible, format: a.format,
+  }));
+  const offersSummary = (rec.offers_v2 || []).map((o: any) => ({
+    id: o.id, title: o.title, persona: o.persona_cible, type: o.type_offre,
+  }));
+  const emailsSummary = (rec.emails_v2 || []).map((e: any) => ({
+    id: e.id, title: e.title, persona: e.persona_cible, type: e.type_email,
+  }));
+
+  return `Voici les 9 recommandations générées cette semaine pour la marque :
+
+=== ADS (3) ===
+${JSON.stringify(adsSummary, null, 2)}
+
+=== OFFRES (3) ===
+${JSON.stringify(offersSummary, null, 2)}
+
+=== EMAILS (3) ===
+${JSON.stringify(emailsSummary, null, 2)}
+
+=== CONTEXTE MARQUE ===
+${JSON.stringify(intelligence.client_context || {}, null, 2)}
+
+=== PERSONAS ===
+${JSON.stringify(intelligence.personas_snapshot || {}, null, 2)}
+
+GÉNÈRE :
+1. campaigns_overview : 1-2 campagnes transversales liant les recommandations entre elles (IDs : camp-001, camp-002)
+   Schéma par campagne : ${CAMPAIGNS_SCHEMA}
+2. checklist : 5 tâches actionnables et prioritaires pour la semaine
+   Schéma par tâche : {"id":"string","title":"string","category":"ads|email|offers","completed":false,"detail":{}}
+3. persona_focus : les 3 personas prioritaires
+   Schéma : {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}}
+
+Retourne UNIQUEMENT : { "campaigns_overview": [...], "checklist": [...], "persona_focus": {...} }`;
+}
+
+// ── Mini checklist for category generation ─────────────────────────────
+
+function buildMiniChecklistPrompt(
+  type: "ads" | "offers" | "emails",
+  generatedItems: any[],
+  intelligence: any
+): string {
+  const catLabel =
+    type === "ads" ? "publicités" : type === "offers" ? "offres" : "emails";
+  const summary = generatedItems.map((i: any) => ({
+    id: i.id,
+    title: i.title,
+    persona: i.persona_cible,
+  }));
+  return `Voici les ${generatedItems.length} recommandations ${catLabel} générées :
+${JSON.stringify(summary, null, 2)}
+
+=== CONTEXTE MARQUE ===
+${JSON.stringify(intelligence.client_context || {}, null, 2)}
+
+Génère 2 tâches actionnables directement liées à ces recommandations ${catLabel}.
+Retourne UNIQUEMENT : {
+  "checklist": [{"id":"string","title":"string","category":"${type}","completed":false,"detail":{}}],
+  "persona_focus": {"roi":{"code":"string","name":"string","reason":"string"},"growth":{"code":"string","name":"string","reason":"string"},"ltv":{"code":"string","name":"string","reason":"string"}}
+}`;
+}
+
+// ── MAIN HANDLER ───────────────────────────────────────────────────────
+
+serve(async (req) => {
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   try {
-    // ── GET: Return all active recommendations + quota ──
+    // ════════════════════════════════════════════════════════
+    // GET — Retourne toutes les recommandations + quota
+    // ════════════════════════════════════════════════════════
     if (req.method === "GET") {
-      const [recsResult, quota] = await Promise.all([
-        supabase.from("marketing_recommendations").select("*").eq("status", "active").order("generated_at", { ascending: false }),
+      const [recsResult, quota, intelligenceResult] = await Promise.all([
+        supabase
+          .from("marketing_recommendations")
+          .select("*")
+          .eq("status", "active")
+          .order("generated_at", { ascending: false }),
         getQuota(supabase),
+        supabase
+          .from("market_intelligence")
+          .select("month_year, status, updated_at, generation_duration_ms")
+          .eq("project_id", PROJECT_ID)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
+
       if (recsResult.error) throw recsResult.error;
-      return new Response(JSON.stringify({ recommendations: recsResult.data || [], quota }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+      return new Response(
+        JSON.stringify({
+          recommendations: recsResult.data || [],
+          quota,
+          intelligence: intelligenceResult.data || null,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── POST: Generation from staging data ──
+    // ════════════════════════════════════════════════════════
+    // POST — Génération de recommandations
+    // ════════════════════════════════════════════════════════
     if (req.method === "POST") {
       const startTime = Date.now();
       let body: any = {};
-      try { const text = await req.text(); if (text) body = JSON.parse(text); } catch (_) {}
-      const { staging_id } = body;
-      if (!staging_id) {
-        return new Response(JSON.stringify({ error: "staging_id is required" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      console.log(`[generate-marketing] POST staging_id="${staging_id}"`);
-
-      // Read staging row
-      const { data: staging, error: stagingErr } = await supabase
-        .from("recommendation_staging").select("*").eq("id", staging_id).single();
-
-      if (stagingErr || !staging) {
-        return new Response(JSON.stringify({ error: "Staging row not found" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (staging.status !== "step2_done") {
-        return new Response(JSON.stringify({ error: `Invalid staging status: ${staging.status}` }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const {
-        persona_data: collectedData,
-        perplexity_results: perplexityResearch,
-        gemini_synthesis: geminiSynthesis,
-        client_context: clientContext,
-        generation_type: generationType,
-      } = staging;
-
-      const type = generationType as GenerationType;
-      const weekStart = getMonday(new Date());
-      const personasCount = Object.keys(collectedData?.personaData || {}).length;
-
-      // Determine generated_categories
-      let generatedCategories: string[];
-      if (type === "global") generatedCategories = ["ads", "offers", "emails"];
-      else if (type === "ads" || type === "single_ad") generatedCategories = ["ads"];
-      else if (type === "offers" || type === "single_offer") generatedCategories = ["offers"];
-      else generatedCategories = ["emails"];
-
-      // Try Claude Opus (sub-calls)
-      let opusSuccess = false;
       try {
-        console.log(`[generate-marketing] Sonnet 4.6 generation type="${type}"...`);
-        const { result: opusResult, actualCount } = await callClaudeOpus(geminiSynthesis, collectedData, clientContext, perplexityResearch, type);
+        const text = await req.text();
+        if (text) body = JSON.parse(text);
+      } catch (_) {}
 
-        if (actualCount === 0) throw new Error("All Sonnet 4.6 sub-calls failed — no content generated");
+      const { type, recommendation_id } = body as {
+        type: GenerationType;
+        recommendation_id?: string;
+      };
 
-        const inserted = await saveRecommendations(supabase, opusResult, {
-          version: 2, weekStart,
-          generationDurationMs: Date.now() - startTime,
-          modelsUsed: {
-            research: perplexityResearch ? "perplexity/sonar-pro" : "none",
-            analysis: geminiSynthesis ? "google/gemini-3.1-pro-preview" : "none",
-            generation: "anthropic/claude-sonnet-4.6",
-          },
-          sessionsAnalyzed: collectedData?.globalMetrics?.total_sessions || 0,
-          personasCount, perplexityResearch, generationType: type, generatedCategories,
-        });
-        console.log(`[generate-marketing] Saved. ID: ${inserted.id}, count: ${actualCount}`);
-
-        await updateQuota(supabase, type, inserted.id, actualCount);
-        await supabase.from("recommendation_staging").update({ status: "consumed" }).eq("id", staging_id);
-        await supabase.from("recommendation_staging").delete().or(`status.eq.consumed,expires_at.lt.${new Date().toISOString()}`);
-
-        opusSuccess = true;
-        const [allRecs, freshQuota] = await Promise.all([
-          supabase.from("marketing_recommendations").select("*").eq("status", "active").order("generated_at", { ascending: false }),
-          getQuota(supabase),
-        ]);
-        return new Response(JSON.stringify({ recommendations: allRecs.data || [], quota: freshQuota, latest: inserted }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-
-      } catch (opusErr) {
-        const errMsg = opusErr instanceof Error ? opusErr.message : "unknown";
-        console.error("[generate-marketing] Sonnet 4.6 FAILED:", errMsg);
-        logUsage("anthropic/claude-sonnet-4.6", "claude-sonnet-4-6", 0, { error: errMsg });
-        await supabase.from("recommendation_staging").update({ status: "error", error_message: errMsg }).eq("id", staging_id);
+      if (!type) {
+        return new Response(
+          JSON.stringify({ error: "type is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // Fallback: Gemini 2.5 Pro legacy (v1) — only for non-single types
-      if (!opusSuccess && !type.startsWith("single_")) {
-        console.log("[generate-marketing] FALLBACK: Gemini 2.5 Pro...");
-        try {
-          const legacyResult = await callGeminiLegacy(collectedData, perplexityResearch, clientContext);
-          const insertedLegacy = await saveRecommendations(supabase, legacyResult, {
-            version: 1, weekStart,
-            generationDurationMs: Date.now() - startTime,
-            modelsUsed: { research: "perplexity/sonar-pro", analysis: "google/gemini-2.5-pro", generation: "google/gemini-2.5-pro" },
-            sessionsAnalyzed: collectedData?.globalMetrics?.total_sessions || 0,
-            personasCount, perplexityResearch, generationType: type, generatedCategories,
-          });
-          // No quota deduction for fallback (0 v2 credits)
-          await supabase.from("recommendation_staging").update({ status: "consumed" }).eq("id", staging_id);
-          const [allRecs, freshQuota] = await Promise.all([
-            supabase.from("marketing_recommendations").select("*").eq("status", "active").order("generated_at", { ascending: false }),
-            getQuota(supabase),
-          ]);
-          return new Response(JSON.stringify({ recommendations: allRecs.data || [], quota: freshQuota, latest: insertedLegacy }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        } catch (fallbackErr) {
-          const errMsg = fallbackErr instanceof Error ? fallbackErr.message : "unknown";
-          console.error("[generate-marketing] FALLBACK failed:", errMsg);
-          return new Response(JSON.stringify({ error: `Generation failed: ${errMsg}` }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+      console.log(`[generate-marketing] POST type="${type}" recommendation_id="${recommendation_id || "new"}"`);
+
+      // ── STEP 1 : VÉRIFICATION QUOTA ────────────────────────────────
+      // Pour finalize : pas de check quota (déjà déduit lors de l'appel ads initial)
+      if (type !== "finalize") {
+        const creditsNeeded =
+          type === "global" ? 9 : type.startsWith("single_") ? 1 : 3;
+        const quota = await getQuota(supabase);
+
+        if (quota.total_generated + creditsNeeded > quota.monthly_limit) {
+          return new Response(
+            JSON.stringify({
+              error: "quota_exceeded",
+              current: quota.total_generated,
+              limit: quota.monthly_limit,
+              remaining: quota.remaining,
+            }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
 
-      if (!opusSuccess) {
-        return new Response(JSON.stringify({ error: "Generation failed. Please retry." }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // ── STEP 2 : LECTURE MARKET_INTELLIGENCE ──────────────────────
+      const { data: intelligence, error: intelligenceError } = await supabase
+        .from("market_intelligence")
+        .select("*")
+        .eq("project_id", PROJECT_ID)
+        .eq("status", "complete")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (intelligenceError || !intelligence) {
+        console.error("[generate-marketing] No market intelligence found");
+        return new Response(
+          JSON.stringify({
+            error: "no_intelligence",
+            message:
+              "Aucune analyse de marché disponible. Lancez d'abord l'intelligence mensuelle via monthly-market-intelligence.",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+
+      console.log(`[generate-marketing] Using market_intelligence from ${intelligence.month_year} (status: ${intelligence.status})`);
+
+      const weekStart = getMonday(new Date());
+
+      // ── STEP 3 : APPEL CLAUDE SONNET 4.6 ─────────────────────────
+      const baseSystem = buildBaseSystemPrompt();
+
+      // ── Case: FINALIZE ──────────────────────────────────────────
+      if (type === "finalize") {
+        if (!recommendation_id) {
+          return new Response(
+            JSON.stringify({ error: "recommendation_id required for finalize" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: existingRec, error: recErr } = await supabase
+          .from("marketing_recommendations")
+          .select("*")
+          .eq("id", recommendation_id)
+          .single();
+
+        if (recErr || !existingRec) {
+          return new Response(
+            JSON.stringify({ error: "Recommendation not found", id: recommendation_id }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        console.log("[generate-marketing] Finalize: generating campaigns + checklist...");
+        const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
+
+        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 4000, 120000);
+        logUsage(supabase, "anthropic", "claude-sonnet-4-6", tokens, { type: "finalize", rec_id: recommendation_id });
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(cleanJsonResponse(text));
+        } catch (parseErr) {
+          console.error("[generate-marketing] Finalize JSON parse error:", text.slice(0, 500));
+          return new Response(
+            JSON.stringify({ error: "parse_failed", message: "La réponse IA n'a pas pu être interprétée", step: "finalize" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const campaignsResult = parsed.campaigns_overview || [];
+        const checklistResult = parsed.checklist || [];
+        const personaFocus = parsed.persona_focus || {};
+
+        // Link campaign IDs into reco items
+        const updatedAds = [...(existingRec.ads_v2 || [])];
+        const updatedOffers = [...(existingRec.offers_v2 || [])];
+        const updatedEmails = [...(existingRec.emails_v2 || [])];
+        for (const camp of campaignsResult) {
+          for (const id of camp.recos_ads_ids || []) {
+            const r = updatedAds.find((a: any) => a.id === id);
+            if (r) r.campaign_id = camp.id;
+          }
+          for (const id of camp.recos_offers_ids || []) {
+            const r = updatedOffers.find((o: any) => o.id === id);
+            if (r) r.campaign_id = camp.id;
+          }
+          for (const id of camp.recos_emails_ids || []) {
+            const r = updatedEmails.find((e: any) => e.id === id);
+            if (r) r.campaign_id = camp.id;
+          }
+        }
+
+        const v1Data = convertV2toV1({ ads_v2: updatedAds, offers_v2: updatedOffers, emails_v2: updatedEmails });
+
+        const { error: updateErr } = await supabase
+          .from("marketing_recommendations")
+          .update({
+            ads_v2: updatedAds,
+            offers_v2: updatedOffers,
+            emails_v2: updatedEmails,
+            campaigns_overview: campaignsResult,
+            checklist: checklistResult,
+            persona_focus: personaFocus,
+            generated_at: new Date().toISOString(),
+            generated_categories: ["ads", "offers", "emails"],
+            generation_type: "global",
+            ...v1Data,
+          })
+          .eq("id", recommendation_id);
+
+        if (updateErr) throw new Error(`Finalize update error: ${updateErr.message}`);
+
+        // Update quota for the full global (9 credits)
+        await updateQuota(supabase, "global", recommendation_id, 9);
+
+        console.log(`[generate-marketing] Finalize done: ${campaignsResult.length} campaigns, ${checklistResult.length} checklist items`);
+
+        const { data: recommendations } = await supabase
+          .from("marketing_recommendations")
+          .select("*")
+          .eq("status", "active")
+          .order("generated_at", { ascending: false });
+
+        const quota = await getQuota(supabase);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            recommendation_id,
+            duration_ms: Date.now() - startTime,
+            recommendations: recommendations || [],
+            quota,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // ── Case: CATEGORY OR SINGLE with optional recommendation_id ──
+
+      // Validate type
+      const validTypes: GenerationType[] = ["ads", "offers", "emails", "single_ad", "single_offer", "single_email"];
+      if (!validTypes.includes(type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid type: ${type}. Use one of: ${validTypes.join(", ")}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const userPrompt = buildUserPrompt(type, intelligence);
+      const isSingle = type.startsWith("single_");
+      const maxTokens = isSingle ? 3000 : 8000;
+
+      console.log(`[generate-marketing] Calling Sonnet 4.6 for type="${type}" maxTokens=${maxTokens}...`);
+
+      let sonnetText: string;
+      let sonnetTokens: number;
+
+      try {
+        const result = await callSonnet(baseSystem, userPrompt, maxTokens, 120000);
+        sonnetText = result.text;
+        sonnetTokens = result.tokens;
+      } catch (sonnetErr: any) {
+        console.error("[generate-marketing] Sonnet failed:", sonnetErr.message);
+        return new Response(
+          JSON.stringify({
+            error: "generation_failed",
+            message: sonnetErr.message || "La génération IA a échoué. Veuillez réessayer.",
+            step: "sonnet",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      logUsage(supabase, "anthropic", "claude-sonnet-4-6", sonnetTokens, { type, has_rec_id: !!recommendation_id });
+
+      // ── Parse ─────────────────────────────────────────────────────
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleanJsonResponse(sonnetText));
+      } catch (parseErr) {
+        console.error("[generate-marketing] JSON parse error:", sonnetText.slice(0, 500));
+        return new Response(
+          JSON.stringify({ error: "parse_failed", message: "La réponse IA n'a pas pu être interprétée" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const adsItems: any[] = parsed.ads_v2 || [];
+      const offersItems: any[] = parsed.offers_v2 || [];
+      const emailsItems: any[] = parsed.emails_v2 || [];
+
+      const category =
+        type === "ads" || type === "single_ad"
+          ? "ads"
+          : type === "offers" || type === "single_offer"
+          ? "offers"
+          : "emails";
+
+      const actualCount = adsItems.length + offersItems.length + emailsItems.length;
+      console.log(`[generate-marketing] Sonnet returned ${actualCount} items for type="${type}"`);
+
+      // ── Persist ───────────────────────────────────────────────────
+      const generationConfig = {
+        models_used: {
+          intelligence: "perplexity/sonar-pro + google/gemini-3.1-pro-preview",
+          generation: "anthropic/claude-sonnet-4-6",
+        },
+        market_intelligence_id: intelligence.id,
+        market_intelligence_month: intelligence.month_year,
+        generation_duration_ms: Date.now() - startTime,
+        type,
+      };
+
+      let savedRecId: string;
+
+      if (recommendation_id) {
+        // UPDATE existing row (part of a global flow)
+        const { data: existingRec } = await supabase
+          .from("marketing_recommendations")
+          .select("ads_v2, offers_v2, emails_v2, generated_categories")
+          .eq("id", recommendation_id)
+          .single();
+
+        const existingCategories: string[] = Array.isArray(existingRec?.generated_categories)
+          ? existingRec.generated_categories
+          : [];
+        const newCategories = existingCategories.includes(category)
+          ? existingCategories
+          : [...existingCategories, category];
+
+        const updatePayload: any = {
+          generated_categories: newCategories,
+          generation_config: generationConfig,
+        };
+        if (category === "ads") updatePayload.ads_v2 = adsItems;
+        if (category === "offers") updatePayload.offers_v2 = offersItems;
+        if (category === "emails") updatePayload.emails_v2 = emailsItems;
+
+        const { error: updateErr } = await supabase
+          .from("marketing_recommendations")
+          .update(updatePayload)
+          .eq("id", recommendation_id);
+
+        if (updateErr) throw new Error(`Update error: ${updateErr.message}`);
+        savedRecId = recommendation_id;
+        console.log(`[generate-marketing] Updated existing rec ${recommendation_id} with ${category}`);
+      } else {
+        // CREATE new row
+        let checklistItems: any[] = [];
+        let personaFocus: any = {};
+
+        // Mini checklist only for category (not single)
+        if (!isSingle) {
+          try {
+            const items = category === "ads" ? adsItems : category === "offers" ? offersItems : emailsItems;
+            const miniPrompt = buildMiniChecklistPrompt(category as any, items, intelligence);
+            const { text: miniText, tokens: miniTokens } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
+            logUsage(supabase, "anthropic", "claude-sonnet-4-6", miniTokens, { type: "mini_checklist", category });
+            const mini = JSON.parse(cleanJsonResponse(miniText));
+            checklistItems = mini.checklist || [];
+            personaFocus = mini.persona_focus || {};
+          } catch (miniErr) {
+            console.warn("[generate-marketing] Mini checklist failed (non-blocking):", (miniErr as Error).message);
+          }
+        }
+
+        const v1Data = convertV2toV1({ ads_v2: adsItems, offers_v2: offersItems, emails_v2: emailsItems });
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from("marketing_recommendations")
+          .insert({
+            week_start: weekStart,
+            generated_at: new Date().toISOString(),
+            status: "active",
+            recommendation_version: 2,
+            generation_type: type,
+            generated_categories: [category],
+            ads_v2: adsItems,
+            offers_v2: offersItems,
+            emails_v2: emailsItems,
+            campaigns_overview: [],
+            checklist: checklistItems,
+            persona_focus: personaFocus,
+            sources_consulted: [],
+            generation_config: generationConfig,
+            ...v1Data,
+          })
+          .select()
+          .single();
+
+        if (insertErr) throw new Error(`Insert error: ${insertErr.message}`);
+        savedRecId = inserted.id;
+        console.log(`[generate-marketing] Created new rec ${savedRecId} for type="${type}"`);
+
+        // Update quota for standalone category/single
+        const creditsUsed = isSingle ? 1 : 3;
+        await updateQuota(supabase, type, savedRecId, creditsUsed);
+      }
+
+      // ── Return ─────────────────────────────────────────────────────
+      const [recsResult, quotaResult] = await Promise.all([
+        supabase
+          .from("marketing_recommendations")
+          .select("*")
+          .eq("status", "active")
+          .order("generated_at", { ascending: false }),
+        getQuota(supabase),
+      ]);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          recommendation_id: savedRecId,
+          type,
+          category,
+          items_count: actualCount,
+          duration_ms: Date.now() - startTime,
+          recommendations: recsResult.data || [],
+          quota: quotaResult,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (err: any) {
-    const errMsg = err?.message || "Unknown error";
-    console.error("[generate-marketing] Fatal error:", errMsg);
-    logUsage("system", "unknown", 0, { error: errMsg, fatal: true });
-    return new Response(JSON.stringify({ error: errMsg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[generate-marketing] Unhandled error:", err);
+    return new Response(
+      JSON.stringify({ error: err.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

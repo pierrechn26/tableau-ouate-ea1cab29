@@ -37,8 +37,23 @@ export interface MarketingRecommendationData {
   generation_config: any;
 }
 
-export type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
-export type GenerationStep = "prepare" | "analyze" | "generate" | null;
+export type GenerationType =
+  | "global"
+  | "ads"
+  | "offers"
+  | "emails"
+  | "single_ad"
+  | "single_offer"
+  | "single_email";
+
+// Steps reflect the new simplified architecture
+export type GenerationStep =
+  | "generate"
+  | "generate_ads"
+  | "generate_offers"
+  | "generate_emails"
+  | "finalize"
+  | null;
 
 export function useMarketingRecommendations() {
   const [allRecommendations, setAllRecommendations] = useState<MarketingRecommendationData[]>([]);
@@ -86,97 +101,160 @@ export function useMarketingRecommendations() {
     }
   }, [toast]);
 
-  const generateByCategory = useCallback(async (type: GenerationType) => {
-    setGeneratingType(type);
-    setGenerationStep(null);
-    setQuotaExceeded(false);
+  const generateByCategory = useCallback(
+    async (type: GenerationType) => {
+      setGeneratingType(type);
+      setGenerationStep(null);
+      setQuotaExceeded(false);
 
-    try {
-      // ── ÉTAPE 1: Préparer (données + Perplexity) ──────────────────
-      setGenerationStep("prepare");
-      const { data: prepareData, error: prepareErr } = await supabase.functions.invoke(
-        "prepare-recommendations",
-        { body: { type } }
-      );
-      if (prepareErr) throw prepareErr;
+      try {
+        if (type === "global") {
+          // ── Global : 4 appels séquentiels orchestrés par le frontend ──
 
-      if (prepareData?.error === "quota_exceeded") {
-        setQuotaExceeded(true);
-        setQuota((prev) => ({
-          ...prev,
-          remaining: prepareData.remaining ?? 0,
-          total_generated: prepareData.current ?? prev.total_generated,
-        }));
-        toast({
-          title: "Quota atteint",
-          description: `Vous avez utilisé ${prepareData.current}/${prepareData.limit} recommandations ce mois.`,
-          variant: "destructive",
-        });
-        return;
-      }
+          // 1. Générer les Ads (crée une nouvelle ligne)
+          setGenerationStep("generate_ads");
+          const adsResult = await supabase.functions.invoke(
+            "generate-marketing-recommendations",
+            { body: { type: "ads" } }
+          );
+          if (adsResult.error) throw new Error(adsResult.error.message);
+          if (adsResult.data?.error) {
+            if (adsResult.data.error === "quota_exceeded") {
+              setQuotaExceeded(true);
+              setQuota((prev) => ({
+                ...prev,
+                remaining: adsResult.data.remaining ?? 0,
+                total_generated: adsResult.data.current ?? prev.total_generated,
+              }));
+              toast({
+                title: "Quota atteint",
+                description: `Limite mensuelle atteinte. Passez au plan supérieur pour plus de recommandations.`,
+                variant: "destructive",
+              });
+              return;
+            }
+            throw new Error(adsResult.data.error);
+          }
+          const recommendation_id: string = adsResult.data.recommendation_id;
 
-      if (prepareData?.error) throw new Error(prepareData.error);
-      const { staging_id } = prepareData;
+          // 2. Générer les Offres (update la même ligne)
+          setGenerationStep("generate_offers");
+          const offersResult = await supabase.functions.invoke(
+            "generate-marketing-recommendations",
+            { body: { type: "offers", recommendation_id } }
+          );
+          if (offersResult.error) throw new Error(offersResult.error.message);
+          if (offersResult.data?.error) throw new Error(offersResult.data.error);
 
-      // ── ÉTAPE 2: Analyser (Gemini 3.1 Pro) ───────────────────────
-      setGenerationStep("analyze");
-      const { data: analyzeData, error: analyzeErr } = await supabase.functions.invoke(
-        "analyze-recommendations",
-        { body: { staging_id } }
-      );
-      if (analyzeErr) throw analyzeErr;
-      if (analyzeData?.error) throw new Error(analyzeData.error);
+          // 3. Générer les Emails (update la même ligne)
+          setGenerationStep("generate_emails");
+          const emailsResult = await supabase.functions.invoke(
+            "generate-marketing-recommendations",
+            { body: { type: "emails", recommendation_id } }
+          );
+          if (emailsResult.error) throw new Error(emailsResult.error.message);
+          if (emailsResult.data?.error) throw new Error(emailsResult.data.error);
 
-      // ── ÉTAPE 3: Générer (Claude Opus) ────────────────────────────
-      setGenerationStep("generate");
-      const { data: generateData, error: generateErr } = await supabase.functions.invoke(
-        "generate-marketing-recommendations",
-        { body: { staging_id } }
-      );
-      if (generateErr) throw generateErr;
-      if (generateData?.error) throw new Error(generateData.error);
+          // 4. Finaliser (campaigns + checklist + persona_focus)
+          setGenerationStep("finalize");
+          const finalResult = await supabase.functions.invoke(
+            "generate-marketing-recommendations",
+            { body: { type: "finalize", recommendation_id } }
+          );
+          if (finalResult.error) throw new Error(finalResult.error.message);
+          if (finalResult.data?.error) throw new Error(finalResult.data.error);
 
-      // Refresh data from response
-      if (generateData?.recommendations) {
-        setAllRecommendations(generateData.recommendations);
-      }
-      if (generateData?.quota) {
-        setQuota(generateData.quota);
-      }
+          if (finalResult.data?.recommendations) {
+            setAllRecommendations(finalResult.data.recommendations);
+          }
+          if (finalResult.data?.quota) {
+            setQuota(finalResult.data.quota);
+          }
 
-      const typeLabel = type === "global" ? "toutes les recommandations" :
-        type === "ads" ? "les recommandations Ads" :
-        type === "offers" ? "les recommandations Offres" :
-        type === "emails" ? "les recommandations Emails" :
-        type === "single_ad" ? "la recommandation Ads" :
-        type === "single_offer" ? "la recommandation Offre" :
-        "la recommandation Email";
+          toast({
+            title: "Recommandations générées",
+            description: "9 recommandations marketing prêtes (Ads + Offres + Emails).",
+          });
+        } else {
+          // ── Catégorie ou single : 1 seul appel ──
+          setGenerationStep("generate");
 
-      toast({
-        title: "Recommandations générées",
-        description: `Nouvelles ${typeLabel} prêtes.`,
-      });
+          const result = await supabase.functions.invoke(
+            "generate-marketing-recommendations",
+            { body: { type } }
+          );
 
-    } catch (err: any) {
-      console.error("[generate]", err);
-      if (err?.message?.includes("quota_exceeded")) {
-        toast({
-          title: "Quota atteint",
-          description: "Limite mensuelle atteinte. Passez au plan supérieur pour plus de recommandations.",
-          variant: "destructive",
-        });
-      } else {
+          if (result.error) throw new Error(result.error.message);
+
+          if (result.data?.error) {
+            if (result.data.error === "quota_exceeded") {
+              setQuotaExceeded(true);
+              setQuota((prev) => ({
+                ...prev,
+                remaining: result.data.remaining ?? 0,
+                total_generated: result.data.current ?? prev.total_generated,
+              }));
+              toast({
+                title: "Quota atteint",
+                description: `Vous avez utilisé ${result.data.current}/${result.data.limit} recommandations ce mois.`,
+                variant: "destructive",
+              });
+              return;
+            }
+            if (result.data.error === "no_intelligence") {
+              toast({
+                title: "Intelligence mensuelle manquante",
+                description:
+                  "Aucune analyse de marché disponible. Lancez l'intelligence mensuelle d'abord.",
+                variant: "destructive",
+              });
+              return;
+            }
+            throw new Error(result.data.error);
+          }
+
+          if (result.data?.recommendations) {
+            setAllRecommendations(result.data.recommendations);
+          }
+          if (result.data?.quota) {
+            setQuota(result.data.quota);
+          }
+
+          const count = type.startsWith("single_") ? 1 : 3;
+          const typeLabel =
+            type === "ads"
+              ? "Ads"
+              : type === "offers"
+              ? "Offres"
+              : type === "emails"
+              ? "Emails"
+              : type === "single_ad"
+              ? "Ad"
+              : type === "single_offer"
+              ? "Offre"
+              : "Email";
+
+          toast({
+            title: "Recommandations générées",
+            description: `${count} recommandation${count > 1 ? "s" : ""} ${typeLabel} prête${count > 1 ? "s" : ""}.`,
+          });
+        }
+      } catch (err: any) {
+        console.error("[generate]", err);
         toast({
           title: "Erreur de génération",
           description: err?.message || "La génération a échoué. Veuillez réessayer.",
           variant: "destructive",
         });
+      } finally {
+        setGeneratingType(null);
+        setGenerationStep(null);
+        // Always refresh after generation attempt
+        await fetchRecommendations();
       }
-    } finally {
-      setGeneratingType(null);
-      setGenerationStep(null);
-    }
-  }, [toast]);
+    },
+    [toast, fetchRecommendations]
+  );
 
   const updateChecklistItem = useCallback(
     async (recId: string, taskId: string, completed: boolean) => {
@@ -188,7 +266,7 @@ export function useMarketingRecommendations() {
       );
 
       setAllRecommendations((prev) =>
-        prev.map((r) => r.id === recId ? { ...r, checklist: newChecklist } : r)
+        prev.map((r) => (r.id === recId ? { ...r, checklist: newChecklist } : r))
       );
 
       try {
@@ -200,7 +278,7 @@ export function useMarketingRecommendations() {
       } catch (err) {
         console.error("Erreur update checklist:", err);
         setAllRecommendations((prev) =>
-          prev.map((r) => r.id === recId ? { ...r, checklist: rec.checklist } : r)
+          prev.map((r) => (r.id === recId ? { ...r, checklist: rec.checklist } : r))
         );
       }
     },
@@ -231,18 +309,23 @@ export function useMarketingRecommendations() {
   );
 
   const latestRec = allRecommendations[0] || null;
-  const campaignsData = Array.isArray(latestRec?.campaigns_overview) ? latestRec.campaigns_overview : [];
+  const campaignsData = Array.isArray(latestRec?.campaigns_overview)
+    ? latestRec.campaigns_overview
+    : [];
   const isV2 = allAdsV2.length > 0 || allOffersV2.length > 0 || allEmailsV2.length > 0;
 
-  const adsData = allAdsV2.length > 0
-    ? { _v2: true, items: allAdsV2 }
-    : { _v2: false, ...(latestRec?.ads_recommendations || {}) };
-  const offersData = allOffersV2.length > 0
-    ? { _v2: true, items: allOffersV2 }
-    : { _v2: false, ...(latestRec?.offers_recommendations || {}) };
-  const emailsData = allEmailsV2.length > 0
-    ? { _v2: true, items: allEmailsV2 }
-    : { _v2: false, ...(latestRec?.email_recommendations || {}) };
+  const adsData =
+    allAdsV2.length > 0
+      ? { _v2: true, items: allAdsV2 }
+      : { _v2: false, ...(latestRec?.ads_recommendations || {}) };
+  const offersData =
+    allOffersV2.length > 0
+      ? { _v2: true, items: allOffersV2 }
+      : { _v2: false, ...(latestRec?.offers_recommendations || {}) };
+  const emailsData =
+    allEmailsV2.length > 0
+      ? { _v2: true, items: allEmailsV2 }
+      : { _v2: false, ...(latestRec?.email_recommendations || {}) };
 
   const latestChecklist = (latestRec?.checklist || []) as any[];
   const latestChecklistRecId = latestRec?.id || null;
