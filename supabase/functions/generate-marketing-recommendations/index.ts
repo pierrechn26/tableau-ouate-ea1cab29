@@ -718,7 +718,7 @@ serve(async (req) => {
         console.log("[generate-marketing] Finalize: generating campaigns + checklist...");
         const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
 
-        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 4000, 120000);
+        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
         logUsage(supabase, "anthropic", "claude-sonnet-4-6", tokens, { type: "finalize", rec_id: recommendation_id });
 
         let parsed: any;
