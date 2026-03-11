@@ -1,4 +1,4 @@
-import { Check, Loader2, Search, Brain, Sparkles } from "lucide-react";
+import { Check, Loader2, Megaphone, Gift, Mail, Sparkles, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GenerationStep, GenerationType } from "@/hooks/useMarketingRecommendations";
 
@@ -9,48 +9,51 @@ interface Step {
   Icon: React.ElementType;
 }
 
-const STEPS_FULL: Step[] = [
+// ── 4 étapes pour le mode global ─────────────────────────────────────
+const STEPS_GLOBAL: Step[] = [
   {
-    id: "prepare",
-    label: "Analyse de vos données et recherche marché...",
-    sublabel: "Étape 1/3 · ~30 secondes",
-    Icon: Search,
+    id: "generate_ads",
+    label: "Génération des recommandations Ads...",
+    sublabel: "Étape 1/4 · ~30 secondes",
+    Icon: Megaphone,
   },
   {
-    id: "analyze",
-    label: "Analyse approfondie des tendances et opportunités...",
-    sublabel: "Étape 2/3 · ~50 secondes",
-    Icon: Brain,
+    id: "generate_offers",
+    label: "Génération des recommandations Offres...",
+    sublabel: "Étape 2/4 · ~30 secondes",
+    Icon: Gift,
   },
   {
-    id: "generate",
-    label: "Rédaction de vos recommandations personnalisées...",
-    sublabel: "Étape 3/3 · ~40 secondes",
-    Icon: Sparkles,
-  },
-];
-
-const STEPS_SINGLE: Step[] = [
-  {
-    id: "prepare",
-    label: "Préparation...",
-    sublabel: "Étape 1/2 · ~20 secondes",
-    Icon: Search,
+    id: "generate_emails",
+    label: "Génération des recommandations Emails...",
+    sublabel: "Étape 3/4 · ~30 secondes",
+    Icon: Mail,
   },
   {
-    id: "generate",
-    label: "Génération de votre recommandation...",
-    sublabel: "Étape 2/2 · ~20 secondes",
-    Icon: Sparkles,
+    id: "finalize",
+    label: "Orchestration des campagnes et checklist...",
+    sublabel: "Étape 4/4 · ~15 secondes",
+    Icon: LayoutGrid,
   },
 ];
 
-const stepIndex = (step: GenerationStep, steps: Step[]): number =>
-  steps.findIndex((s) => s.id === step);
+// ── 1 étape pour catégorie ou single ──────────────────────────────────
+const STEP_SINGLE: Step = {
+  id: "generate",
+  label: "Génération de votre recommandation...",
+  sublabel: "~15 secondes",
+  Icon: Sparkles,
+};
 
-interface Props {
-  generationStep: GenerationStep;
-  generatingType: GenerationType | null;
+const STEP_CATEGORY: Step = {
+  id: "generate",
+  label: "Génération de vos recommandations...",
+  sublabel: "~30 secondes",
+  Icon: Sparkles,
+};
+
+function stepIndex(step: GenerationStep, steps: Step[]): number {
+  return steps.findIndex((s) => s.id === step);
 }
 
 function typeLabelFor(t: GenerationType | null): string {
@@ -65,9 +68,24 @@ function typeLabelFor(t: GenerationType | null): string {
   return "";
 }
 
+interface Props {
+  generationStep: GenerationStep;
+  generatingType: GenerationType | null;
+}
+
 export function GenerationProgressLoader({ generationStep, generatingType }: Props) {
+  const isGlobal = generatingType === "global";
   const isSingle = generatingType?.startsWith("single_") ?? false;
-  const steps = isSingle ? STEPS_SINGLE : STEPS_FULL;
+
+  let steps: Step[];
+  if (isGlobal) {
+    steps = STEPS_GLOBAL;
+  } else if (isSingle) {
+    steps = [STEP_SINGLE];
+  } else {
+    steps = [STEP_CATEGORY];
+  }
+
   const currentIdx = stepIndex(generationStep, steps);
 
   return (
@@ -84,7 +102,7 @@ export function GenerationProgressLoader({ generationStep, generatingType }: Pro
 
           return (
             <div
-              key={step.id + idx}
+              key={step.id ?? idx}
               className={cn(
                 "flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all",
                 isActive && "bg-primary/8 border border-primary/20",
@@ -120,7 +138,7 @@ export function GenerationProgressLoader({ generationStep, generatingType }: Pro
                     isPending && "text-muted-foreground"
                   )}
                 >
-                  {isDone ? step.label.replace("...", "") : step.label}
+                  {isDone ? step.label.replace("...", " ✓") : step.label}
                 </p>
                 <p
                   className={cn(
