@@ -813,7 +813,7 @@ serve(async (req) => {
 
       const userPrompt = buildUserPrompt(type, intelligence);
       const isSingle = type.startsWith("single_");
-      const maxTokens = isSingle ? 3000 : 8000;
+      const maxTokens = 16000;
 
       console.log(`[generate-marketing] Calling Sonnet 4.6 for type="${type}" maxTokens=${maxTokens}...`);
 
