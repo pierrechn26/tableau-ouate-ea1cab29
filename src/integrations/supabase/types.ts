@@ -459,6 +459,66 @@ export type Database = {
         }
         Relationships: []
       }
+      market_intelligence: {
+        Row: {
+          client_context: Json | null
+          created_at: string | null
+          error_log: string | null
+          gemini_ads_analysis: Json | null
+          gemini_email_analysis: Json | null
+          gemini_offers_analysis: Json | null
+          generation_duration_ms: number | null
+          id: string
+          models_used: Json | null
+          month_year: string
+          perplexity_ads: Json | null
+          perplexity_email: Json | null
+          perplexity_offers: Json | null
+          personas_snapshot: Json | null
+          project_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_context?: Json | null
+          created_at?: string | null
+          error_log?: string | null
+          gemini_ads_analysis?: Json | null
+          gemini_email_analysis?: Json | null
+          gemini_offers_analysis?: Json | null
+          generation_duration_ms?: number | null
+          id?: string
+          models_used?: Json | null
+          month_year: string
+          perplexity_ads?: Json | null
+          perplexity_email?: Json | null
+          perplexity_offers?: Json | null
+          personas_snapshot?: Json | null
+          project_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_context?: Json | null
+          created_at?: string | null
+          error_log?: string | null
+          gemini_ads_analysis?: Json | null
+          gemini_email_analysis?: Json | null
+          gemini_offers_analysis?: Json | null
+          generation_duration_ms?: number | null
+          id?: string
+          models_used?: Json | null
+          month_year?: string
+          perplexity_ads?: Json | null
+          perplexity_email?: Json | null
+          perplexity_offers?: Json | null
+          personas_snapshot?: Json | null
+          project_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       marketing_recommendations: {
         Row: {
           ads_recommendations: Json | null
@@ -519,6 +579,42 @@ export type Database = {
           sources_consulted?: Json | null
           status?: string | null
           week_start?: string
+        }
+        Relationships: []
+      }
+      marketing_sources: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          project_id: string
+          source_name: string
+          source_url: string | null
+          tier: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          project_id?: string
+          source_name: string
+          source_url?: string | null
+          tier?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          project_id?: string
+          source_name?: string
+          source_url?: string | null
+          tier?: number | null
         }
         Relationships: []
       }
