@@ -292,7 +292,7 @@ async function callSonnet(
   userPrompt: string,
   maxTokens: number,
   timeoutMs = 120000
-): Promise<{ text: string; tokens: number }> {
+): Promise<{ text: string; tokens: number; inputTokens: number; outputTokens: number }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
