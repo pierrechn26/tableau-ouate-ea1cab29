@@ -482,7 +482,7 @@ Produis l'analyse JSON approfondie.`;
     const msg = (e as Error).message;
     console.error("[monthly-market-intelligence] Gemini ADS FAILED:", msg);
     geminiAdsAnalysis = { status: "error", error: msg, analyzed_at: new Date().toISOString() };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", 0, { step: "ads_analysis", error: msg });
+    logUsage(supabase, "gemini", "google/gemini-3.1-pro-preview", 0, { step: "ads_analysis", error: msg });
   }
 
   await supabase
