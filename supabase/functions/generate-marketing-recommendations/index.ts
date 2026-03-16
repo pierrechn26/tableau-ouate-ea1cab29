@@ -327,7 +327,7 @@ async function callSonnet(
     const outputTokens = data.usage?.output_tokens || 0;
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
-    return { text, tokens, inputTokens, outputTokens };
+    return { text, tokens, inputTokens, outputTokens, modelUsed: sonnetModel };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
