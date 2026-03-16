@@ -322,9 +322,11 @@ async function callSonnet(
     const data = await response.json();
     const tokens =
       (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+    const inputTokens = data.usage?.input_tokens || 0;
+    const outputTokens = data.usage?.output_tokens || 0;
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
-    return { text, tokens };
+    return { text, tokens, inputTokens, outputTokens };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
