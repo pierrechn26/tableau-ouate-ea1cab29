@@ -57,10 +57,19 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
 
     const data = await response.json();
     // Fire-and-forget: log Perplexity usage
-    const perplexityTokens = data.usage?.total_tokens || 0;
+    const perplexityModel = "sonar-pro";
+    const perplexityTotalTokens = data.usage?.total_tokens || 0;
     createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
       .from("api_usage_logs")
-      .insert({ edge_function: "aski-chat", api_provider: "perplexity", model: "sonar-pro", tokens_used: perplexityTokens, api_calls: 1 })
+      .insert({
+        edge_function: "aski-chat",
+        api_provider: "perplexity",
+        model: perplexityModel,
+        tokens_used: perplexityTotalTokens,
+        total_tokens: perplexityTotalTokens,
+        api_calls: 1,
+        metadata: { type: "web_search" },
+      })
       .then(() => {}).catch(() => {});
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
