@@ -32,16 +32,22 @@ function logUsage(
   supabase: any,
   provider: string,
   model: string,
-  tokens: number,
+  usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | number,
   metadata?: Record<string, any>
 ) {
+  const inputTokens = typeof usage === "number" ? 0 : (usage.input_tokens || 0);
+  const outputTokens = typeof usage === "number" ? 0 : (usage.output_tokens || 0);
+  const totalTokens = typeof usage === "number" ? usage : (usage.total_tokens || (inputTokens + outputTokens));
   supabase
     .from("api_usage_logs")
     .insert({
       edge_function: "monthly-market-intelligence",
       api_provider: provider,
       model,
-      tokens_used: tokens,
+      tokens_used: totalTokens,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: totalTokens,
       api_calls: 1,
       metadata: metadata || {},
     })
