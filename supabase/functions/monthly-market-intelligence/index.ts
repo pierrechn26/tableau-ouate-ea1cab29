@@ -603,9 +603,9 @@ ${clientCtx}
 
 Produis l'analyse JSON approfondie.`;
 
-    const { parsed, tokens } = await callGemini(offersSystemPrompt, offersUserPrompt, 120000);
+    const { parsed, tokens, modelUsed: geminiModelOffers } = await callGemini(offersSystemPrompt, offersUserPrompt, 120000);
     geminiOffersAnalysis = { ...parsed, analyzed_at: new Date().toISOString(), status: "success" };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", tokens, { step: "offers_analysis" });
+    logUsage(supabase, "gemini", geminiModelOffers, tokens, { step: "offers_analysis" });
     console.log("[monthly-market-intelligence] Gemini OFFERS done ✅");
   } catch (e) {
     const msg = (e as Error).message;
