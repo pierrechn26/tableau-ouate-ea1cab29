@@ -291,8 +291,9 @@ async function callSonnet(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
-  timeoutMs = 120000
-): Promise<{ text: string; tokens: number; inputTokens: number; outputTokens: number }> {
+  timeoutMs = 120000,
+  sonnetModel = "claude-sonnet-4-6"
+): Promise<{ text: string; tokens: number; inputTokens: number; outputTokens: number; modelUsed: string }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
