@@ -538,9 +538,9 @@ ${clientCtx}
 
 Produis l'analyse JSON approfondie.`;
 
-    const { parsed, tokens } = await callGemini(emailSystemPrompt, emailUserPrompt, 120000);
+    const { parsed, tokens, modelUsed: geminiModelEmail } = await callGemini(emailSystemPrompt, emailUserPrompt, 120000);
     geminiEmailAnalysis = { ...parsed, analyzed_at: new Date().toISOString(), status: "success" };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", tokens, { step: "email_analysis" });
+    logUsage(supabase, "gemini", geminiModelEmail, tokens, { step: "email_analysis" });
     console.log("[monthly-market-intelligence] Gemini EMAIL done ✅");
   } catch (e) {
     const msg = (e as Error).message;
