@@ -137,7 +137,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
         "Authorization": `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: geminiModelUsed,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       }),
