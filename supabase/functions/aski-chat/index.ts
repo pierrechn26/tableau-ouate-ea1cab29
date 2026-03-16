@@ -420,6 +420,7 @@ ${recosContext}` : ""}
     ];
 
     // === APPEL GEMINI 2.5 PRO (long context) ===
+    const mainModel = "google/gemini-2.5-pro";
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s pour le long contexte
 
@@ -434,7 +435,7 @@ ${recosContext}` : ""}
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: mainModel,
           messages,
         }),
         signal: controller.signal,
@@ -455,6 +456,21 @@ ${recosContext}` : ""}
       const aiData = await aiResponse.json();
       responseText = aiData.choices?.[0]?.message?.content ?? "";
       tokensUsed = aiData.usage?.total_tokens ?? 0;
+      const inputTokens = aiData.usage?.prompt_tokens ?? 0;
+      const outputTokens = aiData.usage?.completion_tokens ?? 0;
+
+      // Fire-and-forget: log main response usage (model captured dynamically from mainModel variable)
+      supabase.from("api_usage_logs").insert({
+        edge_function: "aski-chat",
+        api_provider: "lovable-ai",
+        model: mainModel,
+        tokens_used: tokensUsed,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: tokensUsed,
+        api_calls: 1,
+        metadata: { type: "main_response" },
+      }).then(() => {}).catch(() => {});
     } catch (e: unknown) {
       clearTimeout(timeoutId);
       if (e instanceof Error && e.name === "AbortError") {
