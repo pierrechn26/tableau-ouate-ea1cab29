@@ -828,6 +828,9 @@ serve(async (req) => {
 
       let sonnetText: string;
       let sonnetTokens: number;
+      let sonnetInputTokens: number;
+      let sonnetOutputTokens: number;
+      let sonnetModelUsed: string;
 
       try {
         const result = await callSonnet(baseSystem, userPrompt, maxTokens, 130000);
