@@ -130,6 +130,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
 ]`;
 
     // ===== Call Lovable AI Gateway =====
+    const geminiModelUsed = "google/gemini-2.5-flash";
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
