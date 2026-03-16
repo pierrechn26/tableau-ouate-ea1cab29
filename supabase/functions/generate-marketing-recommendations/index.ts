@@ -934,8 +934,8 @@ serve(async (req) => {
           try {
             const items = category === "ads" ? adsItems : category === "offers" ? offersItems : emailsItems;
             const miniPrompt = buildMiniChecklistPrompt(category as any, items, intelligence);
-            const { text: miniText, tokens: miniTokens } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
-            logUsage(supabase, "anthropic", "claude-sonnet-4-6", miniTokens, { type: "mini_checklist", category });
+            const { text: miniText, tokens: miniTokens, inputTokens: miniInput, outputTokens: miniOutput, modelUsed: miniModel } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
+            logUsage(supabase, "anthropic", miniModel, { input_tokens: miniInput, output_tokens: miniOutput, total_tokens: miniTokens }, { type: "mini_checklist", category });
             const mini = JSON.parse(cleanJsonResponse(miniText));
             checklistItems = mini.checklist || [];
             personaFocus = mini.persona_focus || {};
