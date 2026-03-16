@@ -397,8 +397,9 @@ async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 
     if (!raw) throw new Error("Empty Gemini response");
 
     const tokens = data.usage?.total_tokens || 0;
+    const modelUsed = "google/gemini-3.1-pro-preview";
     const parsed = JSON.parse(cleanJsonResponse(raw));
-    return { parsed, tokens };
+    return { parsed, tokens, modelUsed };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
