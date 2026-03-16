@@ -21,9 +21,12 @@ export type Database = {
           created_at: string | null
           edge_function: string
           id: string
+          input_tokens: number | null
           metadata: Json | null
           model: string | null
+          output_tokens: number | null
           tokens_used: number | null
+          total_tokens: number | null
         }
         Insert: {
           api_calls?: number | null
@@ -31,9 +34,12 @@ export type Database = {
           created_at?: string | null
           edge_function: string
           id?: string
+          input_tokens?: number | null
           metadata?: Json | null
           model?: string | null
+          output_tokens?: number | null
           tokens_used?: number | null
+          total_tokens?: number | null
         }
         Update: {
           api_calls?: number | null
@@ -41,9 +47,12 @@ export type Database = {
           created_at?: string | null
           edge_function?: string
           id?: string
+          input_tokens?: number | null
           metadata?: Json | null
           model?: string | null
+          output_tokens?: number | null
           tokens_used?: number | null
+          total_tokens?: number | null
         }
         Relationships: []
       }

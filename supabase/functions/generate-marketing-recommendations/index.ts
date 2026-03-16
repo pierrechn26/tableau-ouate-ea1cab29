@@ -53,16 +53,22 @@ function logUsage(
   supabase: any,
   provider: string,
   model: string,
-  tokens: number,
+  usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | number,
   metadata?: Record<string, any>
 ) {
+  const inputTokens = typeof usage === "number" ? 0 : (usage.input_tokens || 0);
+  const outputTokens = typeof usage === "number" ? 0 : (usage.output_tokens || 0);
+  const totalTokens = typeof usage === "number" ? usage : (usage.total_tokens || (inputTokens + outputTokens));
   supabase
     .from("api_usage_logs")
     .insert({
       edge_function: "generate-marketing-recommendations",
       api_provider: provider,
       model,
-      tokens_used: tokens,
+      tokens_used: totalTokens,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: totalTokens,
       api_calls: 1,
       metadata: metadata || {},
     })
@@ -285,8 +291,9 @@ async function callSonnet(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number,
-  timeoutMs = 120000
-): Promise<{ text: string; tokens: number }> {
+  timeoutMs = 120000,
+  sonnetModel = "claude-sonnet-4-6"
+): Promise<{ text: string; tokens: number; inputTokens: number; outputTokens: number; modelUsed: string }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -301,7 +308,7 @@ async function callSonnet(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: sonnetModel,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -316,9 +323,11 @@ async function callSonnet(
     const data = await response.json();
     const tokens =
       (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0);
+    const inputTokens = data.usage?.input_tokens || 0;
+    const outputTokens = data.usage?.output_tokens || 0;
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty response from Claude Sonnet 4.6");
-    return { text, tokens };
+    return { text, tokens, inputTokens, outputTokens, modelUsed: sonnetModel };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
@@ -718,8 +727,8 @@ serve(async (req) => {
         console.log("[generate-marketing] Finalize: generating campaigns + checklist...");
         const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
 
-        const { text, tokens } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
-        logUsage(supabase, "anthropic", "claude-sonnet-4-6", tokens, { type: "finalize", rec_id: recommendation_id });
+        const { text, tokens, inputTokens, outputTokens, modelUsed } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
+        logUsage(supabase, "anthropic", modelUsed, { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: tokens }, { type: "finalize", rec_id: recommendation_id });
 
         let parsed: any;
         try {
@@ -819,11 +828,17 @@ serve(async (req) => {
 
       let sonnetText: string;
       let sonnetTokens: number;
+      let sonnetInputTokens: number;
+      let sonnetOutputTokens: number;
+      let sonnetModelUsed: string;
 
       try {
         const result = await callSonnet(baseSystem, userPrompt, maxTokens, 130000);
         sonnetText = result.text;
         sonnetTokens = result.tokens;
+        sonnetInputTokens = result.inputTokens;
+        sonnetOutputTokens = result.outputTokens;
+        sonnetModelUsed = result.modelUsed;
       } catch (sonnetErr: any) {
         console.error("[generate-marketing] Sonnet failed:", sonnetErr.message);
         return new Response(
@@ -836,7 +851,7 @@ serve(async (req) => {
         );
       }
 
-      logUsage(supabase, "anthropic", "claude-sonnet-4-6", sonnetTokens, { type, has_rec_id: !!recommendation_id });
+      logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
 
       // ── Parse ─────────────────────────────────────────────────────
       let parsed: any;
@@ -919,8 +934,8 @@ serve(async (req) => {
           try {
             const items = category === "ads" ? adsItems : category === "offers" ? offersItems : emailsItems;
             const miniPrompt = buildMiniChecklistPrompt(category as any, items, intelligence);
-            const { text: miniText, tokens: miniTokens } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
-            logUsage(supabase, "anthropic", "claude-sonnet-4-6", miniTokens, { type: "mini_checklist", category });
+            const { text: miniText, tokens: miniTokens, inputTokens: miniInput, outputTokens: miniOutput, modelUsed: miniModel } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
+            logUsage(supabase, "anthropic", miniModel, { input_tokens: miniInput, output_tokens: miniOutput, total_tokens: miniTokens }, { type: "mini_checklist", category });
             const mini = JSON.parse(cleanJsonResponse(miniText));
             checklistItems = mini.checklist || [];
             personaFocus = mini.persona_focus || {};

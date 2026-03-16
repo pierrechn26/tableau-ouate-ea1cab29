@@ -57,10 +57,19 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
 
     const data = await response.json();
     // Fire-and-forget: log Perplexity usage
-    const perplexityTokens = data.usage?.total_tokens || 0;
+    const perplexityModel = "sonar-pro";
+    const perplexityTotalTokens = data.usage?.total_tokens || 0;
     createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
       .from("api_usage_logs")
-      .insert({ edge_function: "aski-chat", api_provider: "perplexity", model: "sonar-pro", tokens_used: perplexityTokens, api_calls: 1 })
+      .insert({
+        edge_function: "aski-chat",
+        api_provider: "perplexity",
+        model: perplexityModel,
+        tokens_used: perplexityTotalTokens,
+        total_tokens: perplexityTotalTokens,
+        api_calls: 1,
+        metadata: { type: "web_search" },
+      })
       .then(() => {}).catch(() => {});
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
@@ -411,6 +420,7 @@ ${recosContext}` : ""}
     ];
 
     // === APPEL GEMINI 2.5 PRO (long context) ===
+    const mainModel = "google/gemini-2.5-pro";
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s pour le long contexte
 
@@ -425,7 +435,7 @@ ${recosContext}` : ""}
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: mainModel,
           messages,
         }),
         signal: controller.signal,
@@ -446,6 +456,21 @@ ${recosContext}` : ""}
       const aiData = await aiResponse.json();
       responseText = aiData.choices?.[0]?.message?.content ?? "";
       tokensUsed = aiData.usage?.total_tokens ?? 0;
+      const inputTokens = aiData.usage?.prompt_tokens ?? 0;
+      const outputTokens = aiData.usage?.completion_tokens ?? 0;
+
+      // Fire-and-forget: log main response usage (model captured dynamically from mainModel variable)
+      supabase.from("api_usage_logs").insert({
+        edge_function: "aski-chat",
+        api_provider: "lovable-ai",
+        model: mainModel,
+        tokens_used: tokensUsed,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: tokensUsed,
+        api_calls: 1,
+        metadata: { type: "main_response" },
+      }).then(() => {}).catch(() => {});
     } catch (e: unknown) {
       clearTimeout(timeoutId);
       if (e instanceof Error && e.name === "AbortError") {
@@ -462,11 +487,12 @@ ${recosContext}` : ""}
     let chatTitle = "Nouvelle conversation";
     if ((chatHistory ?? []).length <= 1) {
       try {
+      const titleModel = "google/gemini-2.5-flash-lite";
         const titleResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+            model: titleModel,
             messages: [
               {
                 role: "system",
@@ -485,12 +511,18 @@ ${recosContext}` : ""}
         });
         const titleData = await titleResponse.json();
         chatTitle = titleData.choices?.[0]?.message?.content?.trim() ?? "Nouvelle conversation";
-        // Fire-and-forget: log title Gemini usage
-        const titleTokens = titleData.usage?.total_tokens || 0;
-        if (titleTokens > 0) {
-          supabase.from("api_usage_logs")
-            .insert({ edge_function: "aski-chat", api_provider: "gemini", model: "gemini-2.5-flash-lite", tokens_used: titleTokens, api_calls: 1 })
-            .then(() => {}).catch(() => {});
+        // Fire-and-forget: log title generation usage (model captured dynamically from titleModel variable)
+        const titleTotalTokens = titleData.usage?.total_tokens || 0;
+        if (titleTotalTokens > 0) {
+          supabase.from("api_usage_logs").insert({
+            edge_function: "aski-chat",
+            api_provider: "lovable-ai",
+            model: titleModel,
+            tokens_used: titleTotalTokens,
+            total_tokens: titleTotalTokens,
+            api_calls: 1,
+            metadata: { type: "title_generation" },
+          }).then(() => {}).catch(() => {});
         }
       } catch {
         chatTitle = userMessage.slice(0, 40);

@@ -32,16 +32,22 @@ function logUsage(
   supabase: any,
   provider: string,
   model: string,
-  tokens: number,
+  usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | number,
   metadata?: Record<string, any>
 ) {
+  const inputTokens = typeof usage === "number" ? 0 : (usage.input_tokens || 0);
+  const outputTokens = typeof usage === "number" ? 0 : (usage.output_tokens || 0);
+  const totalTokens = typeof usage === "number" ? usage : (usage.total_tokens || (inputTokens + outputTokens));
   supabase
     .from("api_usage_logs")
     .insert({
       edge_function: "monthly-market-intelligence",
       api_provider: provider,
       model,
-      tokens_used: tokens,
+      tokens_used: totalTokens,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: totalTokens,
       api_calls: 1,
       metadata: metadata || {},
     })
@@ -354,7 +360,7 @@ Focus marques DTC premium. Date : ${monthLabel}.`;
 // ──────────────────────────────────────────────
 // STEP 2: GEMINI — 3 SEQUENTIAL DEEP ANALYSES
 // ──────────────────────────────────────────────
-async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 120000): Promise<{ parsed: any; tokens: number }> {
+async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 120000): Promise<{ parsed: any; tokens: number; modelUsed: string }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -391,8 +397,9 @@ async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 
     if (!raw) throw new Error("Empty Gemini response");
 
     const tokens = data.usage?.total_tokens || 0;
+    const modelUsed = "google/gemini-3.1-pro-preview";
     const parsed = JSON.parse(cleanJsonResponse(raw));
-    return { parsed, tokens };
+    return { parsed, tokens, modelUsed };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
@@ -467,15 +474,15 @@ ${clientCtx}
 
 Produis l'analyse JSON approfondie.`;
 
-    const { parsed, tokens } = await callGemini(adsSystemPrompt, adsUserPrompt, 120000);
+    const { parsed, tokens, modelUsed: geminiModel } = await callGemini(adsSystemPrompt, adsUserPrompt, 120000);
     geminiAdsAnalysis = { ...parsed, analyzed_at: new Date().toISOString(), status: "success" };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", tokens, { step: "ads_analysis" });
+    logUsage(supabase, "gemini", geminiModel, tokens, { step: "ads_analysis" });
     console.log("[monthly-market-intelligence] Gemini ADS done ✅");
   } catch (e) {
     const msg = (e as Error).message;
     console.error("[monthly-market-intelligence] Gemini ADS FAILED:", msg);
     geminiAdsAnalysis = { status: "error", error: msg, analyzed_at: new Date().toISOString() };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", 0, { step: "ads_analysis", error: msg });
+    logUsage(supabase, "gemini", "google/gemini-3.1-pro-preview", 0, { step: "ads_analysis", error: msg });
   }
 
   await supabase
@@ -531,15 +538,15 @@ ${clientCtx}
 
 Produis l'analyse JSON approfondie.`;
 
-    const { parsed, tokens } = await callGemini(emailSystemPrompt, emailUserPrompt, 120000);
+    const { parsed, tokens, modelUsed: geminiModelEmail } = await callGemini(emailSystemPrompt, emailUserPrompt, 120000);
     geminiEmailAnalysis = { ...parsed, analyzed_at: new Date().toISOString(), status: "success" };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", tokens, { step: "email_analysis" });
+    logUsage(supabase, "gemini", geminiModelEmail, tokens, { step: "email_analysis" });
     console.log("[monthly-market-intelligence] Gemini EMAIL done ✅");
   } catch (e) {
     const msg = (e as Error).message;
     console.error("[monthly-market-intelligence] Gemini EMAIL FAILED:", msg);
     geminiEmailAnalysis = { status: "error", error: msg, analyzed_at: new Date().toISOString() };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", 0, { step: "email_analysis", error: msg });
+    logUsage(supabase, "gemini", "google/gemini-3.1-pro-preview", 0, { step: "email_analysis", error: msg });
   }
 
   await supabase
@@ -596,15 +603,15 @@ ${clientCtx}
 
 Produis l'analyse JSON approfondie.`;
 
-    const { parsed, tokens } = await callGemini(offersSystemPrompt, offersUserPrompt, 120000);
+    const { parsed, tokens, modelUsed: geminiModelOffers } = await callGemini(offersSystemPrompt, offersUserPrompt, 120000);
     geminiOffersAnalysis = { ...parsed, analyzed_at: new Date().toISOString(), status: "success" };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", tokens, { step: "offers_analysis" });
+    logUsage(supabase, "gemini", geminiModelOffers, tokens, { step: "offers_analysis" });
     console.log("[monthly-market-intelligence] Gemini OFFERS done ✅");
   } catch (e) {
     const msg = (e as Error).message;
     console.error("[monthly-market-intelligence] Gemini OFFERS FAILED:", msg);
     geminiOffersAnalysis = { status: "error", error: msg, analyzed_at: new Date().toISOString() };
-    logUsage(supabase, "gemini", "gemini-3.1-pro-preview", 0, { step: "offers_analysis", error: msg });
+    logUsage(supabase, "gemini", "google/gemini-3.1-pro-preview", 0, { step: "offers_analysis", error: msg });
   }
 
   // Count successes for final status
