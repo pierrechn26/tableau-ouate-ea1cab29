@@ -836,6 +836,9 @@ serve(async (req) => {
         const result = await callSonnet(baseSystem, userPrompt, maxTokens, 130000);
         sonnetText = result.text;
         sonnetTokens = result.tokens;
+        sonnetInputTokens = result.inputTokens;
+        sonnetOutputTokens = result.outputTokens;
+        sonnetModelUsed = result.modelUsed;
       } catch (sonnetErr: any) {
         console.error("[generate-marketing] Sonnet failed:", sonnetErr.message);
         return new Response(
@@ -848,7 +851,7 @@ serve(async (req) => {
         );
       }
 
-      logUsage(supabase, "anthropic", "claude-sonnet-4-6", sonnetTokens, { type, has_rec_id: !!recommendation_id });
+      logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
 
       // ── Parse ─────────────────────────────────────────────────────
       let parsed: any;
