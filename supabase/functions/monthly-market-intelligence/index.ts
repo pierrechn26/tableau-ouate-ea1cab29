@@ -360,7 +360,7 @@ Focus marques DTC premium. Date : ${monthLabel}.`;
 // ──────────────────────────────────────────────
 // STEP 2: GEMINI — 3 SEQUENTIAL DEEP ANALYSES
 // ──────────────────────────────────────────────
-async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 120000): Promise<{ parsed: any; tokens: number }> {
+async function callGemini(systemPrompt: string, userPrompt: string, timeoutMs = 120000): Promise<{ parsed: any; tokens: number; modelUsed: string }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
