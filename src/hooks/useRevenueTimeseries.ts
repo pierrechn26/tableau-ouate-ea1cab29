@@ -15,6 +15,7 @@ interface RevenuePoint {
 interface UseRevenueTimeseriesResult {
   data: RevenuePoint[];
   isLoading: boolean;
+  isEmpty: boolean; // true when query returned 0 orders (likely wrong date range)
 }
 
 export function useRevenueTimeseries(
@@ -23,6 +24,7 @@ export function useRevenueTimeseries(
 ): UseRevenueTimeseriesResult {
   const [data, setData] = useState<RevenuePoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmpty, setIsEmpty] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,19 +35,41 @@ export function useRevenueTimeseries(
       const to = new Date(toRaw);
       to.setHours(23, 59, 59, 999);
 
+      // Step 1: find the actual earliest order date if no dateRange is set
+      let effectiveFrom = from;
+      if (!dateRange?.from) {
+        const { data: earliest } = await supabase
+          .from("shopify_orders")
+          .select("created_at")
+          .gt("total_price", 0)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        if (earliest?.created_at) {
+          effectiveFrom = new Date(earliest.created_at);
+          effectiveFrom.setHours(0, 0, 0, 0);
+        }
+      }
+
+      const fromISO = effectiveFrom.toISOString();
+      const toISO = to.toISOString();
+
       const { data: orders, error } = await supabase
         .from("shopify_orders")
         .select("created_at, total_price, is_from_diagnostic")
         .gt("total_price", 0)
-        .gte("created_at", from.toISOString())
-        .lte("created_at", to.toISOString())
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
         .range(0, 9999);
 
       if (error || !orders) {
         setData([]);
+        setIsEmpty(true);
         setIsLoading(false);
         return;
       }
+
+      setIsEmpty(orders.length === 0);
 
       // Group orders by Europe/Paris date (explicit timezone)
       const toParisDate = (iso: string) =>
@@ -65,8 +89,9 @@ export function useRevenueTimeseries(
       }
 
       // Fill all days in range (using Europe/Paris dates)
+      // Use effectiveFrom so "Toute la période" covers real data range
       const allDays: string[] = [];
-      const cur = new Date(from);
+      const cur = new Date(effectiveFrom);
       cur.setHours(12, 0, 0, 0); // noon to avoid DST edge cases
       const end = new Date(to);
       end.setHours(12, 0, 0, 0);
@@ -145,5 +170,5 @@ export function useRevenueTimeseries(
     fetchData();
   }, [dateRange?.from?.getTime(), dateRange?.to?.getTime(), granularity]);
 
-  return { data, isLoading };
+  return { data, isLoading, isEmpty };
 }

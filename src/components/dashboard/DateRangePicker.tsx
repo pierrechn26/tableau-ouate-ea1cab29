@@ -207,9 +207,9 @@ export function DateRangePicker({
               onSelect={handleSelect}
               numberOfMonths={2}
               locale={fr}
-              disabled={(date) => date > new Date()}
-              weekStartsOn={1}
-              className={cn("p-3 pointer-events-auto")}
+            disabled={(date) => date > new Date() || date < new Date(new Date().getFullYear() - 1, new Date().getMonth(), 1)}
+            weekStartsOn={1}
+            className={cn("p-3 pointer-events-auto")}
             />
             <div className="flex justify-end px-4 pb-3">
               <Button size="sm" onClick={handleApply}>
