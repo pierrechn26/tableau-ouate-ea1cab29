@@ -59,7 +59,8 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         .select("total_price, is_from_diagnostic")
         .gt("total_price", 0)
         .gte("created_at", fromISO)
-        .lte("created_at", toISO);
+        .lte("created_at", toISO)
+        .range(0, 9999);
 
       // GA4 data for conversion rate denominators
       const startDate = format(from, "yyyy-MM-dd");

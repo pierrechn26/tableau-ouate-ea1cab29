@@ -314,11 +314,15 @@ Deno.serve(async (req) => {
       const optinSmsPct = count > 0 ? Math.round((optinSms / count) * 1000) / 10 : 0;
 
       // -- TOP PRODUCTS --
+      // Split rétrocompatible : " | " (nouveau séparateur) ou ", " (ancien — évite de couper "1,2,3" dans les noms)
+      const splitProducts = (str: string): string[] => {
+        if (str.includes(" | ")) return str.split(" | ").map((p: string) => p.trim()).filter(Boolean);
+        return str.split(", ").map((p: string) => p.trim()).filter(Boolean);
+      };
       const productCounts: Record<string, number> = {};
       for (const s of sessions) {
         if (!s.recommended_products) continue;
-        s.recommended_products.split(",").forEach((p: string) => {
-          const name = p.trim();
+        splitProducts(s.recommended_products).forEach((name: string) => {
           if (name) productCounts[name] = (productCounts[name] || 0) + 1;
         });
       }

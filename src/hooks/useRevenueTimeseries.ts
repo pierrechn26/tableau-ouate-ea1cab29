@@ -38,7 +38,8 @@ export function useRevenueTimeseries(
         .select("created_at, total_price, is_from_diagnostic")
         .gt("total_price", 0)
         .gte("created_at", from.toISOString())
-        .lte("created_at", to.toISOString());
+        .lte("created_at", to.toISOString())
+        .range(0, 9999);
 
       if (error || !orders) {
         setData([]);
