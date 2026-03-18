@@ -180,6 +180,14 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Chargement...</span>
               </div>
+            ) : revenue.isEmpty ? (
+              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground gap-2">
+                <span className="text-4xl">📭</span>
+                <p className="font-medium text-foreground">Aucune commande sur cette période</p>
+                <p className="text-sm text-center max-w-xs">
+                  Les données disponibles démarrent le <strong>08/02/2026</strong>. Essayez un raccourci comme "30 derniers jours" ou "Toute la période".
+                </p>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenue.data}>
