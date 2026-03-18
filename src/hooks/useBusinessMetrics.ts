@@ -53,14 +53,27 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       const fromISO = from.toISOString();
       const toISO = to.toISOString();
 
-      // All orders from shopify_orders (single source of truth)
-      const { data: allOrders } = await supabase
-        .from("shopify_orders")
-        .select("total_price, is_from_diagnostic")
-        .gt("total_price", 0)
-        .gte("created_at", fromISO)
-        .lte("created_at", toISO)
-        .range(0, 9999);
+      // Paginate to bypass the PostgREST 1000-row server cap
+      const PAGE_SIZE = 1000;
+      let allOrdersList: { total_price: number | null; is_from_diagnostic: boolean | null }[] = [];
+      let page = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const from_idx = page * PAGE_SIZE;
+        const { data: batch } = await supabase
+          .from("shopify_orders")
+          .select("total_price, is_from_diagnostic")
+          .gt("total_price", 0)
+          .gte("created_at", fromISO)
+          .lte("created_at", toISO)
+          .order("created_at", { ascending: true })
+          .range(from_idx, from_idx + PAGE_SIZE - 1);
+        if (!batch || batch.length === 0) break;
+        allOrdersList = allOrdersList.concat(batch);
+        hasMore = batch.length === PAGE_SIZE;
+        page++;
+      }
+      const allOrders = allOrdersList;
 
       // GA4 data for conversion rate denominators
       const startDate = format(from, "yyyy-MM-dd");
