@@ -15,6 +15,7 @@ interface RevenuePoint {
 interface UseRevenueTimeseriesResult {
   data: RevenuePoint[];
   isLoading: boolean;
+  isEmpty: boolean; // true when query returned 0 orders (likely wrong date range)
 }
 
 export function useRevenueTimeseries(
