@@ -33,10 +33,24 @@ export function useRevenueTimeseries(
       const to = new Date(toRaw);
       to.setHours(23, 59, 59, 999);
 
-      const fromISO = from.toISOString();
-      const toISO = to.toISOString();
+      // Step 1: find the actual earliest order date if no dateRange is set
+      let effectiveFrom = from;
+      if (!dateRange?.from) {
+        const { data: earliest } = await supabase
+          .from("shopify_orders")
+          .select("created_at")
+          .gt("total_price", 0)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+        if (earliest?.created_at) {
+          effectiveFrom = new Date(earliest.created_at);
+          effectiveFrom.setHours(0, 0, 0, 0);
+        }
+      }
 
-      console.log("[RevenueTimeseries] Query range:", fromISO, "→", toISO, "| granularity:", granularity);
+      const fromISO = effectiveFrom.toISOString();
+      const toISO = to.toISOString();
 
       const { data: orders, error } = await supabase
         .from("shopify_orders")
@@ -45,8 +59,6 @@ export function useRevenueTimeseries(
         .gte("created_at", fromISO)
         .lte("created_at", toISO)
         .range(0, 9999);
-
-      console.log("[RevenueTimeseries] Orders fetched:", orders?.length ?? 0, "| error:", error?.message ?? "none");
 
       if (error || !orders) {
         setData([]);
