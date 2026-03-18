@@ -93,7 +93,7 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         console.error("GA4 fetch error in useBusinessMetrics:", err);
       }
 
-      const allOrdersList = allOrders || [];
+      // allOrders already contains the paginated results
 
       // Diagnostic metrics from shopify_orders
       const diagOrders = allOrdersList.filter((o: any) => o.is_from_diagnostic);
