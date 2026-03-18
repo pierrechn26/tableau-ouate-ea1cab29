@@ -170,5 +170,5 @@ export function useRevenueTimeseries(
     fetchData();
   }, [dateRange?.from?.getTime(), dateRange?.to?.getTime(), granularity]);
 
-  return { data, isLoading };
+  return { data, isLoading, isEmpty };
 }
