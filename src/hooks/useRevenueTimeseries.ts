@@ -54,20 +54,37 @@ export function useRevenueTimeseries(
       const fromISO = effectiveFrom.toISOString();
       const toISO = to.toISOString();
 
-      const { data: orders, error } = await supabase
-        .from("shopify_orders")
-        .select("created_at, total_price, is_from_diagnostic")
-        .gt("total_price", 0)
-        .gte("created_at", fromISO)
-        .lte("created_at", toISO)
-        .range(0, 9999);
+      // Paginate to bypass the PostgREST 1000-row server cap
+      const PAGE_SIZE = 1000;
+      let allOrders: { created_at: string | null; total_price: number | null; is_from_diagnostic: boolean | null }[] = [];
+      let page = 0;
+      let hasMore = true;
 
-      if (error || !orders) {
-        setData([]);
-        setIsEmpty(true);
-        setIsLoading(false);
-        return;
+      while (hasMore) {
+        const from_idx = page * PAGE_SIZE;
+        const to_idx = from_idx + PAGE_SIZE - 1;
+        const { data: batch, error } = await supabase
+          .from("shopify_orders")
+          .select("created_at, total_price, is_from_diagnostic")
+          .gt("total_price", 0)
+          .gte("created_at", fromISO)
+          .lte("created_at", toISO)
+          .order("created_at", { ascending: true })
+          .range(from_idx, to_idx);
+
+        if (error || !batch) {
+          setData([]);
+          setIsEmpty(true);
+          setIsLoading(false);
+          return;
+        }
+
+        allOrders = allOrders.concat(batch);
+        hasMore = batch.length === PAGE_SIZE;
+        page++;
       }
+
+      const orders = allOrders;
 
       setIsEmpty(orders.length === 0);
 
