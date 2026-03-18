@@ -24,6 +24,7 @@ export function useRevenueTimeseries(
 ): UseRevenueTimeseriesResult {
   const [data, setData] = useState<RevenuePoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmpty, setIsEmpty] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
