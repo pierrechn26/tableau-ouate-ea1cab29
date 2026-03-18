@@ -33,13 +33,20 @@ export function useRevenueTimeseries(
       const to = new Date(toRaw);
       to.setHours(23, 59, 59, 999);
 
+      const fromISO = from.toISOString();
+      const toISO = to.toISOString();
+
+      console.log("[RevenueTimeseries] Query range:", fromISO, "→", toISO, "| granularity:", granularity);
+
       const { data: orders, error } = await supabase
         .from("shopify_orders")
         .select("created_at, total_price, is_from_diagnostic")
         .gt("total_price", 0)
-        .gte("created_at", from.toISOString())
-        .lte("created_at", to.toISOString())
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
         .range(0, 9999);
+
+      console.log("[RevenueTimeseries] Orders fetched:", orders?.length ?? 0, "| error:", error?.message ?? "none");
 
       if (error || !orders) {
         setData([]);
