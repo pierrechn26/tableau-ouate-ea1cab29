@@ -73,7 +73,7 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
         hasMore = batch.length === PAGE_SIZE;
         page++;
       }
-      const allOrders = allOrdersList;
+      
 
       // GA4 data for conversion rate denominators
       const startDate = format(from, "yyyy-MM-dd");
