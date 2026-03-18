@@ -64,9 +64,12 @@ export function useRevenueTimeseries(
 
       if (error || !orders) {
         setData([]);
+        setIsEmpty(true);
         setIsLoading(false);
         return;
       }
+
+      setIsEmpty(orders.length === 0);
 
       // Group orders by Europe/Paris date (explicit timezone)
       const toParisDate = (iso: string) =>
