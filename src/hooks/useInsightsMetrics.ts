@@ -39,7 +39,8 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
         .select("recommended_products, validated_products, is_existing_client, recommended_cart_amount, conversion")
         .eq("status", "termine")
         .gte("created_at", fromISO)
-        .lte("created_at", toISO);
+        .lte("created_at", toISO)
+        .range(0, 9999);
 
       // Fetch diagnostic orders
       const { data: diagOrders } = await supabase
@@ -48,16 +49,23 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
         .eq("is_from_diagnostic", true)
         .gt("total_price", 0)
         .gte("created_at", fromISO)
-        .lte("created_at", toISO);
+        .lte("created_at", toISO)
+        .range(0, 9999);
 
       const list = sessions || [];
       const total = list.length;
 
+      // Helper : split rétrocompatible — supporte " | " (nouveau) et ", " (ancien)
+      // Le split sur ", " (virgule+espace) évite de couper "1,2,3" dans les noms de produits
+      const splitProducts = (str: string): string[] => {
+        if (str.includes(" | ")) return str.split(" | ").map(p => p.trim()).filter(Boolean);
+        return str.split(", ").map(p => p.trim()).filter(Boolean);
+      };
+
       // 1. Routine complète
       const routineCount = list.filter((s) => {
         if (!s.recommended_products) return false;
-        const count = s.recommended_products.split(",").length;
-        return count >= 3;
+        return splitProducts(s.recommended_products).length >= 3;
       }).length;
       const routineCompletePercent = total > 0 ? (routineCount / total) * 100 : 0;
 
@@ -86,9 +94,8 @@ export function useInsightsMetrics(dateRange?: DateRange): InsightsData {
       const productCounts: Record<string, number> = {};
       list.forEach((s) => {
         if (!s.conversion || !s.validated_products) return;
-        s.validated_products.split(",").forEach((p) => {
-          const name = p.trim();
-          if (name) productCounts[name] = (productCounts[name] || 0) + 1;
+        splitProducts(s.validated_products).forEach((p) => {
+          if (p) productCounts[p] = (productCounts[p] || 0) + 1;
         });
       });
       let topProduct: string | null = null;
