@@ -185,7 +185,7 @@ export function BusinessMetrics({ dateRange }: BusinessMetricsProps) {
                 <span className="text-4xl">📭</span>
                 <p className="font-medium text-foreground">Aucune commande sur cette période</p>
                 <p className="text-sm text-center max-w-xs">
-                  Les données disponibles démarrent le <strong>08/02/2026</strong>. Essayez un raccourci comme "30 derniers jours" ou "Toute la période".
+                  Aucune donnée disponible pour la plage sélectionnée. Essayez un raccourci comme "30 derniers jours" ou "Toute la période".
                 </p>
               </div>
             ) : (
