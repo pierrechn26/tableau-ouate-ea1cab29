@@ -84,8 +84,9 @@ export function useRevenueTimeseries(
       }
 
       // Fill all days in range (using Europe/Paris dates)
+      // Use effectiveFrom so "Toute la période" covers real data range
       const allDays: string[] = [];
-      const cur = new Date(from);
+      const cur = new Date(effectiveFrom);
       cur.setHours(12, 0, 0, 0); // noon to avoid DST edge cases
       const end = new Date(to);
       end.setHours(12, 0, 0, 0);
