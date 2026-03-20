@@ -259,6 +259,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("[sync-klaviyo-persona] Unexpected error:", error);
+    reportEdgeFunctionError("sync-klaviyo-persona", error, { type: "sync_failure", severity: "error" });
     return new Response(
       JSON.stringify({ success: false, error: msg }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
