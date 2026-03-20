@@ -524,6 +524,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("[diagnostic-webhook] Unexpected error:", error);
+    reportEdgeFunctionError("diagnostic-webhook", error, { type: "webhook_failure", severity: "error" });
     return jsonResponse({ error: "Internal server error", details: msg }, 500);
   }
 });
