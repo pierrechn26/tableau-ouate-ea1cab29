@@ -230,6 +230,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
     });
   } catch (err) {
     console.error("Unexpected error:", err);
+    reportEdgeFunctionError("generate-funnel-recommendations", err, { type: "cron_failure", severity: "critical" });
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
