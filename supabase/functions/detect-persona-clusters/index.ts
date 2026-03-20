@@ -1,9 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
+  try {
+    const apiKey = Deno.env.get("MONITORING_API_KEY");
+    if (!apiKey) return;
+    await fetch("https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/report-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-monitoring-key": apiKey },
+      body: JSON.stringify({ errors: [{ source: "edge_function", severity: context?.severity || "error", error_type: context?.type || "internal_error", function_name: functionName, message: (error as any)?.message || String(error), stack_trace: (error as any)?.stack || "", context: { ...context, timestamp: new Date().toISOString() } }] }),
+    });
+  } catch { /* fire-and-forget */ }
+}
 
 // deno-lint-ignore no-explicit-any
 type Any = any;
@@ -624,6 +631,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("[detect-persona-clusters] Error:", err);
+    reportEdgeFunctionError("detect-persona-clusters", err, { type: "cron_failure", severity: "critical" });
     return new Response(JSON.stringify({ success: false, error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -1,4 +1,16 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
+  try {
+    const apiKey = Deno.env.get("MONITORING_API_KEY");
+    if (!apiKey) return;
+    await fetch("https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/report-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-monitoring-key": apiKey },
+      body: JSON.stringify({ errors: [{ source: "edge_function", severity: context?.severity || "error", error_type: context?.type || "internal_error", function_name: functionName, message: (error as any)?.message || String(error), stack_trace: (error as any)?.stack || "", context: { ...context, timestamp: new Date().toISOString() } }] }),
+    });
+  } catch { /* fire-and-forget */ }
+}
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -168,6 +180,7 @@ serve(async (req) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("sync-shopify-products fatal error:", msg);
+    reportEdgeFunctionError("sync-shopify-products", err, { type: "cron_failure", severity: "critical" });
     return new Response(JSON.stringify({ success: false, error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

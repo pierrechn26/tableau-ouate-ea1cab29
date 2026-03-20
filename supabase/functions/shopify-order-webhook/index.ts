@@ -1,6 +1,18 @@
 import { createHmac } from "node:crypto";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
+  try {
+    const apiKey = Deno.env.get("MONITORING_API_KEY");
+    if (!apiKey) return;
+    await fetch("https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/report-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-monitoring-key": apiKey },
+      body: JSON.stringify({ errors: [{ source: "edge_function", severity: context?.severity || "error", error_type: context?.type || "internal_error", function_name: functionName, message: (error as any)?.message || String(error), stack_trace: (error as any)?.stack || "", context: { ...context, timestamp: new Date().toISOString() } }] }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -180,6 +192,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Webhook processing error:", error);
+    reportEdgeFunctionError("shopify-order-webhook", error, { type: "webhook_failure", severity: "error" });
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

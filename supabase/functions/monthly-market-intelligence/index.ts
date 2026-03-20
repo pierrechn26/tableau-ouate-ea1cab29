@@ -1,6 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
+  try {
+    const apiKey = Deno.env.get("MONITORING_API_KEY");
+    if (!apiKey) return;
+    await fetch("https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/report-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-monitoring-key": apiKey },
+      body: JSON.stringify({ errors: [{ source: "edge_function", severity: context?.severity || "error", error_type: context?.type || "internal_error", function_name: functionName, message: (error as any)?.message || String(error), stack_trace: (error as any)?.stack || "", context: { ...context, timestamp: new Date().toISOString() } }] }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -820,6 +832,7 @@ serve(async (req) => {
     const msg = err?.message || "Unknown error";
     const durationMs = Date.now() - startTime;
     console.error("[monthly-market-intelligence] FATAL ERROR:", msg);
+    reportEdgeFunctionError("monthly-market-intelligence", err, { type: "cron_failure", severity: "critical" });
 
     // Try to log the error in the intelligence row if it exists
     try {
