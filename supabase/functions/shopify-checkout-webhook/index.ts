@@ -126,6 +126,7 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("[checkout-webhook] Unexpected error:", error);
+    reportEdgeFunctionError("shopify-checkout-webhook", error, { type: "webhook_failure", severity: "error" });
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
