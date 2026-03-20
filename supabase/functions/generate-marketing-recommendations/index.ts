@@ -1020,6 +1020,7 @@ serve(async (req) => {
     });
   } catch (err: any) {
     console.error("[generate-marketing] Unhandled error:", err);
+    reportEdgeFunctionError("generate-marketing-recommendations", err, { type: "cron_failure", severity: "critical" });
     return new Response(
       JSON.stringify({ error: err.message || "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
