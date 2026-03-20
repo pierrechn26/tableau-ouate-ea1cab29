@@ -832,6 +832,7 @@ serve(async (req) => {
     const msg = err?.message || "Unknown error";
     const durationMs = Date.now() - startTime;
     console.error("[monthly-market-intelligence] FATAL ERROR:", msg);
+    reportEdgeFunctionError("monthly-market-intelligence", err, { type: "cron_failure", severity: "critical" });
 
     // Try to log the error in the intelligence row if it exists
     try {
