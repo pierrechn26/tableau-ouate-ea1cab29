@@ -180,6 +180,7 @@ serve(async (req) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("sync-shopify-products fatal error:", msg);
+    reportEdgeFunctionError("sync-shopify-products", err, { type: "cron_failure", severity: "critical" });
     return new Response(JSON.stringify({ success: false, error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
