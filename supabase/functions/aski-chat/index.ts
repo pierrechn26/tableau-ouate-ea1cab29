@@ -1,6 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
+  try {
+    const apiKey = Deno.env.get("MONITORING_API_KEY");
+    if (!apiKey) return;
+    await fetch("https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/report-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-monitoring-key": apiKey },
+      body: JSON.stringify({ errors: [{ source: "edge_function", severity: context?.severity || "error", error_type: context?.type || "internal_error", function_name: functionName, message: (error as Error)?.message || String(error), stack_trace: (error as Error)?.stack || "", context: { ...context, timestamp: new Date().toISOString() } }] }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
