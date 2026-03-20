@@ -574,6 +574,7 @@ ${recosContext}` : ""}
 
   } catch (e) {
     console.error("aski-chat error:", e);
+    reportEdgeFunctionError("aski-chat", e, { type: "internal_error" });
     return new Response(JSON.stringify({
       error: "Aski est temporairement indisponible.",
       details: e instanceof Error ? e.message : "Unknown error",
