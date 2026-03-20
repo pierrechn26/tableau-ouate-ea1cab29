@@ -631,6 +631,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("[detect-persona-clusters] Error:", err);
+    reportEdgeFunctionError("detect-persona-clusters", err, { type: "cron_failure", severity: "critical" });
     return new Response(JSON.stringify({ success: false, error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
