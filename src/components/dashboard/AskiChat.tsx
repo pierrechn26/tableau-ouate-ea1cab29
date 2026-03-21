@@ -39,7 +39,7 @@ export function AskiChat() {
   const isSendingRef = useRef(false);
   const { toast } = useToast();
 
-  const questionsLimit = 200;
+  const questionsLimit = 500;
 
   // Load chats
   const loadChats = useCallback(async () => {

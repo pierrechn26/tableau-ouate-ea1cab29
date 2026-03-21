@@ -42,48 +42,56 @@ serve(async (req) => {
   );
 
   try {
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const now = new Date();
+    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-    // Count user messages (questions) this month
-    const { count: questionsAsked, error: countError } = await supabase
-      .from("aski_messages")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "user")
-      .gte("created_at", startOfMonth);
+    // Run all counts in parallel
+    const [
+      { count: questionsAsked, error: countError },
+      { data: tokenData, error: tokenError },
+      { count: diagnosticSessions, error: sessionsError },
+      { count: marketingRecommendations, error: marketingError },
+      { data: usageData, error: usageError },
+    ] = await Promise.all([
+      supabase
+        .from("aski_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "user")
+        .gte("created_at", startOfMonth),
+      supabase
+        .from("aski_messages")
+        .select("tokens_used")
+        .eq("role", "assistant")
+        .gte("created_at", startOfMonth),
+      supabase
+        .from("diagnostic_sessions")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", startOfMonth),
+      supabase
+        .from("marketing_recommendations")
+        .select("*", { count: "exact", head: true })
+        .gte("generated_at", startOfMonth)
+        .lt("generated_at", nextMonthStart),
+      supabase
+        .from("api_usage_logs")
+        .select("edge_function, api_provider, model, input_tokens, output_tokens, total_tokens, tokens_used, api_calls")
+        .gte("created_at", startOfMonth),
+    ]);
 
     if (countError) throw countError;
-
-    // Sum tokens used by assistant messages this month (legacy field)
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("aski_messages")
-      .select("tokens_used")
-      .eq("role", "assistant")
-      .gte("created_at", startOfMonth);
-
     if (tokenError) throw tokenError;
+    if (sessionsError) throw sessionsError;
+    if (marketingError) throw marketingError;
+    if (usageError) throw usageError;
 
     const tokensUsed = (tokenData ?? []).reduce(
       (sum, row) => sum + (row.tokens_used ?? 0),
       0
     );
 
-    // Count diagnostic sessions this month
-    const { count: diagnosticSessions, error: sessionsError } = await supabase
-      .from("diagnostic_sessions")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", startOfMonth);
-
-    if (sessionsError) throw sessionsError;
-
-    // Detailed API usage grouped by edge_function / provider / model (this month)
-    const { data: usageData, error: usageError } = await supabase
-      .from("api_usage_logs")
-      .select("edge_function, api_provider, model, input_tokens, output_tokens, total_tokens, tokens_used, api_calls")
-      .gte("created_at", startOfMonth);
-
-    if (usageError) throw usageError;
-
-    // Group in-memory (avoid raw SQL)
+    // Group API usage in-memory (avoid raw SQL)
     const groupMap: Record<string, {
       edge_function: string;
       api_provider: string;
@@ -110,15 +118,11 @@ serve(async (req) => {
       const g = groupMap[key];
       g.input_tokens += row.input_tokens ?? 0;
       g.output_tokens += row.output_tokens ?? 0;
-      // Prefer total_tokens; fall back to legacy tokens_used
       g.total_tokens += row.total_tokens ?? row.tokens_used ?? 0;
       g.calls += row.api_calls ?? 1;
     }
 
     const apiUsage = Object.values(groupMap).sort((a, b) => b.total_tokens - a.total_tokens);
-
-    const now = new Date();
-    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
     return new Response(
       JSON.stringify({
@@ -127,6 +131,7 @@ serve(async (req) => {
         questions_asked: questionsAsked ?? 0,
         tokens_used: tokensUsed,
         diagnostic_sessions: diagnosticSessions ?? 0,
+        marketing_recommendations: marketingRecommendations ?? 0,
         api_usage: apiUsage,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
