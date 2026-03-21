@@ -59,9 +59,9 @@ export function useMarketingRecommendations() {
   const [allRecommendations, setAllRecommendations] = useState<MarketingRecommendationData[]>([]);
   const [quota, setQuota] = useState<QuotaData>({
     total_generated: 0,
-    monthly_limit: 36,
-    remaining: 36,
-    plan: "starter",
+    monthly_limit: 60,
+    remaining: 60,
+    plan: "growth",
     generations_log: [],
   });
   const [isLoading, setIsLoading] = useState(true);
