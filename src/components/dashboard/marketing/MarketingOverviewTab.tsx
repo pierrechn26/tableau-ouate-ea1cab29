@@ -24,6 +24,7 @@ import { QuotaBar } from "./QuotaBar";
 import { GenerationType, QuotaData, MarketingRecommendationData } from "@/hooks/useMarketingRecommendations";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { type UsageLimits } from "@/hooks/useUsageLimits";
 
 // Animated counter hook
 function useAnimatedCounter(value: number, duration: number = 400) {
