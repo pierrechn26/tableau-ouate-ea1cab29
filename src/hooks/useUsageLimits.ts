@@ -61,7 +61,7 @@ function startOfWeekMonday(): string {
 
 function startOfMonthStr(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().split("T")[0];
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
