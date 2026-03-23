@@ -485,12 +485,12 @@ Deno.serve(async (req) => {
     if (allDetected.length === 0) {
       await supabase.from("persona_detection_log").insert({
         detection_type: "scan_no_result",
-        details: { p0_count: p0Sessions.length, total_sessions: allSessions.length, weak_count: weakSessions.length },
-        action_taken: "none",
+        details: { p0_count: p0Sessions.length, total_sessions: allSessions.length, weak_count: weakSessions.length, session_counts_updated: earlyCounters },
+        action_taken: "counters_updated",
         sessions_affected: 0,
       });
-      console.log("[detect-persona-clusters] No clusters detected.");
-      return new Response(JSON.stringify({ success: true, detected: 0, dry_run, message: "Aucun cluster détecté" }), {
+      console.log("[detect-persona-clusters] No clusters detected. Counters were updated.");
+      return new Response(JSON.stringify({ success: true, detected: 0, dry_run, message: "Aucun cluster détecté — compteurs mis à jour", session_counts: earlyCounters }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
