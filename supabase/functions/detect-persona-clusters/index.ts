@@ -1,5 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
   try {
     const apiKey = Deno.env.get("MONITORING_API_KEY");
