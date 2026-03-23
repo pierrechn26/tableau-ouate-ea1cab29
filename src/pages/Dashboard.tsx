@@ -601,6 +601,9 @@ export default function Dashboard() {
             {/* Diagnostic Performance - Real Data */}
             <OverviewDiagnosticStats dateRange={dateRange} />
 
+            {/* Usage Overview */}
+            <UsageOverview />
+
             {/* Diagnostic Preview */}
             <DiagnosticPreview />
             </div>

@@ -44,14 +44,14 @@ function UsageBar({ label, used, limit, percentage, isWarning, isExceeded, renew
             </span>
           )}
           {isWarning && !isExceeded && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-600 bg-yellow-500/10 rounded-full px-2 py-0.5">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-500/10 rounded-full px-2 py-0.5">
               ⚠️ Attention
             </span>
           )}
         </div>
         <span className={cn(
           "text-sm font-semibold tabular-nums",
-          isExceeded ? "text-destructive" : isWarning ? "text-yellow-600" : "text-foreground"
+          isExceeded ? "text-destructive" : isWarning ? "text-amber-600" : "text-foreground"
         )}>
           {percentage}%
         </span>
