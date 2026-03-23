@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [sessionsBannerDismissed, setSessionsBannerDismissed] = useState(false);
   const [exportSections, setExportSections] = useState({
     all: true,
     overview: true,
@@ -57,13 +58,12 @@ export default function Dashboard() {
   const funnelRef = useRef<HTMLDivElement>(null);
   const marketingRef = useRef<HTMLDivElement>(null);
   const insightsRef = useRef<HTMLDivElement>(null);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: subDays(new Date(), 6), to: new Date() });
   const [customComparisonRange, setCustomComparisonRange] = useState<DateRange | undefined>();
   const businessMetrics = useBusinessMetrics(dateRange);
   const diagnosticStats = useDiagnosticStats(dateRange);
+  const usageLimits = useUsageLimits();
   const sectionRefs: Record<string, React.RefObject<HTMLDivElement>> = {
     overview: overviewRef,
     personas: personasRef,
