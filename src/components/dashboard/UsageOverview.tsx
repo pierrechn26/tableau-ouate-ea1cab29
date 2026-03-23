@@ -153,10 +153,9 @@ export function UsageOverview() {
         </p>
         {upgrade.nextPlan ? (
           <Button
-            variant="outline"
             size="sm"
-            className="gap-1.5 text-sm border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/60"
-            onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+            className="gap-1.5 text-sm bg-destructive text-destructive-foreground hover:bg-destructive-foreground hover:text-destructive border border-destructive transition-colors duration-150"
+            onClick={() => window.open("https://ask-it.ai/pricing", "_blank")}
           >
             Mettre à niveau mon abonnement
             <ArrowUpRight className="w-3.5 h-3.5" />
