@@ -87,6 +87,7 @@ export function MarketingOverviewTab({
   generatingType,
   onGenerate,
   allRecommendations,
+  usageLimits,
 }: Props) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
