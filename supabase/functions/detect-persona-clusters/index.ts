@@ -342,6 +342,52 @@ function computeScore(sessionData: Any, children: Any[], personas: Any[]): { cod
 }
 
 /* ============================================================
+   PHASE G (standalone): Update session_count + avg_matching_score
+   Runs at EVERY execution, independent of cluster detection.
+   ============================================================ */
+async function updateAllPersonaSessionCounts(supabase: Any): Promise<{ updated: number; counters: Record<string, number> }> {
+  const { data: personaCounts } = await supabase
+    .from("diagnostic_sessions")
+    .select("persona_code, matching_score")
+    .eq("status", "termine");
+
+  if (!personaCounts) return { updated: 0, counters: {} };
+
+  const counters: Record<string, { cnt: number; sum: number }> = {};
+  for (const s of personaCounts) {
+    if (!s.persona_code) continue;
+    if (!counters[s.persona_code]) counters[s.persona_code] = { cnt: 0, sum: 0 };
+    counters[s.persona_code].cnt++;
+    counters[s.persona_code].sum += s.matching_score || 0;
+  }
+
+  let updated = 0;
+  for (const [code, { cnt, sum }] of Object.entries(counters)) {
+    const { error } = await supabase.from("personas").update({
+      session_count: cnt,
+      avg_matching_score: cnt > 0 ? Math.round((sum / cnt) * 100) / 100 : 0,
+    }).eq("code", code);
+    if (!error) updated++;
+  }
+
+  // Also reset to 0 any active persona not present in the counts
+  const { data: allActivePersonas } = await supabase
+    .from("personas")
+    .select("code")
+    .eq("is_active", true)
+    .eq("is_pool", false);
+
+  for (const p of (allActivePersonas || [])) {
+    if (!counters[p.code] && p.code !== "P0") {
+      await supabase.from("personas").update({ session_count: 0, avg_matching_score: 0 }).eq("code", p.code);
+    }
+  }
+
+  console.log(`[detect-persona-clusters] Phase G: Updated counters for ${updated} personas`);
+  return { updated, counters: Object.fromEntries(Object.entries(counters).map(([k, v]) => [k, v.cnt])) };
+}
+
+/* ============================================================
    MAIN HANDLER
    ============================================================ */
 Deno.serve(async (req) => {
