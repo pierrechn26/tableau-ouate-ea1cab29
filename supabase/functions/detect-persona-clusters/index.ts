@@ -436,6 +436,10 @@ Deno.serve(async (req) => {
 
     console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas`);
 
+    /* ── PHASE G (early): Update session_count for ALL personas — runs every time ── */
+    const { counters: earlyCounters } = await updateAllPersonaSessionCounts(supabase);
+    console.log(`[detect-persona-clusters] Phase G (early): session counts = ${JSON.stringify(earlyCounters)}`);
+
     /* ── PHASE B: Detect clusters ── */
     const allDetected: Any[] = [];
 
