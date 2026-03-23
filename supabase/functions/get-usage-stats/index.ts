@@ -65,12 +65,12 @@ serve(async (req) => {
         .select("tokens_used")
         .eq("role", "assistant")
         .gte("created_at", startOfMonth),
+      // Toutes les sessions créées ce mois, aucun filtre statut (en_cours = crédit consommé)
       supabase
         .from("diagnostic_sessions")
         .select("*", { count: "exact", head: true })
         .gte("created_at", startOfMonth)
-        .lt("created_at", nextMonthStart)
-        .neq("status", "en_cours"),
+        .lt("created_at", nextMonthStart),
       supabase
         .from("marketing_recommendations")
         .select("*", { count: "exact", head: true })
