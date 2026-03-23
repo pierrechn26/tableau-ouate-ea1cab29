@@ -234,12 +234,11 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-col flex items-start justify-start">
-              <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src="/lovable-uploads/30b93e71-30dd-4fdd-aae7-9d008af6fa5c.png" />
+               <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src="/lovable-uploads/30b93e71-30dd-4fdd-aae7-9d008af6fa5c.png" />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
-                  Dashboard Ouate Paris — Plan Growth   
+                  Dashboard Ouate Paris — Plan <span className="capitalize">{usageLimits.plan}</span>
                 </p>
-                
               </div>
             </div>
             <div className="flex items-center gap-3">
