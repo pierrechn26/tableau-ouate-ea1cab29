@@ -114,6 +114,7 @@ export function MarketingOverviewTab({
           isGenerating={isGenerating}
           generatingType={generatingType}
           onGenerate={onGenerate}
+          usageLimits={usageLimits}
         />
       </Card>
 
