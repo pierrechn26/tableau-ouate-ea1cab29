@@ -74,6 +74,7 @@ export function MarketingEmailsTab({ emailsData, isV2, campaignsData = [], quota
             generationStep={generationStep}
             onGenerate={onGenerate}
             singleType="single_email"
+            usageLimits={usageLimits}
           />
         </div>
       </div>

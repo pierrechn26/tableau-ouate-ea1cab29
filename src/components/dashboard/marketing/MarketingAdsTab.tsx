@@ -75,6 +75,7 @@ export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGe
             generationStep={generationStep}
             onGenerate={onGenerate}
             singleType="single_ad"
+            usageLimits={usageLimits}
           />
         </div>
       </div>
