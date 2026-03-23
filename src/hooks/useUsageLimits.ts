@@ -155,13 +155,13 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
           .eq("project_id", projectId)
           .single(),
 
-        // 2. Compter les sessions démarrées ce mois (toutes statuts — chaque session consomme un crédit)
+        // 2. Compter TOUTES les sessions créées ce mois (aucun filtre statut)
+        // Chaque session créée consomme un crédit, qu'elle soit en_cours, terminée ou abandonnée
         supabase
           .from("diagnostic_sessions")
           .select("*", { count: "exact", head: true })
           .gte("created_at", new Date(monthStart).toISOString())
-          .lt("created_at", nextMonthDate)
-          .neq("status", "en_cours"),
+          .lt("created_at", nextMonthDate),
 
         // 3. Compter les questions Aski du mois (via aski_messages)
         supabase
