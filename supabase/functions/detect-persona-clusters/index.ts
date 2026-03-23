@@ -652,28 +652,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    /* ── PHASE G: Update counters ── */
-    const { data: personaCounts } = await supabase
-      .from("diagnostic_sessions")
-      .select("persona_code, matching_score")
-      .eq("status", "termine");
-
-    if (personaCounts) {
-      const counters: Record<string, { cnt: number; sum: number }> = {};
-      for (const s of personaCounts) {
-        if (!s.persona_code) continue;
-        if (!counters[s.persona_code]) counters[s.persona_code] = { cnt: 0, sum: 0 };
-        counters[s.persona_code].cnt++;
-        counters[s.persona_code].sum += s.matching_score || 0;
-      }
-      for (const [code, { cnt, sum }] of Object.entries(counters)) {
-        await supabase.from("personas").update({
-          session_count: cnt,
-          avg_matching_score: cnt > 0 ? Math.round((sum / cnt) * 100) / 100 : 0,
-        }).eq("code", code);
-      }
-      console.log(`[detect-persona-clusters] Updated counters for ${Object.keys(counters).length} personas`);
-    }
+    /* ── PHASE G (final): Re-update counters after reassignment ── */
+    const { counters: finalCounters } = await updateAllPersonaSessionCounts(supabase);
 
     return new Response(JSON.stringify({
       success: true,
