@@ -61,7 +61,7 @@ function startOfWeekMonday(): string {
 
 function startOfMonthStr(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().split("T")[0];
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -143,9 +143,11 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const monthStart = startOfMonthStr();
+      // ── Dates strictement UTC pour éviter tout décalage timezone client ──────
+      const now = new Date();
+      const utcMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const utcNextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
       const weekStart = startOfWeekMonday();
-      const nextMonthDate = addMonths(new Date(monthStart), 1).toISOString();
 
       const [planRes, sessionCountRes, askiCountRes, recosRes] = await Promise.all([
         // 1. Lire le plan client
@@ -160,16 +162,16 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
         supabase
           .from("diagnostic_sessions")
           .select("*", { count: "exact", head: true })
-          .gte("created_at", new Date(monthStart).toISOString())
-          .lt("created_at", nextMonthDate),
+          .gte("created_at", utcMonthStart)
+          .lt("created_at", utcNextMonthStart),
 
         // 3. Compter les questions Aski du mois (via aski_messages)
         supabase
           .from("aski_messages")
           .select("*", { count: "exact", head: true })
           .eq("role", "user")
-          .gte("created_at", new Date(monthStart).toISOString())
-          .lt("created_at", nextMonthDate),
+          .gte("created_at", utcMonthStart)
+          .lt("created_at", utcNextMonthStart),
 
         // 4. Compter les recos générées cette semaine (via recommendation_usage)
         supabase
