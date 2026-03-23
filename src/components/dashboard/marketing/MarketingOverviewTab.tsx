@@ -76,6 +76,7 @@ interface Props {
   generatingType: GenerationType | null;
   onGenerate: (type: GenerationType) => void;
   allRecommendations: MarketingRecommendationData[];
+  usageLimits?: UsageLimits;
 }
 
 export function MarketingOverviewTab({
