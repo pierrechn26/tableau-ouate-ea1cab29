@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
@@ -10,6 +10,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { MarketingOverviewTab } from "./MarketingOverviewTab";
 import { MarketingAdsTab } from "./MarketingAdsTab";
 import { MarketingOffersTab } from "./MarketingOffersTab";
@@ -49,6 +50,8 @@ export function MarketingRecommendations() {
     campaignsData,
     latestChecklist,
   } = useMarketingRecommendations();
+
+  const usageLimits = useUsageLimits();
 
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -110,6 +113,7 @@ export function MarketingRecommendations() {
             generatingType={generatingType}
             onGenerate={generateByCategory}
             allRecommendations={allRecommendations}
+            usageLimits={usageLimits}
           />
         </TabsContent>
 
@@ -123,6 +127,7 @@ export function MarketingRecommendations() {
             generatingType={generatingType}
             generationStep={generationStep}
             onGenerate={generateByCategory}
+            usageLimits={usageLimits}
           />
         </TabsContent>
 
@@ -136,6 +141,7 @@ export function MarketingRecommendations() {
             generatingType={generatingType}
             generationStep={generationStep}
             onGenerate={generateByCategory}
+            usageLimits={usageLimits}
           />
         </TabsContent>
 
@@ -149,6 +155,7 @@ export function MarketingRecommendations() {
             generatingType={generatingType}
             generationStep={generationStep}
             onGenerate={generateByCategory}
+            usageLimits={usageLimits}
           />
         </TabsContent>
       </Tabs>
