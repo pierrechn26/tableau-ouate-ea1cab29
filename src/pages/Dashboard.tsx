@@ -397,7 +397,7 @@ export default function Dashboard() {
       </header>
 
       {/* ── Sessions usage banner (warning ≥80% / exceeded ≥100%) ── */}
-      {!usageLimits.loading && (usageLimits.sessions.isWarning || usageLimits.sessions.isExceeded) && (
+      {!usageLimits.loading && !sessionsBannerDismissed && (usageLimits.sessions.isWarning || usageLimits.sessions.isExceeded) && (
         <div
           className={cn(
             "border-b px-6 py-3",
