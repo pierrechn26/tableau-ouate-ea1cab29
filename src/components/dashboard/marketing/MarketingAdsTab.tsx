@@ -6,6 +6,7 @@ import { GenerationType, GenerationStep, QuotaData } from "@/hooks/useMarketingR
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { type UsageLimits } from "@/hooks/useUsageLimits";
 
 interface Props {
   adsData: any;
@@ -16,6 +17,7 @@ interface Props {
   generatingType: GenerationType | null;
   generationStep: GenerationStep;
   onGenerate: (type: GenerationType) => void;
+  usageLimits?: UsageLimits;
 }
 
 function isNew(dateStr: string | null | undefined): boolean {
