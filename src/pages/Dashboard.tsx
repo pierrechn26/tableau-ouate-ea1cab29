@@ -21,6 +21,7 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
+import { UsageOverview } from "@/components/dashboard/UsageOverview";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
@@ -599,6 +600,9 @@ export default function Dashboard() {
 
             {/* Diagnostic Performance - Real Data */}
             <OverviewDiagnosticStats dateRange={dateRange} />
+
+            {/* Usage Overview */}
+            <UsageOverview />
 
             {/* Diagnostic Preview */}
             <DiagnosticPreview />
