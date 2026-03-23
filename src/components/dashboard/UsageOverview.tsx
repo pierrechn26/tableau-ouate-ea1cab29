@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function getBarColor(pct: number, exceeded: boolean): string {
   if (exceeded || pct >= 100) return "bg-destructive";
-  if (pct >= 80) return "bg-destructive/80";
-  if (pct >= 60) return "bg-yellow-500";
+  if (pct >= 80) return "bg-destructive/70";
+  if (pct >= 60) return "bg-amber-500";
   return "bg-emerald-500";
 }
 
 function getRowBg(pct: number, exceeded: boolean): string {
   if (exceeded || pct >= 100) return "bg-destructive/5 border-destructive/20";
-  if (pct >= 80) return "bg-yellow-500/5 border-yellow-500/20";
+  if (pct >= 80) return "bg-amber-500/5 border-amber-500/20";
   return "bg-card border-border/50";
 }
 
