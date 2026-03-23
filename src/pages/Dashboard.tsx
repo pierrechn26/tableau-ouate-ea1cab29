@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { DateRange } from "react-day-picker";
 import { subDays, format } from "date-fns";
-import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, FileText, Loader2, ClipboardList, Bot } from "lucide-react";
+import { BarChart3, Users, TrendingUp, Sparkles, AlertCircle, Download, HelpCircle, Activity, DollarSign, CheckCircle, FileText, Loader2, ClipboardList, Bot, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -21,9 +21,9 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { DiagnosticPreview } from "@/components/dashboard/DiagnosticPreview";
 import { ResponsesSection } from "@/components/dashboard/ResponsesSection";
 import { OverviewDiagnosticStats } from "@/components/dashboard/OverviewDiagnosticStats";
-// PersonasOverviewPreview replaced by TopPersonasPotential
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import askItLogo from "@/assets/ask-it-logo.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { clearAccessSession } from "@/components/AccessGate";
+import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
