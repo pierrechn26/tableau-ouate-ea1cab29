@@ -43,7 +43,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function MarketingOffersTab({ offersData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate }: Props) {
+export function MarketingOffersTab({ offersData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate, usageLimits }: Props) {
   const isV2Mode = isV2 && offersData._v2 && Array.isArray(offersData.items) && offersData.items.length > 0;
   const items: any[] = isV2Mode ? offersData.items : [];
   const groups = groupByDate(items);
