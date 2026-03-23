@@ -68,7 +68,9 @@ serve(async (req) => {
       supabase
         .from("diagnostic_sessions")
         .select("*", { count: "exact", head: true })
-        .gte("created_at", startOfMonth),
+        .gte("created_at", startOfMonth)
+        .lt("created_at", nextMonthStart)
+        .neq("status", "en_cours"),
       supabase
         .from("marketing_recommendations")
         .select("*", { count: "exact", head: true })
