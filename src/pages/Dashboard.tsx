@@ -396,6 +396,75 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* ── Sessions usage banner (warning ≥80% / exceeded ≥100%) ── */}
+      {!usageLimits.loading && (usageLimits.sessions.isWarning || usageLimits.sessions.isExceeded) && (
+        <div
+          className={cn(
+            "border-b px-6 py-3",
+            usageLimits.sessions.isExceeded
+              ? "bg-destructive/10 border-destructive/30"
+              : "bg-warning/10 border-warning/30"
+          )}
+        >
+          <div className="container mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-base">{usageLimits.sessions.isExceeded ? "🔴" : "⚠️"}</span>
+              <p className={cn(
+                "text-sm",
+                usageLimits.sessions.isExceeded ? "text-destructive" : "text-foreground"
+              )}>
+                {usageLimits.sessions.isExceeded ? (
+                  <>
+                    <span className="font-semibold">Limite de sessions atteinte</span>
+                    {" "}({usageLimits.sessions.used.toLocaleString("fr-FR")} / {usageLimits.sessions.limit.toLocaleString("fr-FR")}).{" "}
+                    Les nouvelles sessions de diagnostic ne sont plus enregistrées.{" "}
+                    {usageLimits.upgrade.nextPlan
+                      ? <>Passez au plan <span className="font-semibold">{usageLimits.upgrade.nextPlanLabel}</span> pour continuer ({usageLimits.upgrade.sessionsGain} sessions/mois).</>
+                      : <>Contactez-nous pour un plan personnalisé.</>
+                    }
+                  </>
+                ) : (
+                  <>
+                    Vous avez utilisé{" "}
+                    <span className="font-semibold">{usageLimits.sessions.percentage}%</span>{" "}
+                    de vos sessions ce mois ({usageLimits.sessions.used.toLocaleString("fr-FR")} / {usageLimits.sessions.limit.toLocaleString("fr-FR")}).{" "}
+                    {usageLimits.upgrade.nextPlan
+                      ? <>Passez au plan <span className="font-semibold">{usageLimits.upgrade.nextPlanLabel}</span> pour {usageLimits.upgrade.sessionsGain} sessions/mois.</>
+                      : null
+                    }
+                  </>
+                )}
+              </p>
+              {usageLimits.upgrade.nextPlan && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    "shrink-0 text-xs h-7 px-2.5 gap-1",
+                    usageLimits.sessions.isExceeded
+                      ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+                      : "border-warning/40 text-foreground hover:bg-warning/10"
+                  )}
+                  onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+                >
+                  Passer au plan {usageLimits.upgrade.nextPlanLabel} →
+                </Button>
+              )}
+            </div>
+            {/* Dismiss only for warning, not for exceeded */}
+            {usageLimits.sessions.isWarning && !sessionsBannerDismissed && (
+              <button
+                onClick={() => setSessionsBannerDismissed(true)}
+                className="shrink-0 p-1 rounded hover:bg-muted/50 transition-colors"
+                title="Fermer"
+              >
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="space-y-6">
