@@ -118,6 +118,42 @@ export type Database = {
           },
         ]
       }
+      client_plan: {
+        Row: {
+          aski_limit: number
+          billing_cycle: string
+          created_at: string
+          id: string
+          plan: string
+          project_id: string
+          recos_weekly_limit: number
+          sessions_limit: number
+          updated_at: string
+        }
+        Insert: {
+          aski_limit?: number
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          plan?: string
+          project_id: string
+          recos_weekly_limit?: number
+          sessions_limit?: number
+          updated_at?: string
+        }
+        Update: {
+          aski_limit?: number
+          billing_cycle?: string
+          created_at?: string
+          id?: string
+          plan?: string
+          project_id?: string
+          recos_weekly_limit?: number
+          sessions_limit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       diagnostic_children: {
         Row: {
           age: number | null
@@ -849,6 +885,39 @@ export type Database = {
           order_number?: string | null
           shopify_order_id?: string
           total_price?: number | null
+        }
+        Relationships: []
+      }
+      usage_tracking: {
+        Row: {
+          aski_conversations_used: number
+          id: string
+          period_start: string
+          period_type: string
+          project_id: string
+          recos_used: number
+          sessions_used: number
+          updated_at: string
+        }
+        Insert: {
+          aski_conversations_used?: number
+          id?: string
+          period_start: string
+          period_type: string
+          project_id: string
+          recos_used?: number
+          sessions_used?: number
+          updated_at?: string
+        }
+        Update: {
+          aski_conversations_used?: number
+          id?: string
+          period_start?: string
+          period_type?: string
+          project_id?: string
+          recos_used?: number
+          sessions_used?: number
+          updated_at?: string
         }
         Relationships: []
       }

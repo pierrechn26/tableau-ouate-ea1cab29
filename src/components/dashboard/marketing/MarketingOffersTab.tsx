@@ -6,6 +6,7 @@ import { GenerationType, GenerationStep, QuotaData } from "@/hooks/useMarketingR
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { type UsageLimits } from "@/hooks/useUsageLimits";
 
 interface Props {
   offersData: any;
@@ -16,6 +17,7 @@ interface Props {
   generatingType: GenerationType | null;
   generationStep: GenerationStep;
   onGenerate: (type: GenerationType) => void;
+  usageLimits?: UsageLimits;
 }
 
 function isNew(dateStr: string | null | undefined): boolean {
@@ -41,7 +43,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function MarketingOffersTab({ offersData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate }: Props) {
+export function MarketingOffersTab({ offersData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate, usageLimits }: Props) {
   const isV2Mode = isV2 && offersData._v2 && Array.isArray(offersData.items) && offersData.items.length > 0;
   const items: any[] = isV2Mode ? offersData.items : [];
   const groups = groupByDate(items);
@@ -72,6 +74,7 @@ export function MarketingOffersTab({ offersData, isV2, campaignsData = [], quota
             generationStep={generationStep}
             onGenerate={onGenerate}
             singleType="single_offer"
+            usageLimits={usageLimits}
           />
         </div>
       </div>

@@ -24,6 +24,7 @@ import { QuotaBar } from "./QuotaBar";
 import { GenerationType, QuotaData, MarketingRecommendationData } from "@/hooks/useMarketingRecommendations";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { type UsageLimits } from "@/hooks/useUsageLimits";
 
 // Animated counter hook
 function useAnimatedCounter(value: number, duration: number = 400) {
@@ -75,6 +76,7 @@ interface Props {
   generatingType: GenerationType | null;
   onGenerate: (type: GenerationType) => void;
   allRecommendations: MarketingRecommendationData[];
+  usageLimits?: UsageLimits;
 }
 
 export function MarketingOverviewTab({
@@ -85,6 +87,7 @@ export function MarketingOverviewTab({
   generatingType,
   onGenerate,
   allRecommendations,
+  usageLimits,
 }: Props) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
@@ -111,6 +114,7 @@ export function MarketingOverviewTab({
           isGenerating={isGenerating}
           generatingType={generatingType}
           onGenerate={onGenerate}
+          usageLimits={usageLimits}
         />
       </Card>
 
