@@ -342,6 +342,52 @@ function computeScore(sessionData: Any, children: Any[], personas: Any[]): { cod
 }
 
 /* ============================================================
+   PHASE G (standalone): Update session_count + avg_matching_score
+   Runs at EVERY execution, independent of cluster detection.
+   ============================================================ */
+async function updateAllPersonaSessionCounts(supabase: Any): Promise<{ updated: number; counters: Record<string, number> }> {
+  const { data: personaCounts } = await supabase
+    .from("diagnostic_sessions")
+    .select("persona_code, matching_score")
+    .eq("status", "termine");
+
+  if (!personaCounts) return { updated: 0, counters: {} };
+
+  const counters: Record<string, { cnt: number; sum: number }> = {};
+  for (const s of personaCounts) {
+    if (!s.persona_code) continue;
+    if (!counters[s.persona_code]) counters[s.persona_code] = { cnt: 0, sum: 0 };
+    counters[s.persona_code].cnt++;
+    counters[s.persona_code].sum += s.matching_score || 0;
+  }
+
+  let updated = 0;
+  for (const [code, { cnt, sum }] of Object.entries(counters)) {
+    const { error } = await supabase.from("personas").update({
+      session_count: cnt,
+      avg_matching_score: cnt > 0 ? Math.round((sum / cnt) * 100) / 100 : 0,
+    }).eq("code", code);
+    if (!error) updated++;
+  }
+
+  // Also reset to 0 any active persona not present in the counts
+  const { data: allActivePersonas } = await supabase
+    .from("personas")
+    .select("code")
+    .eq("is_active", true)
+    .eq("is_pool", false);
+
+  for (const p of (allActivePersonas || [])) {
+    if (!counters[p.code] && p.code !== "P0") {
+      await supabase.from("personas").update({ session_count: 0, avg_matching_score: 0 }).eq("code", p.code);
+    }
+  }
+
+  console.log(`[detect-persona-clusters] Phase G: Updated counters for ${updated} personas`);
+  return { updated, counters: Object.fromEntries(Object.entries(counters).map(([k, v]) => [k, v.cnt])) };
+}
+
+/* ============================================================
    MAIN HANDLER
    ============================================================ */
 Deno.serve(async (req) => {
@@ -390,6 +436,10 @@ Deno.serve(async (req) => {
 
     console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas`);
 
+    /* ── PHASE G (early): Update session_count for ALL personas — runs every time ── */
+    const { counters: earlyCounters } = await updateAllPersonaSessionCounts(supabase);
+    console.log(`[detect-persona-clusters] Phase G (early): session counts = ${JSON.stringify(earlyCounters)}`);
+
     /* ── PHASE B: Detect clusters ── */
     const allDetected: Any[] = [];
 
@@ -435,12 +485,12 @@ Deno.serve(async (req) => {
     if (allDetected.length === 0) {
       await supabase.from("persona_detection_log").insert({
         detection_type: "scan_no_result",
-        details: { p0_count: p0Sessions.length, total_sessions: allSessions.length, weak_count: weakSessions.length },
-        action_taken: "none",
+        details: { p0_count: p0Sessions.length, total_sessions: allSessions.length, weak_count: weakSessions.length, session_counts_updated: earlyCounters },
+        action_taken: "counters_updated",
         sessions_affected: 0,
       });
-      console.log("[detect-persona-clusters] No clusters detected.");
-      return new Response(JSON.stringify({ success: true, detected: 0, dry_run, message: "Aucun cluster détecté" }), {
+      console.log("[detect-persona-clusters] No clusters detected. Counters were updated.");
+      return new Response(JSON.stringify({ success: true, detected: 0, dry_run, message: "Aucun cluster détecté — compteurs mis à jour", session_counts: earlyCounters }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -602,28 +652,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    /* ── PHASE G: Update counters ── */
-    const { data: personaCounts } = await supabase
-      .from("diagnostic_sessions")
-      .select("persona_code, matching_score")
-      .eq("status", "termine");
-
-    if (personaCounts) {
-      const counters: Record<string, { cnt: number; sum: number }> = {};
-      for (const s of personaCounts) {
-        if (!s.persona_code) continue;
-        if (!counters[s.persona_code]) counters[s.persona_code] = { cnt: 0, sum: 0 };
-        counters[s.persona_code].cnt++;
-        counters[s.persona_code].sum += s.matching_score || 0;
-      }
-      for (const [code, { cnt, sum }] of Object.entries(counters)) {
-        await supabase.from("personas").update({
-          session_count: cnt,
-          avg_matching_score: cnt > 0 ? Math.round((sum / cnt) * 100) / 100 : 0,
-        }).eq("code", code);
-      }
-      console.log(`[detect-persona-clusters] Updated counters for ${Object.keys(counters).length} personas`);
-    }
+    /* ── PHASE G (final): Re-update counters after reassignment ── */
+    const { counters: finalCounters } = await updateAllPersonaSessionCounts(supabase);
 
     return new Response(JSON.stringify({
       success: true,
