@@ -447,9 +447,15 @@ function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
 
 function buildCriteriaFromCluster(cluster: Any) {
   const common = cluster.common_criteria;
+  const profile = cluster.cluster_profile;
   const identity_criteria: Any[] = [];
   const need_criteria: Any[] = [];
   const behavior_criteria: Any[] = [];
+
+  // Fixed weights from scoring hierarchy
+  const identityWeights: Record<string, number> = { relationship: 0.4, is_existing_client: 0.4, number_of_children: 0.2 };
+  const needWeights: Record<string, number> = { skin_concern: 0.4, age_range: 0.25, has_routine: 0.15, skin_reactivity: 0.1, has_ouate_products: 0.1 };
+  const behaviorWeights: Record<string, number> = { priority_1: 0.3, routine_size_preference: 0.3, trust_trigger_1: 0.2, content_format_preference: 0.2 };
 
   for (const [key, dom] of Object.entries(common as Record<string, Any>)) {
     const [level, field] = key.split(".");
@@ -459,7 +465,21 @@ function buildCriteriaFromCluster(cluster: Any) {
     else if (value === "false") value = false;
     else if (!isNaN(Number(value)) && value !== "") value = Number(value);
 
-    const criterion: Any = { field: criterionField, values: [value], weight: 0.25 };
+    // For BEHAVIOR: use topValues (multi-value) from cluster_profile if available
+    let values: Any[] = [value];
+    if (level === "behavior" && profile?.behavior?.[field]?.topValues?.length > 1) {
+      values = profile.behavior[field].topValues.map((v: string) => {
+        if (v === "true") return true;
+        if (v === "false") return false;
+        if (!isNaN(Number(v)) && v !== "") return Number(v);
+        return v;
+      });
+    }
+
+    const weightMap = level === "identity" ? identityWeights : level === "need" ? needWeights : behaviorWeights;
+    const w = weightMap[field] ?? 0.25;
+
+    const criterion: Any = { field: criterionField, values, weight: w };
     if (["skin_concern", "is_existing_client", "has_routine", "skin_concern_different"].includes(field)) {
       criterion.required = true;
     }
@@ -470,13 +490,10 @@ function buildCriteriaFromCluster(cluster: Any) {
     else if (level === "behavior") behavior_criteria.push(criterion);
   }
 
-  const normalize = (arr: Any[]) =>
-    arr.length === 0 ? arr : arr.map((c) => ({ ...c, weight: Math.round((1 / arr.length) * 100) / 100 }));
-
   return {
-    identity: { weight: 0.25, criteria: normalize(identity_criteria) },
-    need: { weight: 0.50, criteria: normalize(need_criteria) },
-    behavior: { weight: 0.25, criteria: normalize(behavior_criteria) },
+    identity: { weight: 0.25, criteria: identity_criteria },
+    need: { weight: 0.50, criteria: need_criteria },
+    behavior: { weight: 0.25, criteria: behavior_criteria },
   };
 }
 
