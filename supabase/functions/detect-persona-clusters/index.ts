@@ -703,14 +703,16 @@ Deno.serve(async (req) => {
 
     if (!personas || !rawSessions) throw new Error("Failed to load personas or sessions");
 
-    // Load ALL children (avoid .in() size limit issues with 765+ session IDs)
+    // Load ALL children with pagination (server cap is 1000 rows per query)
     const sessionIds = rawSessions.map((s: Any) => s.id);
-    const { data: allChildren } = await supabase
-      .from("diagnostic_children")
-      .select("session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products")
-      .limit(5000);
+    const childrenSelect = "session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products";
+    const [{ data: childBatch1 }, { data: childBatch2 }] = await Promise.all([
+      supabase.from("diagnostic_children").select(childrenSelect).range(0, 999),
+      supabase.from("diagnostic_children").select(childrenSelect).range(1000, 1999),
+    ]);
+    const allChildren = [...(childBatch1 || []), ...(childBatch2 || [])];
 
-    console.log(`[detect-persona-clusters] Loaded ${allChildren?.length ?? 0} children rows`);
+    console.log(`[detect-persona-clusters] Loaded ${allChildren.length} children rows`);
 
     // Attach children to sessions
     const childrenBySession: Record<string, Any[]> = {};
