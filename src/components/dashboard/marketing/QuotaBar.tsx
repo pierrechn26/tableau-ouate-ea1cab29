@@ -57,13 +57,13 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
           currentPlan={plan}
           currentUsage={displayUsed}
           currentLimit={displayLimit}
-          renewalDate={recos?.renewalDate ?? "lundi prochain"}
+          renewalDate={recos?.renewalDate ?? "1er du mois prochain"}
           nextPlan={usageLimits?.upgrade.nextPlan ?? null}
           nextPlanLabel={usageLimits?.upgrade.nextPlanLabel ?? ""}
           nextPlanPrice={usageLimits?.upgrade.nextPlanPrice}
           nextLimit={
             usageLimits?.upgrade.nextPlan
-              ? PLAN_LIMITS_WEEKLY[usageLimits.upgrade.nextPlan]
+              ? PLAN_LIMITS_MONTHLY[usageLimits.upgrade.nextPlan]
               : displayLimit
           }
         />
