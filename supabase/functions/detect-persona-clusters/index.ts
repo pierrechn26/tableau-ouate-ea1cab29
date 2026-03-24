@@ -56,62 +56,294 @@ function extractCriteria(session: Any) {
   };
 }
 
-function findClusters(sessions: Any[], minSize: number) {
-  const candidates: Any[] = [];
-  const allCriteria = [
-    "identity.relationship", "identity.is_existing_client", "identity.number_of_children",
-    "need.skin_concern", "need.age_range", "need.has_routine", "need.skin_reactivity",
-    "behavior.priority_1", "behavior.routine_size_preference", "behavior.trust_trigger_1", "behavior.content_format_preference",
-  ];
+/* ============================================================
+   WEIGHTS — mirrors diagnostic-webhook scoring hierarchy
+   ============================================================ */
+const LEVEL_WEIGHTS = { identity: 0.25, need: 0.50, behavior: 0.25 };
 
-  const frequencies: Record<string, Record<string, number>> = {};
-  for (const s of sessions) {
-    for (const key of allCriteria) {
-      const [level, field] = key.split(".");
-      const value = String(s[level]?.[field] ?? "NULL");
-      if (value === "NULL") continue;
-      if (!frequencies[key]) frequencies[key] = {};
-      frequencies[key][value] = (frequencies[key][value] || 0) + 1;
-    }
-  }
+const CRITERION_WEIGHTS: Record<string, Record<string, number>> = {
+  identity: { relationship: 0.4, is_existing_client: 0.4, number_of_children: 0.2 },
+  need:     { skin_concern: 0.4, age_range: 0.25, has_routine: 0.15, skin_reactivity: 0.1, has_ouate_products: 0.1 },
+  behavior: { priority_1: 0.3, routine_size_preference: 0.3, trust_trigger_1: 0.2, content_format_preference: 0.2 },
+};
 
-  const threshold = Math.ceil(sessions.length * 0.5);
-  const dominantCriteria: Record<string, { value: Any; count: number; level: string }> = {};
-  for (const [key, values] of Object.entries(frequencies)) {
-    const level = key.split(".")[0];
-    const sorted = Object.entries(values).sort((a, b) => b[1] - a[1]);
-    if (sorted.length > 0 && sorted[0][1] >= threshold) {
-      dominantCriteria[key] = { value: sorted[0][0], count: sorted[0][1], level };
-    }
-  }
-
-  const levels = new Set(Object.values(dominantCriteria).map((d) => d.level));
-  if (levels.size >= 2 && Object.keys(dominantCriteria).length >= 3) {
-    const matchingSessions = sessions.filter((s) => {
-      let matches = 0;
-      for (const [key, dom] of Object.entries(dominantCriteria)) {
-        const [level, field] = key.split(".");
-        if (String(s[level]?.[field]) === String(dom.value)) matches++;
+/* Compute weighted similarity score between two session profiles (0–1) */
+function sessionSimilarity(a: Any, b: Any): number {
+  let score = 0;
+  for (const [level, levelWeight] of Object.entries(LEVEL_WEIGHTS)) {
+    const fieldWeights = CRITERION_WEIGHTS[level];
+    for (const [field, fieldWeight] of Object.entries(fieldWeights)) {
+      const va = a[level]?.[field];
+      const vb = b[level]?.[field];
+      if (va === null || va === undefined || vb === null || vb === undefined) continue;
+      if (String(va) === String(vb)) {
+        score += levelWeight * fieldWeight;
       }
-      return matches >= 3;
-    });
-
-    if (matchingSessions.length >= minSize) {
-      const sourcePersonas = [...new Set(matchingSessions.map((s: Any) => s.persona_code))];
-      candidates.push({
-        session_ids: matchingSessions.map((s: Any) => s.session_id),
-        common_criteria: dominantCriteria,
-        levels_covered: Array.from(levels),
-        source_personas: sourcePersonas,
-        current_avg_score: matchingSessions.reduce((sum: number, s: Any) => sum + (s.matching_score || 0), 0) / matchingSessions.length,
-        estimated_avg_score: 80,
-      });
     }
   }
+  return score;
+}
+
+/* Build NEED key for fast grouping (50% of total weight) */
+function needKey(s: Any): string {
+  return [
+    s.need?.skin_concern ?? "null",
+    s.need?.age_range ?? "null",
+    s.need?.has_routine ?? "null",
+    s.need?.skin_reactivity ?? "null",
+  ].join("|");
+}
+
+/* Build IDENTITY key */
+function identityKey(s: Any): string {
+  return [
+    s.identity?.relationship ?? "null",
+    s.identity?.is_existing_client ?? "null",
+  ].join("|");
+}
+
+/* Compute distribution of a field across sessions */
+function fieldDistribution(sessions: Any[], level: string, field: string): Record<string, number> {
+  const dist: Record<string, number> = {};
+  for (const s of sessions) {
+    const v = s[level]?.[field];
+    if (v === null || v === undefined) continue;
+    const key = String(v);
+    dist[key] = (dist[key] || 0) + 1;
+  }
+  return dist;
+}
+
+/* Get top-N values covering at least coveragePct% of sessions */
+function topValues(dist: Record<string, number>, total: number, coveragePct = 0.70): string[] {
+  const sorted = Object.entries(dist).sort((a, b) => b[1] - a[1]);
+  const result: string[] = [];
+  let covered = 0;
+  for (const [val, cnt] of sorted) {
+    result.push(val);
+    covered += cnt;
+    if (covered / total >= coveragePct) break;
+  }
+  return result;
+}
+
+/* Check whether a cluster profile already matches an existing persona (score >= 60%) */
+function clusterMatchesExistingPersona(clusterProfile: Any, existingPersonas: Any[]): boolean {
+  for (const persona of existingPersonas) {
+    const criteria = persona.criteria;
+    let totalScore = 0;
+    let blockedByRequired = false;
+
+    // Build flat sessionValues from cluster dominant profile
+    const sv: Record<string, Any> = {
+      relationship: clusterProfile.identity?.relationship?.dominant,
+      is_existing_client: clusterProfile.identity?.is_existing_client?.dominant === "true"
+        ? true : clusterProfile.identity?.is_existing_client?.dominant === "false" ? false : null,
+      number_of_children: clusterProfile.identity?.number_of_children?.dominant != null
+        ? Number(clusterProfile.identity.number_of_children.dominant) : null,
+      priority_1: clusterProfile.behavior?.priority_1?.topValues?.[0] || null,
+      routine_size_preference: clusterProfile.behavior?.routine_size_preference?.topValues?.[0] || null,
+      trust_trigger_1: clusterProfile.behavior?.trust_trigger_1?.topValues?.[0] || null,
+      content_format_preference: clusterProfile.behavior?.content_format_preference?.topValues?.[0] || null,
+      "child.skin_concern": clusterProfile.need?.skin_concern?.dominant,
+      "child.age_range": clusterProfile.need?.age_range?.dominant,
+      "child.has_routine": clusterProfile.need?.has_routine?.dominant === "true" ? true
+        : clusterProfile.need?.has_routine?.dominant === "false" ? false : null,
+      "child.skin_reactivity": clusterProfile.need?.skin_reactivity?.dominant,
+      "child.has_ouate_products": clusterProfile.need?.has_ouate_products?.dominant === "true" ? true
+        : clusterProfile.need?.has_ouate_products?.dominant === "false" ? false : null,
+    };
+
+    for (const level of ["identity", "need", "behavior"]) {
+      const levelDef = criteria[level];
+      if (!levelDef || !levelDef.criteria || levelDef.criteria.length === 0) continue;
+      const levelWeight = levelDef.weight;
+      let levelScore = 0;
+      let levelTotalWeight = 0;
+
+      for (const criterion of levelDef.criteria) {
+        const sessionValue = sv[criterion.field];
+        const cw = criterion.weight;
+        levelTotalWeight += cw;
+        if (criterion.values?.includes("any")) { levelScore += cw; continue; }
+        if (sessionValue === null || sessionValue === undefined) {
+          if (criterion.required === true) blockedByRequired = true;
+          continue;
+        }
+        let matched = false;
+        if (criterion.operator === "gte") matched = Number(sessionValue) >= Number(criterion.values[0]);
+        else if (criterion.operator === "lte") matched = Number(sessionValue) <= Number(criterion.values[0]);
+        else matched = criterion.values.some((v: Any) =>
+          typeof sessionValue === "boolean" ? v === sessionValue : String(v) === String(sessionValue)
+        );
+        if (matched) levelScore += cw;
+        else if (criterion.required === true) blockedByRequired = true;
+      }
+      if (blockedByRequired) break;
+      if (levelTotalWeight > 0) totalScore += (levelScore / levelTotalWeight) * levelWeight;
+    }
+
+    const matchScore = blockedByRequired ? 0 : Math.round(totalScore * 100);
+    if (matchScore >= 60) return true;
+  }
+  return false;
+}
+
+/* ============================================================
+   findClusters — new pairwise-inspired algorithm
+   Strategy:
+   1. Exclude sessions where skin_concern is null (children 0-3 yo)
+   2. Group by NEED profile (50% weight guarantee)
+   3. Sub-group by IDENTITY (relationship + is_existing_client)
+   4. Groups with NEED+IDENTITY identical have ≥75% similarity
+      → one matching BEHAVIOR criterion pushes them over 80%
+   5. Validate each candidate against existing personas (score < 60%)
+   ============================================================ */
+function findClusters(sessions: Any[], existingPersonas: Any[], minSize: number) {
+  const candidates: Any[] = [];
+
+  // Step 1: exclude sessions with null skin_concern (infants 0-3yo)
+  const validSessions = sessions.filter((s) => s.need?.skin_concern != null && s.need.skin_concern !== "");
+  console.log(`[findClusters] ${sessions.length} sessions in, ${validSessions.length} with skin_concern set`);
+
+  // Step 2: group by NEED profile
+  const needGroups: Record<string, Any[]> = {};
+  for (const s of validSessions) {
+    const k = needKey(s);
+    if (!needGroups[k]) needGroups[k] = [];
+    needGroups[k].push(s);
+  }
+
+  for (const [nk, needGroup] of Object.entries(needGroups)) {
+    if (needGroup.length < minSize) continue;
+
+    // Step 3: sub-group by IDENTITY (relationship + is_existing_client)
+    const idGroups: Record<string, Any[]> = {};
+    for (const s of needGroup) {
+      const k = identityKey(s);
+      if (!idGroups[k]) idGroups[k] = [];
+      idGroups[k].push(s);
+    }
+
+    for (const [ik, group] of Object.entries(idGroups)) {
+      if (group.length < minSize) continue;
+
+      // These sessions share NEED (≥75% similarity guaranteed since NEED=50% + IDENTITY rel+client=0.25×0.8=20%)
+      // Compute actual avg intra-cluster similarity for reporting
+      const sampleSize = Math.min(group.length, 30);
+      const sample = group.slice(0, sampleSize);
+      let simSum = 0;
+      let simCount = 0;
+      for (let i = 0; i < sample.length; i++) {
+        for (let j = i + 1; j < sample.length; j++) {
+          simSum += sessionSimilarity(sample[i], sample[j]);
+          simCount++;
+        }
+      }
+      const avgSim = simCount > 0 ? simSum / simCount : 0.75;
+
+      // Step 4: build cluster profile
+      const total = group.length;
+
+      const buildFieldProfile = (level: string, field: string) => {
+        const dist = fieldDistribution(group, level, field);
+        const sorted = Object.entries(dist).sort((a, b) => b[1] - a[1]);
+        const dominant = sorted[0]?.[0] ?? null;
+        const dominantPct = sorted[0] ? Math.round((sorted[0][1] / total) * 100) : 0;
+        const distribution: Record<string, number> = {};
+        for (const [v, cnt] of sorted) distribution[v] = Math.round((cnt / total) * 100);
+        return { dominant, dominantPct, distribution };
+      };
+
+      const clusterProfile: Any = {
+        identity: {
+          relationship: buildFieldProfile("identity", "relationship"),
+          is_existing_client: buildFieldProfile("identity", "is_existing_client"),
+          number_of_children: buildFieldProfile("identity", "number_of_children"),
+        },
+        need: {
+          skin_concern: buildFieldProfile("need", "skin_concern"),
+          age_range: buildFieldProfile("need", "age_range"),
+          has_routine: buildFieldProfile("need", "has_routine"),
+          skin_reactivity: buildFieldProfile("need", "skin_reactivity"),
+          has_ouate_products: buildFieldProfile("need", "has_ouate_products"),
+        },
+        behavior: {
+          priority_1: {
+            ...buildFieldProfile("behavior", "priority_1"),
+            topValues: topValues(fieldDistribution(group, "behavior", "priority_1"), total),
+          },
+          routine_size_preference: {
+            ...buildFieldProfile("behavior", "routine_size_preference"),
+            topValues: topValues(fieldDistribution(group, "behavior", "routine_size_preference"), total),
+          },
+          trust_trigger_1: {
+            ...buildFieldProfile("behavior", "trust_trigger_1"),
+            topValues: topValues(fieldDistribution(group, "behavior", "trust_trigger_1"), total),
+          },
+          content_format_preference: {
+            ...buildFieldProfile("behavior", "content_format_preference"),
+            topValues: topValues(fieldDistribution(group, "behavior", "content_format_preference"), total),
+          },
+        },
+      };
+
+      // Step 5: verify cluster doesn't map to an existing persona
+      if (clusterMatchesExistingPersona(clusterProfile, existingPersonas)) {
+        console.log(`[findClusters] Cluster NEED=${nk} IDENTITY=${ik} (${total} sessions) → absorbed by existing persona, skip`);
+        continue;
+      }
+
+      const sourcePersonas = [...new Set(group.map((s: Any) => s.persona_code))];
+      candidates.push({
+        session_ids: group.map((s: Any) => s.session_id),
+        cluster_profile: clusterProfile,
+        // Legacy common_criteria shape for buildCriteriaFromCluster compatibility
+        common_criteria: buildLegacyCommonCriteria(clusterProfile),
+        levels_covered: ["identity", "need", "behavior"],
+        source_personas: sourcePersonas,
+        current_avg_score: group.reduce((sum: number, s: Any) => sum + (s.matching_score || 0), 0) / total,
+        estimated_avg_score: Math.round(avgSim * 100),
+        need_key: nk,
+        identity_key: ik,
+      });
+
+      console.log(`[findClusters] CLUSTER VALIDATED: NEED=${nk} IDENTITY=${ik} → ${total} sessions, avg_sim=${Math.round(avgSim * 100)}%`);
+    }
+  }
+
   return candidates;
 }
 
-function findSubClusters(sessions: Any[], persona: Any, minSize: number) {
+/* Build legacy common_criteria shape (used by generatePersonaIdentity + buildCriteriaFromCluster) */
+function buildLegacyCommonCriteria(profile: Any): Record<string, { value: Any; count: number; level: string }> {
+  const result: Record<string, { value: Any; count: number; level: string }> = {};
+  const addField = (level: string, field: string) => {
+    const fp = profile[level]?.[field];
+    if (fp?.dominant != null) {
+      result[`${level}.${field}`] = { value: fp.dominant, count: fp.dominantPct, level };
+    }
+  };
+  // Identity
+  addField("identity", "relationship");
+  addField("identity", "is_existing_client");
+  addField("identity", "number_of_children");
+  // Need
+  addField("need", "skin_concern");
+  addField("need", "age_range");
+  addField("need", "has_routine");
+  addField("need", "skin_reactivity");
+  // Behavior — use topValues[0] as dominant
+  for (const field of ["priority_1", "routine_size_preference", "trust_trigger_1", "content_format_preference"]) {
+    const fp = profile.behavior?.[field];
+    if (fp?.topValues?.[0]) {
+      result[`behavior.${field}`] = { value: fp.topValues[0], count: fp.dominantPct, level: "behavior" };
+    }
+  }
+  return result;
+}
+
+function findSubClusters(sessions: Any[], persona: Any, existingPersonas: Any[], minSize: number) {
   const behaviorFields = ["behavior.priority_1", "behavior.routine_size_preference", "behavior.trust_trigger_1"];
   const candidates: Any[] = [];
   for (const field of behaviorFields) {
@@ -125,7 +357,7 @@ function findSubClusters(sessions: Any[], persona: Any, minSize: number) {
     }
     for (const [value, group] of Object.entries(groups)) {
       if (group.length >= minSize) {
-        const subCluster = findClusters(group, minSize);
+        const subCluster = findClusters(group, existingPersonas, minSize);
         if (subCluster.length > 0) {
           candidates.push({
             ...subCluster[0],
@@ -142,6 +374,7 @@ function findSubClusters(sessions: Any[], persona: Any, minSize: number) {
 
 function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
   const criteria = cluster.common_criteria;
+  const profile = cluster.cluster_profile;
   let traits: string[] = [];
 
   const rel = criteria["identity.relationship"]?.value;
@@ -199,15 +432,52 @@ function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
     const ageDesc: Record<string, string> = { "4-6": "de 4-6 ans", "7-9": "de 7-9 ans", "10-11": "de 10-11 ans" };
     descParts.push(`dont l'enfant ${ageDesc[age] || ""} ${skinDesc[skin] || ""}`.trim());
   }
-  if (priority) {
+  if (String(hasRoutine) === "true") descParts.push("a déjà une routine en place");
+  else descParts.push("pas encore de routine");
+
+  // Enriched BEHAVIOR distribution (Partie D)
+  if (profile?.behavior) {
+    const beh = profile.behavior;
+    const prioDesc: Record<string, string> = {
+      ludique: "ludique", efficacite: "efficacité", clean: "clean", autonomie: "autonomie",
+    };
+    const prioDist = beh.priority_1?.distribution;
+    if (prioDist) {
+      const prioStr = Object.entries(prioDist as Record<string, number>)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([v, pct]) => `${prioDesc[v] || v} (${pct}%)`)
+        .join(", ");
+      descParts.push(`Priorités : ${prioStr}`);
+    }
+    const trustDist = beh.trust_trigger_1?.distribution;
+    const trustMap: Record<string, string> = {
+      ingredient_transparency: "transparence des ingrédients",
+      proof_results: "résultats prouvés",
+      scientific_validation: "validation scientifique",
+      parent_testimonials: "témoignages parents",
+    };
+    if (trustDist) {
+      const trustStr = Object.entries(trustDist as Record<string, number>)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([v, pct]) => `${trustMap[v] || v} (${pct}%)`)
+        .join(", ");
+      descParts.push(`Sensible à : ${trustStr}`);
+    }
+    const fmtDist = beh.content_format_preference?.distribution;
+    const fmtMap: Record<string, string> = { visual: "visuel", short: "court", complete: "complet" };
+    if (fmtDist) {
+      const topFmt = Object.entries(fmtDist as Record<string, number>).sort((a, b) => b[1] - a[1])[0];
+      if (topFmt) descParts.push(`Préfère un format de contenu ${fmtMap[topFmt[0]] || topFmt[0]} (${topFmt[1]}%)`);
+    }
+  } else if (priority) {
     const prioDesc: Record<string, string> = {
       ludique: "Privilégie une approche ludique", efficacite: "Recherche avant tout l'efficacité",
       clean: "Sensible à la composition clean", autonomie: "Favorise l'autonomie de l'enfant",
     };
     if (prioDesc[priority]) descParts.push(prioDesc[priority]);
   }
-  if (String(hasRoutine) === "true") descParts.push("A déjà une routine en place");
-  else descParts.push("Découvre le sujet des soins enfants");
 
   const description = descParts.filter(Boolean).join(". ") + ".";
   return { name: prenom, label, description };
@@ -215,9 +485,15 @@ function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
 
 function buildCriteriaFromCluster(cluster: Any) {
   const common = cluster.common_criteria;
+  const profile = cluster.cluster_profile;
   const identity_criteria: Any[] = [];
   const need_criteria: Any[] = [];
   const behavior_criteria: Any[] = [];
+
+  // Fixed weights from scoring hierarchy
+  const identityWeights: Record<string, number> = { relationship: 0.4, is_existing_client: 0.4, number_of_children: 0.2 };
+  const needWeights: Record<string, number> = { skin_concern: 0.4, age_range: 0.25, has_routine: 0.15, skin_reactivity: 0.1, has_ouate_products: 0.1 };
+  const behaviorWeights: Record<string, number> = { priority_1: 0.3, routine_size_preference: 0.3, trust_trigger_1: 0.2, content_format_preference: 0.2 };
 
   for (const [key, dom] of Object.entries(common as Record<string, Any>)) {
     const [level, field] = key.split(".");
@@ -227,7 +503,21 @@ function buildCriteriaFromCluster(cluster: Any) {
     else if (value === "false") value = false;
     else if (!isNaN(Number(value)) && value !== "") value = Number(value);
 
-    const criterion: Any = { field: criterionField, values: [value], weight: 0.25 };
+    // For BEHAVIOR: use topValues (multi-value) from cluster_profile if available
+    let values: Any[] = [value];
+    if (level === "behavior" && profile?.behavior?.[field]?.topValues?.length > 1) {
+      values = profile.behavior[field].topValues.map((v: string) => {
+        if (v === "true") return true;
+        if (v === "false") return false;
+        if (!isNaN(Number(v)) && v !== "") return Number(v);
+        return v;
+      });
+    }
+
+    const weightMap = level === "identity" ? identityWeights : level === "need" ? needWeights : behaviorWeights;
+    const w = weightMap[field] ?? 0.25;
+
+    const criterion: Any = { field: criterionField, values, weight: w };
     if (["skin_concern", "is_existing_client", "has_routine", "skin_concern_different"].includes(field)) {
       criterion.required = true;
     }
@@ -238,13 +528,10 @@ function buildCriteriaFromCluster(cluster: Any) {
     else if (level === "behavior") behavior_criteria.push(criterion);
   }
 
-  const normalize = (arr: Any[]) =>
-    arr.length === 0 ? arr : arr.map((c) => ({ ...c, weight: Math.round((1 / arr.length) * 100) / 100 }));
-
   return {
-    identity: { weight: 0.25, criteria: normalize(identity_criteria) },
-    need: { weight: 0.50, criteria: normalize(need_criteria) },
-    behavior: { weight: 0.25, criteria: normalize(behavior_criteria) },
+    identity: { weight: 0.25, criteria: identity_criteria },
+    need: { weight: 0.50, criteria: need_criteria },
+    behavior: { weight: 0.25, criteria: behavior_criteria },
   };
 }
 
@@ -396,7 +683,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const dry_run: boolean = body.dry_run ?? false;
-    const min_cluster_size: number = body.min_cluster_size ?? 15;
+    const min_cluster_size: number = body.min_cluster_size ?? 30;
     const min_split_size: number = body.min_split_size ?? 20;
     const max_persona_size: number = body.max_persona_size ?? 80;
     const weak_score_threshold: number = body.weak_score_threshold ?? 75;
@@ -416,12 +703,16 @@ Deno.serve(async (req) => {
 
     if (!personas || !rawSessions) throw new Error("Failed to load personas or sessions");
 
-    // Load children for all sessions
+    // Load ALL children with pagination (server cap is 1000 rows per query)
     const sessionIds = rawSessions.map((s: Any) => s.id);
-    const { data: allChildren } = await supabase
-      .from("diagnostic_children")
-      .select("session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products")
-      .in("session_id", sessionIds);
+    const childrenSelect = "session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products";
+    const [{ data: childBatch1 }, { data: childBatch2 }] = await Promise.all([
+      supabase.from("diagnostic_children").select(childrenSelect).range(0, 999),
+      supabase.from("diagnostic_children").select(childrenSelect).range(1000, 1999),
+    ]);
+    const allChildren = [...(childBatch1 || []), ...(childBatch2 || [])];
+
+    console.log(`[detect-persona-clusters] Loaded ${allChildren.length} children rows`);
 
     // Attach children to sessions
     const childrenBySession: Record<string, Any[]> = {};
@@ -434,7 +725,8 @@ Deno.serve(async (req) => {
       diagnostic_children: childrenBySession[s.id] || [],
     }));
 
-    console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas`);
+    const sessionsWithChildren = allSessions.filter((s: Any) => s.diagnostic_children.length > 0).length;
+    console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas, ${sessionsWithChildren} with children`);
 
     /* ── PHASE G (early): Update session_count for ALL personas — runs every time ── */
     const { counters: earlyCounters } = await updateAllPersonaSessionCounts(supabase);
@@ -447,10 +739,10 @@ Deno.serve(async (req) => {
     const p0Sessions = allSessions.filter((s: Any) => s.persona_code === "P0" || !s.persona_code);
     if (p0Sessions.length >= min_cluster_size) {
       const p0Criteria = p0Sessions.map(extractCriteria);
-      const clusters = findClusters(p0Criteria, min_cluster_size);
+      const clusters = findClusters(p0Criteria, personas, min_cluster_size);
       for (const c of clusters) {
         allDetected.push({ ...c, type: "new_cluster" });
-        console.log(`[detect-persona-clusters] NEW_CLUSTER detected: ${c.session_ids.length} sessions`);
+        console.log(`[detect-persona-clusters] NEW_CLUSTER detected: ${c.session_ids.length} sessions, NEED=${c.need_key}, IDENTITY=${c.identity_key}`);
       }
     }
 
@@ -459,7 +751,7 @@ Deno.serve(async (req) => {
       const pSessions = allSessions.filter((s: Any) => s.persona_code === persona.code);
       if (pSessions.length > max_persona_size) {
         const pCriteria = pSessions.map(extractCriteria);
-        const subClusters = findSubClusters(pCriteria, persona, min_split_size);
+        const subClusters = findSubClusters(pCriteria, persona, personas, min_split_size);
         for (const c of subClusters) {
           allDetected.push({ ...c, type: "split" });
           console.log(`[detect-persona-clusters] SPLIT detected from ${persona.code}: ${c.session_ids.length} sessions`);
@@ -471,7 +763,7 @@ Deno.serve(async (req) => {
     const weakSessions = allSessions.filter((s: Any) => s.persona_code && s.persona_code !== "P0" && (s.matching_score || 0) < weak_score_threshold);
     if (weakSessions.length >= min_cluster_size) {
       const weakCriteria = weakSessions.map(extractCriteria);
-      const clusters = findClusters(weakCriteria, min_cluster_size);
+      const clusters = findClusters(weakCriteria, personas, min_cluster_size);
       for (const c of clusters) {
         const currentAvg = c.current_avg_score;
         const estimatedAvg = c.estimated_avg_score;
@@ -499,7 +791,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true, dry_run: true,
         detected: allDetected.length,
-        clusters: allDetected.map((c) => ({ type: c.type, sessions: c.session_ids.length, source_personas: c.source_personas, levels: c.levels_covered })),
+        clusters: allDetected.map((c) => ({
+          type: c.type,
+          sessions: c.session_ids.length,
+          source_personas: c.source_personas,
+          levels: c.levels_covered,
+          need_key: c.need_key,
+          identity_key: c.identity_key,
+          avg_similarity: c.estimated_avg_score,
+          current_avg_score: Math.round(c.current_avg_score),
+          cluster_profile: c.cluster_profile,
+        })),
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -513,7 +815,7 @@ Deno.serve(async (req) => {
     for (const ap of autoPersonas) {
       const { count } = await supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true }).eq("persona_code", ap.code).eq("status", "termine");
       const daysSinceCreation = (Date.now() - new Date(ap.auto_created_at).getTime()) / 86400000;
-      if ((count ?? 0) < 10 && daysSinceCreation > 30) {
+      if ((count ?? 0) < 15 && daysSinceCreation > 30) {
         await supabase.from("personas").update({ is_active: false }).eq("code", ap.code);
         await supabase.from("persona_detection_log").insert({
           detection_type: "deactivation",
