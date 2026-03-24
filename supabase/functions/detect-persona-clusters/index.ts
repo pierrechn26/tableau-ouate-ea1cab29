@@ -703,12 +703,11 @@ Deno.serve(async (req) => {
 
     if (!personas || !rawSessions) throw new Error("Failed to load personas or sessions");
 
-    // Load children for all sessions (limit 5000 to bypass default 1000-row cap)
+    // Load ALL children (avoid .in() size limit issues with 765+ session IDs)
     const sessionIds = rawSessions.map((s: Any) => s.id);
     const { data: allChildren } = await supabase
       .from("diagnostic_children")
       .select("session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products")
-      .in("session_id", sessionIds)
       .limit(5000);
 
     console.log(`[detect-persona-clusters] Loaded ${allChildren?.length ?? 0} children rows`);
