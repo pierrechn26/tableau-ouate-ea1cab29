@@ -645,7 +645,7 @@ export function PersonasTab({ dateRange }: PersonasTabProps) {
   }
 
   const totalSessionsForThreshold = personas.reduce((sum, p) => sum + (p.code !== "P0" ? p.count : 0), 0);
-  const MIN_VOLUME = Math.max(3, Math.round(totalSessionsForThreshold * 0.05));
+  const MIN_VOLUME = Math.max(10, Math.round(totalSessionsForThreshold * 0.03));
   const p0Stat = personas.find(p => p.code === "P0");
   const visiblePersonas = [...personas].filter(p => p.code !== "P0" && p.count >= MIN_VOLUME).sort((a, b) => b.count - a.count);
   const hiddenCount = personas.filter(p => p.code !== "P0" && p.count > 0 && p.count < MIN_VOLUME).length;
