@@ -71,7 +71,7 @@ export function GenerateCategoryButton({
           isLimitReached ? "text-destructive/80" : remaining < 3 ? "text-destructive/80" : "text-muted-foreground"
         )}>
           {isLimitReached
-            ? "Limite hebdomadaire atteinte"
+            ? "Limite mensuelle atteinte"
             : <>
                 Utilise 3 crédits
                 {remaining < 3 && <> · {remaining} crédit{remaining !== 1 ? "s" : ""} restant{remaining !== 1 ? "s" : ""}</>}

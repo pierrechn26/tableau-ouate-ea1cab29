@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GenerationType, QuotaData } from "@/hooks/useMarketingRecommendations";
@@ -15,14 +15,14 @@ interface Props {
   usageLimits?: UsageLimits;
 }
 
-const PLAN_LIMITS_WEEKLY: Record<PlanType, number> = {
-  starter: 6,
-  growth: 15,
-  scale: 60,
+const PLAN_LIMITS_MONTHLY: Record<PlanType, number> = {
+  starter: 24,
+  growth: 60,
+  scale: 240,
 };
 
 export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usageLimits }: Props) {
-  // Prefer live usageLimits data for weekly recos, fallback to monthly quota
+  // Prefer live usageLimits data for monthly recos, fallback to quota
   const recos = usageLimits?.recos;
   const plan = (usageLimits?.plan ?? quota.plan) as PlanType;
 
@@ -45,7 +45,7 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
   const textColor =
     pct > 85 ? "text-destructive" : pct > 60 ? "text-warning" : "text-primary";
 
-  const periodLabel = "cette semaine";
+  const periodLabel = "ce mois";
 
   return (
     <div className="space-y-4">
@@ -57,13 +57,13 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
           currentPlan={plan}
           currentUsage={displayUsed}
           currentLimit={displayLimit}
-          renewalDate={recos?.renewalDate ?? "lundi prochain"}
+          renewalDate={recos?.renewalDate ?? "1er du mois prochain"}
           nextPlan={usageLimits?.upgrade.nextPlan ?? null}
           nextPlanLabel={usageLimits?.upgrade.nextPlanLabel ?? ""}
           nextPlanPrice={usageLimits?.upgrade.nextPlanPrice}
           nextLimit={
             usageLimits?.upgrade.nextPlan
-              ? PLAN_LIMITS_WEEKLY[usageLimits.upgrade.nextPlan]
+              ? PLAN_LIMITS_MONTHLY[usageLimits.upgrade.nextPlan]
               : displayLimit
           }
         />
@@ -121,7 +121,7 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
               nextPlanLabel={usageLimits?.upgrade.nextPlanLabel ?? ""}
               nextLimit={
                 usageLimits?.upgrade.nextPlan
-                  ? PLAN_LIMITS_WEEKLY[usageLimits.upgrade.nextPlan]
+                  ? PLAN_LIMITS_MONTHLY[usageLimits.upgrade.nextPlan]
                   : displayLimit
               }
             />

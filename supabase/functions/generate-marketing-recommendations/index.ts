@@ -232,27 +232,51 @@ Retourne UNIQUEMENT un JSON valide. Pas de markdown, pas de backticks, pas de te
 }
 
 // ── Quota helpers ──────────────────────────────────────────────────────
+// Le quota est maintenant MENSUEL (pas hebdomadaire).
+// Source de vérité : client_plan.recos_monthly_limit (24/60/240)
+// Fallback legacy : recommendation_usage.monthly_limit
 
 async function getQuota(supabase: any) {
   const monthYear = getCurrentMonthYear();
-  const { data } = await supabase
+
+  // Lire le plan client pour avoir la vraie limite mensuelle
+  const { data: planData } = await supabase
+    .from("client_plan")
+    .select("plan, recos_monthly_limit")
+    .eq("project_id", PROJECT_ID)
+    .maybeSingle();
+
+  const planLimits: Record<string, number> = { starter: 24, growth: 60, scale: 240 };
+  const planName = planData?.plan ?? "growth";
+  const monthlyLimit = planData?.recos_monthly_limit ?? planLimits[planName] ?? 60;
+
+  // Compter les recos générées ce mois dans marketing_recommendations (source unique)
+  const now = new Date();
+  const utcMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const utcNextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+
+  const { count: usedCount } = await supabase
+    .from("marketing_recommendations")
+    .select("*", { count: "exact", head: true })
+    .gte("generated_at", utcMonthStart)
+    .lt("generated_at", utcNextMonthStart);
+
+  const totalGenerated = usedCount ?? 0;
+
+  // Aussi récupérer le log depuis recommendation_usage pour backward compat
+  const { data: usageData } = await supabase
     .from("recommendation_usage")
-    .select("*")
+    .select("generations_log")
     .eq("project_id", PROJECT_ID)
     .eq("month_year", monthYear)
     .maybeSingle();
-  const usage = data || {
-    total_generated: 0,
-    monthly_limit: 36,
-    plan: "starter",
-    generations_log: [],
-  };
+
   return {
-    total_generated: usage.total_generated,
-    monthly_limit: usage.monthly_limit,
-    remaining: usage.monthly_limit - usage.total_generated,
-    plan: usage.plan,
-    generations_log: usage.generations_log || [],
+    total_generated: totalGenerated,
+    monthly_limit: monthlyLimit,
+    remaining: Math.max(0, monthlyLimit - totalGenerated),
+    plan: planName,
+    generations_log: usageData?.generations_log || [],
   };
 }
 
