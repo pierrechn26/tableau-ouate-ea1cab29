@@ -711,6 +711,8 @@ Deno.serve(async (req) => {
       .in("session_id", sessionIds)
       .limit(5000);
 
+    console.log(`[detect-persona-clusters] Loaded ${allChildren?.length ?? 0} children rows`);
+
     // Attach children to sessions
     const childrenBySession: Record<string, Any[]> = {};
     for (const c of (allChildren || [])) {
@@ -722,7 +724,8 @@ Deno.serve(async (req) => {
       diagnostic_children: childrenBySession[s.id] || [],
     }));
 
-    console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas`);
+    const sessionsWithChildren = allSessions.filter((s: Any) => s.diagnostic_children.length > 0).length;
+    console.log(`[detect-persona-clusters] Loaded ${allSessions.length} sessions, ${personas.length} personas, ${sessionsWithChildren} with children`);
 
     /* ── PHASE G (early): Update session_count for ALL personas — runs every time ── */
     const { counters: earlyCounters } = await updateAllPersonaSessionCounts(supabase);
