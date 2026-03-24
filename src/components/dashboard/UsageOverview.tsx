@@ -135,7 +135,7 @@ export function UsageOverview() {
 
       {/* Recos */}
       <UsageBar
-        label="Recommandations marketing cette semaine"
+        label="Recommandations marketing ce mois"
         used={recos.used}
         limit={recos.limit}
         percentage={recos.percentage}
