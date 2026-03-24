@@ -745,7 +745,7 @@ Deno.serve(async (req) => {
     for (const ap of autoPersonas) {
       const { count } = await supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true }).eq("persona_code", ap.code).eq("status", "termine");
       const daysSinceCreation = (Date.now() - new Date(ap.auto_created_at).getTime()) / 86400000;
-      if ((count ?? 0) < 10 && daysSinceCreation > 30) {
+      if ((count ?? 0) < 15 && daysSinceCreation > 30) {
         await supabase.from("personas").update({ is_active: false }).eq("code", ap.code);
         await supabase.from("persona_detection_log").insert({
           detection_type: "deactivation",
