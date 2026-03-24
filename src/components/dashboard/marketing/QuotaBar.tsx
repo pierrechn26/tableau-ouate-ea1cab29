@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GenerationType, QuotaData } from "@/hooks/useMarketingRecommendations";
@@ -15,10 +15,10 @@ interface Props {
   usageLimits?: UsageLimits;
 }
 
-const PLAN_LIMITS_WEEKLY: Record<PlanType, number> = {
-  starter: 6,
-  growth: 15,
-  scale: 60,
+const PLAN_LIMITS_MONTHLY: Record<PlanType, number> = {
+  starter: 24,
+  growth: 60,
+  scale: 240,
 };
 
 export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usageLimits }: Props) {
