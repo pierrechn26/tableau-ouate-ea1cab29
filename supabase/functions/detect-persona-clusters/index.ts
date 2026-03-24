@@ -679,10 +679,10 @@ Deno.serve(async (req) => {
     const p0Sessions = allSessions.filter((s: Any) => s.persona_code === "P0" || !s.persona_code);
     if (p0Sessions.length >= min_cluster_size) {
       const p0Criteria = p0Sessions.map(extractCriteria);
-      const clusters = findClusters(p0Criteria, min_cluster_size);
+      const clusters = findClusters(p0Criteria, personas, min_cluster_size);
       for (const c of clusters) {
         allDetected.push({ ...c, type: "new_cluster" });
-        console.log(`[detect-persona-clusters] NEW_CLUSTER detected: ${c.session_ids.length} sessions`);
+        console.log(`[detect-persona-clusters] NEW_CLUSTER detected: ${c.session_ids.length} sessions, NEED=${c.need_key}, IDENTITY=${c.identity_key}`);
       }
     }
 
@@ -691,7 +691,7 @@ Deno.serve(async (req) => {
       const pSessions = allSessions.filter((s: Any) => s.persona_code === persona.code);
       if (pSessions.length > max_persona_size) {
         const pCriteria = pSessions.map(extractCriteria);
-        const subClusters = findSubClusters(pCriteria, persona, min_split_size);
+        const subClusters = findSubClusters(pCriteria, persona, personas, min_split_size);
         for (const c of subClusters) {
           allDetected.push({ ...c, type: "split" });
           console.log(`[detect-persona-clusters] SPLIT detected from ${persona.code}: ${c.session_ids.length} sessions`);
@@ -703,7 +703,7 @@ Deno.serve(async (req) => {
     const weakSessions = allSessions.filter((s: Any) => s.persona_code && s.persona_code !== "P0" && (s.matching_score || 0) < weak_score_threshold);
     if (weakSessions.length >= min_cluster_size) {
       const weakCriteria = weakSessions.map(extractCriteria);
-      const clusters = findClusters(weakCriteria, min_cluster_size);
+      const clusters = findClusters(weakCriteria, personas, min_cluster_size);
       for (const c of clusters) {
         const currentAvg = c.current_avg_score;
         const estimatedAvg = c.estimated_avg_score;
