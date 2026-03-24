@@ -22,7 +22,7 @@ const PLAN_LIMITS_MONTHLY: Record<PlanType, number> = {
 };
 
 export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usageLimits }: Props) {
-  // Prefer live usageLimits data for weekly recos, fallback to monthly quota
+  // Prefer live usageLimits data for monthly recos, fallback to quota
   const recos = usageLimits?.recos;
   const plan = (usageLimits?.plan ?? quota.plan) as PlanType;
 
@@ -45,7 +45,7 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
   const textColor =
     pct > 85 ? "text-destructive" : pct > 60 ? "text-warning" : "text-primary";
 
-  const periodLabel = "cette semaine";
+  const periodLabel = "ce mois";
 
   return (
     <div className="space-y-4">
