@@ -731,7 +731,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true, dry_run: true,
         detected: allDetected.length,
-        clusters: allDetected.map((c) => ({ type: c.type, sessions: c.session_ids.length, source_personas: c.source_personas, levels: c.levels_covered })),
+        clusters: allDetected.map((c) => ({
+          type: c.type,
+          sessions: c.session_ids.length,
+          source_personas: c.source_personas,
+          levels: c.levels_covered,
+          need_key: c.need_key,
+          identity_key: c.identity_key,
+          avg_similarity: c.estimated_avg_score,
+          current_avg_score: Math.round(c.current_avg_score),
+          cluster_profile: c.cluster_profile,
+        })),
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
