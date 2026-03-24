@@ -138,13 +138,24 @@ export function useDiagnosticStats(dateRange?: DateRange): DiagnosticStats {
       setError(null);
 
       try {
-        const from = dateRange?.from?.toISOString();
+        // Normalise les dates en bornes UTC strictes (minuit UTC) pour éviter
+        // tout décalage timezone client (Europe/Paris UTC+1/+2).
+        // Ex: startOfMonth en heure locale = 2026-02-28T23:00Z → capture des sessions du mois précédent.
+        const from = dateRange?.from
+          ? new Date(Date.UTC(
+              dateRange.from.getFullYear(),
+              dateRange.from.getMonth(),
+              dateRange.from.getDate(),
+              0, 0, 0, 0
+            )).toISOString()
+          : undefined;
         const to = dateRange?.to
-          ? (() => {
-              const endOfDay = new Date(dateRange.to);
-              endOfDay.setHours(23, 59, 59, 999);
-              return endOfDay.toISOString();
-            })()
+          ? new Date(Date.UTC(
+              dateRange.to.getFullYear(),
+              dateRange.to.getMonth(),
+              dateRange.to.getDate(),
+              23, 59, 59, 999
+            )).toISOString()
           : undefined;
 
         const { data, error: fnError } = await supabase.functions.invoke<PerformancePayload>(
