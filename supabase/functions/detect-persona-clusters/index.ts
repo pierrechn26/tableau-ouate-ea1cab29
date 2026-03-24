@@ -703,12 +703,13 @@ Deno.serve(async (req) => {
 
     if (!personas || !rawSessions) throw new Error("Failed to load personas or sessions");
 
-    // Load children for all sessions
+    // Load children for all sessions (limit 5000 to bypass default 1000-row cap)
     const sessionIds = rawSessions.map((s: Any) => s.id);
     const { data: allChildren } = await supabase
       .from("diagnostic_children")
       .select("session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products")
-      .in("session_id", sessionIds);
+      .in("session_id", sessionIds)
+      .limit(5000);
 
     // Attach children to sessions
     const childrenBySession: Record<string, Any[]> = {};
