@@ -121,7 +121,7 @@ export function QuotaBar({ quota, isGenerating, generatingType, onGenerate, usag
               nextPlanLabel={usageLimits?.upgrade.nextPlanLabel ?? ""}
               nextLimit={
                 usageLimits?.upgrade.nextPlan
-                  ? PLAN_LIMITS_WEEKLY[usageLimits.upgrade.nextPlan]
+                  ? PLAN_LIMITS_MONTHLY[usageLimits.upgrade.nextPlan]
                   : displayLimit
               }
             />
