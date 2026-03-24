@@ -126,7 +126,7 @@ export type Database = {
           id: string
           plan: string
           project_id: string
-          recos_weekly_limit: number
+          recos_monthly_limit: number
           sessions_limit: number
           updated_at: string
         }
@@ -137,7 +137,7 @@ export type Database = {
           id?: string
           plan?: string
           project_id: string
-          recos_weekly_limit?: number
+          recos_monthly_limit?: number
           sessions_limit?: number
           updated_at?: string
         }
@@ -148,7 +148,7 @@ export type Database = {
           id?: string
           plan?: string
           project_id?: string
-          recos_weekly_limit?: number
+          recos_monthly_limit?: number
           sessions_limit?: number
           updated_at?: string
         }
