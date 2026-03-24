@@ -628,7 +628,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const dry_run: boolean = body.dry_run ?? false;
-    const min_cluster_size: number = body.min_cluster_size ?? 15;
+    const min_cluster_size: number = body.min_cluster_size ?? 30;
     const min_split_size: number = body.min_split_size ?? 20;
     const max_persona_size: number = body.max_persona_size ?? 80;
     const weak_score_threshold: number = body.weak_score_threshold ?? 75;
