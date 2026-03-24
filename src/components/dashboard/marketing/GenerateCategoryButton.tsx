@@ -66,7 +66,8 @@ export function GenerateCategoryButton({
           {icon}
           {label}
         </div>
-        <span className="text-[11px]",
+        <span className={cn(
+          "text-[11px]",
           isLimitReached ? "text-destructive/80" : remaining < 3 ? "text-destructive/80" : "text-muted-foreground"
         )}>
           {isLimitReached
