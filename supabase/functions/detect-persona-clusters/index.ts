@@ -374,6 +374,7 @@ function findSubClusters(sessions: Any[], persona: Any, existingPersonas: Any[],
 
 function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
   const criteria = cluster.common_criteria;
+  const profile = cluster.cluster_profile;
   let traits: string[] = [];
 
   const rel = criteria["identity.relationship"]?.value;
@@ -431,15 +432,52 @@ function generatePersonaIdentity(cluster: Any, existingNames: string[]) {
     const ageDesc: Record<string, string> = { "4-6": "de 4-6 ans", "7-9": "de 7-9 ans", "10-11": "de 10-11 ans" };
     descParts.push(`dont l'enfant ${ageDesc[age] || ""} ${skinDesc[skin] || ""}`.trim());
   }
-  if (priority) {
+  if (String(hasRoutine) === "true") descParts.push("a déjà une routine en place");
+  else descParts.push("pas encore de routine");
+
+  // Enriched BEHAVIOR distribution (Partie D)
+  if (profile?.behavior) {
+    const beh = profile.behavior;
+    const prioDesc: Record<string, string> = {
+      ludique: "ludique", efficacite: "efficacité", clean: "clean", autonomie: "autonomie",
+    };
+    const prioDist = beh.priority_1?.distribution;
+    if (prioDist) {
+      const prioStr = Object.entries(prioDist as Record<string, number>)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([v, pct]) => `${prioDesc[v] || v} (${pct}%)`)
+        .join(", ");
+      descParts.push(`Priorités : ${prioStr}`);
+    }
+    const trustDist = beh.trust_trigger_1?.distribution;
+    const trustMap: Record<string, string> = {
+      ingredient_transparency: "transparence des ingrédients",
+      proof_results: "résultats prouvés",
+      scientific_validation: "validation scientifique",
+      parent_testimonials: "témoignages parents",
+    };
+    if (trustDist) {
+      const trustStr = Object.entries(trustDist as Record<string, number>)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([v, pct]) => `${trustMap[v] || v} (${pct}%)`)
+        .join(", ");
+      descParts.push(`Sensible à : ${trustStr}`);
+    }
+    const fmtDist = beh.content_format_preference?.distribution;
+    const fmtMap: Record<string, string> = { visual: "visuel", short: "court", complete: "complet" };
+    if (fmtDist) {
+      const topFmt = Object.entries(fmtDist as Record<string, number>).sort((a, b) => b[1] - a[1])[0];
+      if (topFmt) descParts.push(`Préfère un format de contenu ${fmtMap[topFmt[0]] || topFmt[0]} (${topFmt[1]}%)`);
+    }
+  } else if (priority) {
     const prioDesc: Record<string, string> = {
       ludique: "Privilégie une approche ludique", efficacite: "Recherche avant tout l'efficacité",
       clean: "Sensible à la composition clean", autonomie: "Favorise l'autonomie de l'enfant",
     };
     if (prioDesc[priority]) descParts.push(prioDesc[priority]);
   }
-  if (String(hasRoutine) === "true") descParts.push("A déjà une routine en place");
-  else descParts.push("Découvre le sujet des soins enfants");
 
   const description = descParts.filter(Boolean).join(". ") + ".";
   return { name: prenom, label, description };
