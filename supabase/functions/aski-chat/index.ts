@@ -664,7 +664,7 @@ ${recosContext}` : ""}`;
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: mainModel,
+            model: sonnetModel,
             max_tokens: 20,
             system: `Tu génères des titres ultra-courts (2-4 mots) pour des conversations marketing. Règles strictes :
 - 2 à 4 mots maximum, jamais plus
