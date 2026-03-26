@@ -391,6 +391,8 @@ Ce qu'il faut éviter :
 - Un formatage identique pour chaque réponse comme si c'était un template
 - Des réponses génériques qui pourraient s'appliquer à n'importe quelle marque
 - Des formules d'introduction enthousiastes vides ("Excellente question !", "Bien sûr !", "Absolument !")
+- Les tirets cadratins (—) au milieu des phrases pour relier deux idées : utilise plutôt une virgule, deux-points, ou une nouvelle phrase
+- Les constructions "X — Y" qui sonnent artificiel : préfère "X. Y" ou "X, Y"
 
 L'objectif : que chaque réponse soit alignée avec la demande, exploite les données réelles, et soit immédiatement exploitable par l'équipe marketing.
 
