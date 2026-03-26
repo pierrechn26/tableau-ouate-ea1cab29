@@ -377,7 +377,7 @@ export function AskiChat() {
                 )}
               >
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-p:my-3 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-headings:mt-5 prose-headings:mb-2 [&>*:first-child]:mt-0">
+                  <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-p:my-4 prose-ul:my-4 prose-ol:my-4 prose-li:my-2 prose-headings:mt-6 prose-headings:mb-3 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_strong]:block [&_strong+p]:mt-1 [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_td]:py-2 [&_td]:pr-4 [&_th]:py-2 [&_th]:pr-4 [&_tr]:border-b [&_tr]:border-border/40 [&_blockquote]:my-4 [&_blockquote]:pl-4 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground [&_hr]:my-5 [&_hr]:border-border/40">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
