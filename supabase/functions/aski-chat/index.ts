@@ -687,7 +687,7 @@ ${recosContext}` : ""}`;
           supabase.from("api_usage_logs").insert({
             edge_function: "aski-chat",
             api_provider: "anthropic",
-            model: mainModel,
+            model: sonnetModel,
             tokens_used: titleTokens,
             input_tokens: titleData.usage?.input_tokens ?? 0,
             output_tokens: titleData.usage?.output_tokens ?? 0,
