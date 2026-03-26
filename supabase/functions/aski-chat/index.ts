@@ -479,16 +479,25 @@ ${recosContext}` : ""}`;
       { role: "user" as const, content: userMessage },
     ];
 
-    // === APPEL CLAUDE SONNET 4.6 ===
-    const mainModel = "claude-sonnet-4-6";
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s
+    // === APPEL IA AVEC FALLBACK ===
+    // Tentative 1 : Claude Sonnet 4.6 (110s)
+    // Tentative 2 : Gemini 2.5 Pro via Lovable AI Gateway (30s)
 
     let responseText = "";
     let inputTokens = 0;
     let outputTokens = 0;
+    let modelUsed = "claude-sonnet-4-6";
 
+    const sonnetModel = "claude-sonnet-4-6";
+    const geminiModel = "google/gemini-2.5-pro";
+
+    let sonnetSucceeded = false;
+
+    // ── TENTATIVE 1 : Claude Sonnet 4.6 ──
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 110000); // 110s
+
       const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -497,8 +506,8 @@ ${recosContext}` : ""}`;
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: mainModel,
-          max_tokens: 2000,
+          model: sonnetModel,
+          max_tokens: 16000,
           system: systemPrompt,
           messages: anthropicMessages,
         }),
@@ -508,13 +517,20 @@ ${recosContext}` : ""}`;
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
-        console.error("Anthropic API error:", aiResponse.status, errText);
-        if (aiResponse.status === 429) {
-          return new Response(JSON.stringify({ error: "Aski est temporairement indisponible. Réessayez dans quelques minutes." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        throw new Error(`Anthropic API error ${aiResponse.status}: ${errText}`);
+        console.error(`[Aski] Anthropic error ${aiResponse.status}:`, errText);
+        // Log échec Sonnet
+        supabase.from("api_usage_logs").insert({
+          edge_function: "aski-chat",
+          api_provider: "anthropic",
+          model: sonnetModel,
+          tokens_used: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          api_calls: 1,
+          metadata: { type: "main_response", status: "error", http_status: aiResponse.status, error: errText.slice(0, 200) },
+        }).then(() => {}).catch(() => {});
+        throw new Error(`Anthropic API error ${aiResponse.status}`);
       }
 
       const aiData = await aiResponse.json();
@@ -522,35 +538,117 @@ ${recosContext}` : ""}`;
       inputTokens = aiData.usage?.input_tokens ?? 0;
       outputTokens = aiData.usage?.output_tokens ?? 0;
       const totalTokens = inputTokens + outputTokens;
+      modelUsed = sonnetModel;
+      sonnetSucceeded = true;
 
       // Coût estimé : $3/M input, $15/M output
       const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
 
-      // Fire-and-forget: log usage (model capturé dynamiquement depuis mainModel)
       supabase.from("api_usage_logs").insert({
         edge_function: "aski-chat",
         api_provider: "anthropic",
-        model: mainModel,
+        model: sonnetModel,
         tokens_used: totalTokens,
         input_tokens: inputTokens,
         output_tokens: outputTokens,
         total_tokens: totalTokens,
         api_calls: 1,
-        metadata: { type: "main_response", estimated_cost_usd: estimatedCostUsd },
+        metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
       }).then(() => {}).catch(() => {});
 
-    } catch (e: unknown) {
-      clearTimeout(timeoutId);
-      if (e instanceof Error && e.name === "AbortError") {
-        return new Response(JSON.stringify({ error: "Aski met un peu de temps à réfléchir. Réessayez dans quelques secondes." }), {
-          status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    } catch (sonnetError: unknown) {
+      const errMsg = sonnetError instanceof Error ? sonnetError.message : String(sonnetError);
+      const isTimeout = sonnetError instanceof Error && sonnetError.name === "AbortError";
+      console.error(`[Aski] Sonnet failed (${isTimeout ? "timeout" : "error"}): ${errMsg}`);
+
+      // Log tentative échouée Sonnet
+      supabase.from("api_usage_logs").insert({
+        edge_function: "aski-chat",
+        api_provider: "anthropic",
+        model: sonnetModel,
+        tokens_used: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        total_tokens: 0,
+        api_calls: 1,
+        metadata: { type: "main_response", status: isTimeout ? "timeout" : "error", error: errMsg.slice(0, 200) },
+      }).then(() => {}).catch(() => {});
+
+      // ── TENTATIVE 2 : Gemini 2.5 Pro via Lovable AI Gateway ──
+      console.log("[Aski] Falling back to Gemini 2.5 Pro...");
+      try {
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), 30000); // 30s
+
+        // Format OpenAI-compatible : system prompt dans le premier message
+        const geminiMessages = [
+          { role: "system", content: systemPrompt },
+          ...anthropicMessages,
+        ];
+
+        const geminiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: geminiModel,
+            max_tokens: 16000,
+            messages: geminiMessages,
+          }),
+          signal: controller2.signal,
+        });
+        clearTimeout(timeoutId2);
+
+        if (!geminiResponse.ok) {
+          const errText = await geminiResponse.text();
+          console.error(`[Aski] Gemini error ${geminiResponse.status}:`, errText);
+          throw new Error(`Gemini API error ${geminiResponse.status}`);
+        }
+
+        const geminiData = await geminiResponse.json();
+        responseText = geminiData.choices?.[0]?.message?.content ?? "";
+        inputTokens = geminiData.usage?.prompt_tokens ?? 0;
+        outputTokens = geminiData.usage?.completion_tokens ?? 0;
+        const totalTokens = inputTokens + outputTokens;
+        modelUsed = "gemini-2.5-pro-fallback";
+
+        supabase.from("api_usage_logs").insert({
+          edge_function: "aski-chat",
+          api_provider: "google",
+          model: geminiModel,
+          tokens_used: totalTokens,
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          total_tokens: totalTokens,
+          api_calls: 1,
+          metadata: { type: "main_response", status: "success", fallback: true, sonnet_failure: isTimeout ? "timeout" : "error" },
+        }).then(() => {}).catch(() => {});
+
+      } catch (geminiError: unknown) {
+        const geminiErrMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+        console.error(`[Aski] Gemini fallback also failed: ${geminiErrMsg}`);
+
+        supabase.from("api_usage_logs").insert({
+          edge_function: "aski-chat",
+          api_provider: "google",
+          model: geminiModel,
+          tokens_used: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          api_calls: 1,
+          metadata: { type: "main_response", status: "error", fallback: true, error: geminiErrMsg.slice(0, 200) },
+        }).then(() => {}).catch(() => {});
+
+        return new Response(JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      console.error("Anthropic call failed:", e);
-      return new Response(JSON.stringify({ error: "Aski est temporairement indisponible. Veuillez réessayer dans quelques instants." }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
+
+    _ = sonnetSucceeded; // satisfaire le linter
 
     // === TITRE AUTOMATIQUE — Claude Sonnet 4.6 (appel court) ===
     let chatTitle = "Nouvelle conversation";
