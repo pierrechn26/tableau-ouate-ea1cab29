@@ -163,8 +163,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const { chatId, userMessage } = await req.json();
     if (!userMessage?.trim()) {
@@ -174,27 +176,35 @@ serve(async (req) => {
       });
     }
 
-    // === LIMITE MENSUELLE ===
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    // === LIMITE MENSUELLE — lire depuis client_plan ===
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-    const { count } = await supabase
-      .from("aski_messages")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "user")
-      .gte("created_at", startOfMonth.toISOString());
+    const [{ count }, { data: clientPlanData }] = await Promise.all([
+      supabase
+        .from("aski_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "user")
+        .gte("created_at", startOfMonth.toISOString()),
 
-    if ((count ?? 0) >= 200) {
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      nextMonth.setDate(1);
+      supabase
+        .from("client_plan")
+        .select("aski_limit, plan")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const askiLimit: number = clientPlanData?.aski_limit ?? 100; // fallback Starter
+
+    if ((count ?? 0) >= askiLimit) {
+      const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
       const nextMonthStr = nextMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
       return new Response(JSON.stringify({
         error: "limit_reached",
-        message: `Vous avez atteint la limite de 200 questions ce mois-ci. Le compteur se réinitialise le 1er ${nextMonthStr}.`,
+        message: `Vous avez atteint la limite de ${askiLimit} conversations ce mois-ci. Le compteur se réinitialise le 1er ${nextMonthStr}.`,
         questions_used: count,
-        questions_limit: 200,
+        questions_limit: askiLimit,
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -312,9 +322,8 @@ serve(async (req) => {
     const globalAov = cartSessions.length > 0
       ? Math.round(cartSessions.reduce((sum: number, s: any) => sum + (s.selected_cart_amount || 0), 0) / cartSessions.length)
       : 0;
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+    const prevMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
     const prevMonthEnd = currentMonthStart;
     const currentMonthSessions = sessions.filter((s: any) => s.created_at && s.created_at >= currentMonthStart).length;
     const prevMonthSessions = sessions.filter((s: any) => s.created_at && s.created_at >= prevMonthStart && s.created_at < prevMonthEnd).length;
@@ -332,27 +341,84 @@ serve(async (req) => {
       recosContext = `Semaine du ${r.week_start}${checklistItems ? "\nTâches en cours :\n" + checklistItems : ""}`;
     }
 
-    // === SYSTEM PROMPT DYNAMIQUE COMPLET ===
-    const systemPrompt = `Tu es Aski, l'assistant IA expert marketing d'Ouate Paris. Tu as 15 ans d'expérience en marketing DTC e-commerce, spécialisé dans la cosmétique enfants (4-11 ans).
+    // === SYSTEM PROMPT ===
+    const brandName = "Ouate Paris";
+    const brandTone = "Ton bienveillant, expert et rassurant. Vocabulaire naturel et doux adapté à l'univers des soins pour enfants. Éviter le jargon marketing agressif. Privilégier les formulations positives et rassurantes pour les parents.";
 
-Tu as accès à 3 types de données pour répondre :
-1. DONNÉES INTERNES temps réel : produits Shopify, personas + insights historiques, métriques globales
-2. BASE DE CONNAISSANCES : 226 sources marketing spécialisées par catégorie
-3. RECHERCHE EN TEMPS RÉEL : résultats Perplexity quand la question le nécessite
+    const systemPrompt = `Tu es Aski, l'assistant IA du dashboard Ask-It pour la marque ${brandName}.
 
-=== GAMME DE PRODUITS OUATE — SYNC SHOPIFY TEMPS RÉEL (${products.length} produit${products.length !== 1 ? "s" : ""}) ===
+TON RÔLE :
+Tu aides l'équipe marketing de la marque à comprendre leurs données, exploiter leurs personas, et prendre des décisions marketing éclairées. Tu as accès à toutes les données du diagnostic, les personas, les métriques de vente et le catalogue produits.
+
+STYLE DE RÉPONSE — ADAPTATIF :
+- Question simple (ex: "quel est le persona principal ?") → réponse directe en 1-3 phrases. Pas de préambule, pas de liste à puces.
+- Question d'analyse (ex: "pourquoi mon taux de conversion baisse ?") → réponse structurée avec contexte, analyse et recommandation. 5-10 phrases max.
+- Demande de contenu (ex: "rédige-moi un email pour le persona Clara") → contenu complet et actionnable, prêt à être utilisé.
+- Demande stratégique (ex: "quelle stratégie ads pour le Q2 ?") → réponse développée avec données, raisonnement et plan d'action.
+
+FORMAT — AÉRÉ ET LISIBLE :
+- Utilise des paragraphes courts (2-3 phrases max par paragraphe)
+- Saute une ligne entre chaque idée distincte
+- Utilise le gras uniquement pour les chiffres clés et les conclusions importantes
+- N'utilise les listes à puces QUE quand tu listes 3+ éléments concrets (pas pour structurer toute ta réponse)
+- Évite les blocs de texte denses — aère toujours
+- Ne commence JAMAIS ta réponse par "Bien sûr !", "Absolument !", "C'est une excellente question !" ou toute formule enthousiaste générique
+
+TON CONVERSATIONNEL :
+- Professionnel mais accessible — comme un collègue marketing senior
+- Direct et concis — va droit au point
+- Utilise les données concrètes du dashboard pour appuyer tes réponses (chiffres, personas, tendances)
+- Ne répète pas la question du visiteur dans ta réponse
+
+QUAND TU GÉNÈRES DU CONTENU POUR LA MARQUE :
+Quand tu rédiges du contenu destiné à être utilisé par la marque (ad copy, lignes d'objet email, scripts vidéo, textes de landing page, descriptions produits, posts réseaux sociaux) :
+- Rédige dans le TON DE LA MARQUE, pas dans ton ton conversationnel standard
+- ${brandTone}
+- Adapte le vocabulaire, le niveau de langage et les émotions au positionnement de la marque
+- Le contenu doit être prêt à être copié-collé et utilisé tel quel
+
+RÈGLES ABSOLUES :
+1. Ne recommande JAMAIS un produit qui n'existe pas dans le catalogue
+2. N'invente JAMAIS de chiffres — utilise uniquement les données réelles du dashboard
+3. Si tu n'as pas assez de données pour répondre, dis-le clairement plutôt que de deviner
+4. Les prix mentionnés doivent correspondre aux vrais prix du catalogue
+5. Quand tu cites un persona, utilise son code ET son nom (ex: "P1 Clara")
+
+VOCABULAIRE — TOUJOURS TRADUIRE EN FRANÇAIS COMPRÉHENSIBLE :
+Ne jamais utiliser les noms techniques internes des critères dans tes réponses. Exemples :
+  - ingredient_transparency → "transparence dans la composition des ingrédients"
+  - scientific_validation → "validation scientifique des formules"
+  - proof_results → "preuves de résultats concrets"
+  - brand_engagement → "engagement avec la marque"
+  - peer_recommendation → "recommandations d'autres parents"
+  - ludique → "approche ludique"
+  - efficacite → "efficacité prouvée"
+  - clean → "composition clean / naturelle"
+  - autonomie → "autonomie de l'enfant"
+  - visual → "contenu visuel"
+  - short → "contenu court"
+  - complete → "contenu détaillé"
+  - routine_size_preference: minimal → "routine minimale"
+  - routine_size_preference: simple → "routine simple"
+  - routine_size_preference: complete → "routine complète"
+  - content_format_preference → "format de contenu préféré"
+  - trust_trigger → "déclencheur de confiance"
+  - skin_reactivity → "réactivité de la peau"
+  - has_routine → "a déjà une routine"
+  - is_existing_client → "cliente existante"
+En revanche, les noms de personas (Clara, Nathalie, Amandine...) et les noms de produits (Mon Nettoyant Douceur, Ma Crème d'Amour...) doivent TOUJOURS être utilisés tels quels.
+
+=== GAMME DE PRODUITS ${brandName.toUpperCase()} — SYNC SHOPIFY TEMPS RÉEL (${products.length} produit${products.length !== 1 ? "s" : ""}) ===
 
 ${productsPrompt}
 
-⚠️ RÈGLE ABSOLUE PRODUITS : Tu ne peux recommander QUE les produits listés ci-dessus avec leurs noms et prix exacts. Si un produit n'est pas dans cette liste, il N'EXISTE PAS chez Ouate. Ne jamais inventer, extrapoler ou supposer l'existence d'un produit. Si on demande un produit absent, dire clairement qu'il n'est pas dans la gamme actuelle.
+⚠️ RÈGLE ABSOLUE PRODUITS : Tu ne peux recommander QUE les produits listés ci-dessus avec leurs noms et prix exacts. Si un produit n'est pas dans cette liste, il N'EXISTE PAS chez ${brandName}. Ne jamais inventer, extrapoler ou supposer l'existence d'un produit.
 
-=== PERSONAS OUATE — INSIGHTS TEMPS RÉEL (${totalSessions} sessions terminées) ===
+=== PERSONAS ${brandName.toUpperCase()} — INSIGHTS TEMPS RÉEL (${totalSessions} sessions terminées) ===
 
 ${personaInsights}
 
 P0 — Non attribué : ${p0Count} sessions (score matching < 60%)
-
-Toujours utiliser les prénoms des personas, jamais les codes P0-P9.
 
 === MÉTRIQUES GLOBALES ===
 
@@ -387,68 +453,54 @@ ${perplexityContext}
 Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes.` : ""}
 
 ${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
-${recosContext}` : ""}
+${recosContext}` : ""}`;
 
-=== RÈGLES DE RÉPONSE ===
+    // === CONSTRUCTION DES MESSAGES ANTHROPIC ===
+    // Le system prompt est un paramètre séparé — les messages ne contiennent QUE user/assistant
+    const historyMessages = (chatHistory ?? [])
+      .slice(0, -1) // exclure le dernier message (le user qu'on vient d'insérer)
+      .filter((msg: any) => msg.role === "user" || msg.role === "assistant")
+      .map((msg: any) => ({ role: msg.role as "user" | "assistant", content: msg.content }));
 
-1. Réponds en français, de manière concise et actionnable
-2. Utilise les prénoms des personas, jamais les codes P1-P9
-3. Appuie-toi sur les données réelles (métriques, distributions, conversions)
-4. Quand tu cites des chiffres, utilise UNIQUEMENT les données fournies dans le contexte. Si une donnée n'est pas disponible, dis-le
-5. PRODUITS : Ne recommander QUE les produits listés dans la section GAMME DE PRODUITS ci-dessus avec leurs noms et prix exacts. Si un produit n'est pas dans cette liste, il n'existe pas chez Ouate
-6. RECOMMANDATIONS PRODUITS PAR PERSONA : Croise le skin_concern et l'age_range dominants du persona avec les caractéristiques des produits listés
-7. Quand une recherche Perplexity est disponible dans le contexte, cite les tendances et données récentes. Sinon, appuie-toi sur la base de connaissances des 226 sources
-8. Structure tes réponses : constat (données) → analyse → recommandation actionnable
-9. Si tu ne connais pas la réponse ou si les données sont insuffisantes, dis-le clairement
-10. Ne JAMAIS inventer de données chiffrées, de produits, ou de sources
-11. Ton est professionnel et accessible. Tu es un consultant qui parle à un fondateur
-12. VOCABULAIRE : Ne jamais utiliser les noms techniques internes des critères dans tes réponses. Toujours les traduire en français compréhensible pour une équipe marketing. Exemples :
-  - ingredient_transparency → "transparence dans la composition des ingrédients"
-  - scientific_validation → "validation scientifique des formules"
-  - proof_results → "preuves de résultats concrets"
-  - brand_engagement → "engagement avec la marque"
-  - peer_recommendation → "recommandations d'autres parents"
-  - ludique → "approche ludique"
-  - efficacite → "efficacité prouvée"
-  - clean → "composition clean / naturelle"
-  - autonomie → "autonomie de l'enfant"
-  - visual → "contenu visuel"
-  - short → "contenu court"
-  - complete → "contenu détaillé"
-  - routine_size_preference: minimal → "routine minimale"
-  - routine_size_preference: simple → "routine simple"
-  - routine_size_preference: complete → "routine complète"
-  - content_format_preference → "format de contenu préféré"
-  - trust_trigger → "déclencheur de confiance"
-  - skin_reactivity → "réactivité de la peau"
-  - has_routine → "a déjà une routine"
-  - is_existing_client → "cliente existante"
-  En revanche, les noms de personas (Clara, Nathalie, Amandine...) et les noms de produits (Mon Nettoyant Douceur, Ma Crème d'Amour...) doivent TOUJOURS être utilisés tels quels.`;
+    // Assurer que les messages alternent correctement user/assistant
+    const cleanedHistory: { role: "user" | "assistant"; content: string }[] = [];
+    for (const msg of historyMessages) {
+      const last = cleanedHistory[cleanedHistory.length - 1];
+      if (last && last.role === msg.role) {
+        // fusionner les messages consécutifs du même rôle
+        last.content += "\n" + msg.content;
+      } else {
+        cleanedHistory.push({ ...msg });
+      }
+    }
 
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...(chatHistory ?? []).slice(0, -1).map((msg: any) => ({ role: msg.role, content: msg.content })),
-      { role: "user", content: userMessage },
+    const anthropicMessages = [
+      ...cleanedHistory,
+      { role: "user" as const, content: userMessage },
     ];
 
-    // === APPEL GEMINI 2.5 PRO (long context) ===
-    const mainModel = "google/gemini-2.5-pro";
+    // === APPEL CLAUDE SONNET 4.6 ===
+    const mainModel = "claude-sonnet-4-6";
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s pour le long contexte
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s
 
     let responseText = "";
-    let tokensUsed = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
 
     try {
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
           model: mainModel,
-          messages,
+          max_tokens: 2000,
+          system: systemPrompt,
+          messages: anthropicMessages,
         }),
         signal: controller.signal,
       });
@@ -456,33 +508,37 @@ ${recosContext}` : ""}
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text();
-        console.error("AI gateway error:", aiResponse.status, errText);
+        console.error("Anthropic API error:", aiResponse.status, errText);
         if (aiResponse.status === 429) {
           return new Response(JSON.stringify({ error: "Aski est temporairement indisponible. Réessayez dans quelques minutes." }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        throw new Error("AI gateway error");
+        throw new Error(`Anthropic API error ${aiResponse.status}: ${errText}`);
       }
 
       const aiData = await aiResponse.json();
-      responseText = aiData.choices?.[0]?.message?.content ?? "";
-      tokensUsed = aiData.usage?.total_tokens ?? 0;
-      const inputTokens = aiData.usage?.prompt_tokens ?? 0;
-      const outputTokens = aiData.usage?.completion_tokens ?? 0;
+      responseText = aiData.content?.[0]?.text ?? "";
+      inputTokens = aiData.usage?.input_tokens ?? 0;
+      outputTokens = aiData.usage?.output_tokens ?? 0;
+      const totalTokens = inputTokens + outputTokens;
 
-      // Fire-and-forget: log main response usage (model captured dynamically from mainModel variable)
+      // Coût estimé : $3/M input, $15/M output
+      const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
+
+      // Fire-and-forget: log usage (model capturé dynamiquement depuis mainModel)
       supabase.from("api_usage_logs").insert({
         edge_function: "aski-chat",
-        api_provider: "lovable-ai",
+        api_provider: "anthropic",
         model: mainModel,
-        tokens_used: tokensUsed,
+        tokens_used: totalTokens,
         input_tokens: inputTokens,
         output_tokens: outputTokens,
-        total_tokens: tokensUsed,
+        total_tokens: totalTokens,
         api_calls: 1,
-        metadata: { type: "main_response" },
+        metadata: { type: "main_response", estimated_cost_usd: estimatedCostUsd },
       }).then(() => {}).catch(() => {});
+
     } catch (e: unknown) {
       clearTimeout(timeoutId);
       if (e instanceof Error && e.name === "AbortError") {
@@ -490,48 +546,54 @@ ${recosContext}` : ""}
           status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "Aski est temporairement indisponible. Réessayez dans quelques minutes." }), {
+      console.error("Anthropic call failed:", e);
+      return new Response(JSON.stringify({ error: "Aski est temporairement indisponible. Veuillez réessayer dans quelques instants." }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // === TITRE AUTOMATIQUE ===
+    // === TITRE AUTOMATIQUE — Claude Sonnet 4.6 (appel court) ===
     let chatTitle = "Nouvelle conversation";
     if ((chatHistory ?? []).length <= 1) {
       try {
-      const titleModel = "google/gemini-2.5-flash-lite";
-        const titleResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const titleController = new AbortController();
+        const titleTimeout = setTimeout(() => titleController.abort(), 10000);
+        const titleResponse = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
           body: JSON.stringify({
-            model: titleModel,
-            messages: [
-              {
-                role: "system",
-                content: `Tu génères des titres ultra-courts (2-4 mots) pour des conversations marketing. Règles strictes :
+            model: mainModel,
+            max_tokens: 20,
+            system: `Tu génères des titres ultra-courts (2-4 mots) pour des conversations marketing. Règles strictes :
 - 2 à 4 mots maximum, jamais plus
 - En français, sans majuscule sauf noms propres
 - Pas de guillemets, pas de ponctuation finale
 - Capture le SUJET central, pas la forme de la question
 - Utilise les prénoms des personas si mentionnés (Clara, Sandrine, Marine, etc.)
 - Préfère les noms et verbes d'action aux articles`,
-              },
-              { role: "user", content: userMessage },
-            ],
-            max_tokens: 20,
+            messages: [{ role: "user", content: userMessage }],
           }),
+          signal: titleController.signal,
         });
+        clearTimeout(titleTimeout);
         const titleData = await titleResponse.json();
-        chatTitle = titleData.choices?.[0]?.message?.content?.trim() ?? "Nouvelle conversation";
-        // Fire-and-forget: log title generation usage (model captured dynamically from titleModel variable)
-        const titleTotalTokens = titleData.usage?.total_tokens || 0;
-        if (titleTotalTokens > 0) {
+        chatTitle = titleData.content?.[0]?.text?.trim() ?? "Nouvelle conversation";
+
+        // Fire-and-forget: log title generation
+        const titleTokens = (titleData.usage?.input_tokens ?? 0) + (titleData.usage?.output_tokens ?? 0);
+        if (titleTokens > 0) {
           supabase.from("api_usage_logs").insert({
             edge_function: "aski-chat",
-            api_provider: "lovable-ai",
-            model: titleModel,
-            tokens_used: titleTotalTokens,
-            total_tokens: titleTotalTokens,
+            api_provider: "anthropic",
+            model: mainModel,
+            tokens_used: titleTokens,
+            input_tokens: titleData.usage?.input_tokens ?? 0,
+            output_tokens: titleData.usage?.output_tokens ?? 0,
+            total_tokens: titleTokens,
             api_calls: 1,
             metadata: { type: "title_generation" },
           }).then(() => {}).catch(() => {});
@@ -550,7 +612,7 @@ ${recosContext}` : ""}
       chat_id: currentChatId,
       role: "assistant",
       content: responseText,
-      tokens_used: tokensUsed,
+      tokens_used: inputTokens + outputTokens,
       response_time_ms: Date.now() - startTime,
     });
 
@@ -558,18 +620,17 @@ ${recosContext}` : ""}
 
     const newCount = (count ?? 0) + 1;
 
-    // Log si Perplexity a été appelé
     if (perplexityContext) {
       console.log(`[Aski] Perplexity called for: "${userMessage.substring(0, 80)}"`);
     }
-    console.log(`[Aski] Response time: ${Date.now() - startTime}ms | Tokens: ${tokensUsed} | Products: ${products.length} | Perplexity: ${!!perplexityContext}`);
+    console.log(`[Aski] Response time: ${Date.now() - startTime}ms | Tokens in:${inputTokens} out:${outputTokens} | Products: ${products.length} | Model: ${mainModel} | Limit: ${newCount}/${askiLimit}`);
 
     return new Response(JSON.stringify({
       response: responseText,
       chat_id: currentChatId,
       chat_title: chatTitle,
       questions_used: newCount,
-      questions_limit: 200,
+      questions_limit: askiLimit,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
