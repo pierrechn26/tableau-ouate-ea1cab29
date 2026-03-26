@@ -648,7 +648,7 @@ ${recosContext}` : ""}`;
       }
     }
 
-    _ = sonnetSucceeded; // satisfaire le linter
+    
 
     // === TITRE AUTOMATIQUE — Claude Sonnet 4.6 (appel court) ===
     let chatTitle = "Nouvelle conversation";
