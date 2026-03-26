@@ -284,6 +284,25 @@ serve(async (req) => {
     const children = allChildren ?? [];
     const products = shopifyProducts ?? [];
     const personas = (personaRows ?? []).filter((p: any) => !p.is_pool);
+    const marketingSources = marketingSourcesData ?? [];
+
+    // === CONSTRUCTION SECTION SOURCES MARKETING ===
+    const sourcesByCategory: Record<string, string[]> = {};
+    for (const src of marketingSources) {
+      const cat = (src.category as string)?.toLowerCase() ?? "other";
+      if (!sourcesByCategory[cat]) sourcesByCategory[cat] = [];
+      sourcesByCategory[cat].push(src.source_name as string);
+    }
+    const adsSourceNames = sourcesByCategory["ads"] ?? [];
+    const emailSourceNames = sourcesByCategory["email"] ?? [];
+    const offersSourceNames = sourcesByCategory["offers"] ?? sourcesByCategory["offres"] ?? [];
+    const marketingSourcesPrompt = `Tu as accès à une base de connaissances marketing de ${marketingSources.length} sources de référence couvrant les meilleures pratiques en publicité digitale, email marketing et stratégie d'offres. Utilise ces connaissances pour enrichir tes recommandations avec des best practices éprouvées.
+
+Ads (${adsSourceNames.length} sources) : ${adsSourceNames.slice(0, 40).join(", ")}
+Email (${emailSourceNames.length} sources) : ${emailSourceNames.slice(0, 40).join(", ")}
+Offres (${offersSourceNames.length} sources) : ${offersSourceNames.slice(0, 40).join(", ")}
+
+Appuie-toi sur ces ressources pour orienter tes recommandations quand c'est pertinent, sans inventer de données ou de citations spécifiques.`;
 
     // === CONSTRUCTION SECTION PRODUITS ===
     let productsPrompt = "";
