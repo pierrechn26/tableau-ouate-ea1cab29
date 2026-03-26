@@ -721,7 +721,7 @@ ${recosContext}` : ""}`;
     if (perplexityContext) {
       console.log(`[Aski] Perplexity called for: "${userMessage.substring(0, 80)}"`);
     }
-    console.log(`[Aski] Response time: ${Date.now() - startTime}ms | Tokens in:${inputTokens} out:${outputTokens} | Products: ${products.length} | Model: ${mainModel} | Limit: ${newCount}/${askiLimit}`);
+    console.log(`[Aski] Response time: ${Date.now() - startTime}ms | Tokens in:${inputTokens} out:${outputTokens} | Products: ${products.length} | Model: ${modelUsed} | Limit: ${newCount}/${askiLimit}`);
 
     return new Response(JSON.stringify({
       response: responseText,
