@@ -36,7 +36,7 @@ export function AskiChat() {
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const isSendingRef = useRef(false);
   const { toast } = useToast();
 
@@ -411,25 +411,31 @@ export function AskiChat() {
 
         {/* Input */}
         <div className="shrink-0 px-4 py-3 border-t border-border">
-          <div className="relative flex items-center">
-            <input
+          <div className="relative flex items-end">
+            <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              rows={1}
+              onChange={e => {
+                setInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+              }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder={isLimitReached ? "Limite mensuelle atteinte" : "Posez votre question à Aski…"}
               disabled={isLoading || isLimitReached}
               className={cn(
-                "w-full pr-12 pl-4 py-3 rounded-xl border text-sm outline-none transition-all bg-background",
+                "w-full pr-12 pl-4 py-3 rounded-xl border text-sm outline-none transition-all bg-background resize-none overflow-y-auto leading-relaxed",
                 "focus:border-primary focus:ring-2 focus:ring-primary/20",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 isWarning ? "border-warning/60" : "border-border"
               )}
+              style={{ minHeight: "48px", maxHeight: "160px" }}
             />
             <button
               onClick={handleSend}
               disabled={isLoading || !input.trim() || isLimitReached}
-              className="absolute right-3 p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute right-3 bottom-3 p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title="Envoyer"
             >
               <Send className="w-4 h-4" />
