@@ -240,6 +240,7 @@ serve(async (req) => {
       { data: allChildren },
       { data: shopifyProducts },
       { data: latestRecos },
+      { data: marketingSourcesData },
       perplexityContext,
     ] = await Promise.all([
       supabase
@@ -269,6 +270,12 @@ serve(async (req) => {
         .eq("status", "active")
         .order("week_start", { ascending: false })
         .limit(1),
+
+      supabase
+        .from("marketing_sources")
+        .select("source_name, category, description")
+        .eq("is_active", true)
+        .order("category"),
 
       needsPerplexityResearch(userMessage) ? callPerplexity(userMessage) : Promise.resolve(""),
     ]);
