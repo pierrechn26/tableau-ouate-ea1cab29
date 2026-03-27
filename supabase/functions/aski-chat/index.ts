@@ -709,15 +709,14 @@ ${recosContext}` : ""}`;
           },
           body: JSON.stringify({
             model: sonnetModel,
-            max_tokens: 20,
-            system: `Tu génères des titres ultra-courts (2-4 mots) pour des conversations marketing. Règles strictes :
+            max_tokens: 12,
+            system: `Génère un titre court (2-4 mots) résumant le SUJET de la demande utilisateur. Règles :
 - 2 à 4 mots maximum, jamais plus
 - En français, sans majuscule sauf noms propres
-- Pas de guillemets, pas de ponctuation finale
-- Capture le SUJET central, pas la forme de la question
-- Utilise les prénoms des personas si mentionnés (Clara, Sandrine, Marine, etc.)
-- Préfère les noms et verbes d'action aux articles`,
-            messages: [{ role: "user", content: userMessage }],
+- Pas de guillemets, pas de ponctuation
+- NE RÉPONDS PAS à la question — donne uniquement un label de sujet
+- Exemples : "newsletter mars", "stratégie Pâques", "ads Instagram Clara", "routine peau sèche"`,
+            messages: [{ role: "user", content: `Quel est le sujet de cette demande en 2-4 mots ?\n\n${userMessage}` }],
           }),
           signal: titleController.signal,
         });
