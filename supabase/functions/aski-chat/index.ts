@@ -561,7 +561,15 @@ ${perplexityContext}
 Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
 ${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
-${recosContext}` : ""}`;
+${recosContext}` : ""}
+
+${(askiMemories ?? []).length > 0 ? `=== MÉMOIRE DE LA MARQUE (${(askiMemories ?? []).length} directives confirmées) ===
+
+Ces directives ont été explicitement exprimées par l'équipe marketing lors de précédentes conversations. Respecte-les dans tes réponses :
+
+${(askiMemories ?? []).map((m: any) => `• [${m.category === "brand_directive" ? "Marque" : m.category === "content_rule" ? "Contenu" : "Canal"}] ${m.insight} (confirmé ${m.confidence}x)`).join("\n")}
+
+IMPORTANT : Ces directives sont prioritaires sur tes propres suppositions. Ne les contredis pas sauf si l'utilisateur te donne explicitement une nouvelle consigne contraire.` : ""}`;
 
     // === CONSTRUCTION DES MESSAGES ANTHROPIC ===
     // Le system prompt est un paramètre séparé — les messages ne contiennent QUE user/assistant
