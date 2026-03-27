@@ -68,12 +68,14 @@ async function callPerplexity(query: string): Promise<string> {
       },
       body: JSON.stringify({
         model: "sonar-pro",
+        search_recency_filter: "month",
         messages: [
           {
             role: "system",
             content: `Tu es un expert en marketing e-commerce DTC spécialisé dans la cosmétique enfants (4-11 ans).
+RÈGLE DE FRAÎCHEUR ABSOLUE : Ne retourne QUE des informations datant de moins de 6 mois. Ignore toute source antérieure à septembre 2025.
 Recherche les informations les plus récentes et pertinentes.
-Fournis des données chiffrées, des exemples concrets et des sources fiables.
+Fournis des données chiffrées, des exemples concrets et des sources fiables avec leur date de publication.
 Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
           },
           { role: "user", content: query },
