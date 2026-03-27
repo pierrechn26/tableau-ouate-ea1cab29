@@ -598,7 +598,7 @@ ${recosContext}` : ""}`;
         total_tokens: 0,
         api_calls: 1,
         metadata: { type: "main_response", status: isTimeout ? "timeout" : "error", error: errMsg.slice(0, 200) },
-      }).then(() => {}).catch(() => {});
+       }).then(() => console.log("LOG OK:", sonnetModel, "timeout-error")).catch((e: any) => console.error("LOG FAIL anthropic-timeout:", e.message));
 
       // ── TENTATIVE 2 : Gemini 2.5 Pro via Lovable AI Gateway ──
       console.log("[Aski] Falling back to Gemini 2.5 Pro...");
