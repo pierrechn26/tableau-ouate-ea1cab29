@@ -13,6 +13,21 @@ async function reportEdgeFunctionError(functionName: string, error: unknown, con
   } catch { /* fire-and-forget */ }
 }
 
+// Helper: log API usage with a FRESH Supabase client (same pattern as Perplexity which works)
+async function logApiUsage(payload: Record<string, unknown>) {
+  try {
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data, error } = await client.from("api_usage_logs").insert(payload).select();
+    if (error) {
+      console.error("LOG FAIL:", payload.model, error.message, error.code, error.details);
+    } else {
+      console.log("LOG OK:", payload.model, payload.metadata && (payload.metadata as any).type, "row inserted:", !!data);
+    }
+  } catch (e: any) {
+    console.error("LOG EXCEPTION:", payload.model, e.message);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
