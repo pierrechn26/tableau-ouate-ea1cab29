@@ -891,7 +891,7 @@ serve(async (req) => {
         );
       }
 
-      logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
+      await logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
 
       // ── Parse ─────────────────────────────────────────────────────
       let parsed: any;
