@@ -582,7 +582,7 @@ ${recosContext}` : ""}`;
       // Coût estimé : $3/M input, $15/M output
       const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
 
-      supabase.from("api_usage_logs").insert({
+      await logApiUsage({
         edge_function: "aski-chat",
         api_provider: "anthropic",
         model: sonnetModel,
@@ -592,7 +592,7 @@ ${recosContext}` : ""}`;
         total_tokens: totalTokens,
         api_calls: 1,
         metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
-      }).then(() => console.log("LOG OK:", sonnetModel, "main-response")).catch((e: any) => console.error("LOG FAIL anthropic-main:", e.message));
+      });
 
     } catch (sonnetError: unknown) {
       const errMsg = sonnetError instanceof Error ? sonnetError.message : String(sonnetError);
