@@ -256,6 +256,7 @@ serve(async (req) => {
       { data: latestRecos },
       { data: marketingSourcesData },
       { data: marketIntelligenceData },
+      { data: askiMemories },
       perplexityContext,
     ] = await Promise.all([
       supabase
@@ -298,6 +299,14 @@ serve(async (req) => {
         .eq("status", "complete")
         .order("month_year", { ascending: false })
         .limit(3),
+
+      supabase
+        .from("aski_memory")
+        .select("category, insight, confidence")
+        .eq("is_active", true)
+        .gte("confidence", 2)
+        .order("confidence", { ascending: false })
+        .limit(15),
 
       needsPerplexityResearch(userMessage) ? callPerplexity(userMessage) : Promise.resolve(""),
     ]);
