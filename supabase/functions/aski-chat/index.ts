@@ -652,7 +652,7 @@ ${recosContext}` : ""}`;
         const totalTokens = inputTokens + outputTokens;
         modelUsed = "gemini-2.5-pro-fallback";
 
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "google",
           model: geminiModel,
@@ -662,7 +662,7 @@ ${recosContext}` : ""}`;
           total_tokens: totalTokens,
           api_calls: 1,
           metadata: { type: "main_response", status: "success", fallback: true, sonnet_failure: isTimeout ? "timeout" : "error" },
-        }).then(() => console.log("LOG OK:", geminiModel, "fallback-success")).catch((e: any) => console.error("LOG FAIL gemini-fallback:", e.message));
+        });
 
       } catch (geminiError: unknown) {
         const geminiErrMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
