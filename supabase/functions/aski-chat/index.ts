@@ -82,7 +82,7 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
         api_calls: 1,
         metadata: { type: "web_search" },
       })
-      .then(() => {}).catch(() => {});
+      .then(() => console.log("LOG OK:", perplexityModel)).catch((e: any) => console.error("LOG FAIL perplexity:", e.message));
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
     console.error("Perplexity call failed:", err);
