@@ -68,12 +68,14 @@ async function callPerplexity(query: string): Promise<string> {
       },
       body: JSON.stringify({
         model: "sonar-pro",
+        search_recency_filter: "month",
         messages: [
           {
             role: "system",
             content: `Tu es un expert en marketing e-commerce DTC spécialisé dans la cosmétique enfants (4-11 ans).
+RÈGLE DE FRAÎCHEUR ABSOLUE : Ne retourne QUE des informations datant de moins de 6 mois. Ignore toute source antérieure à septembre 2025.
 Recherche les informations les plus récentes et pertinentes.
-Fournis des données chiffrées, des exemples concrets et des sources fiables.
+Fournis des données chiffrées, des exemples concrets et des sources fiables avec leur date de publication.
 Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
           },
           { role: "user", content: query },
@@ -253,6 +255,7 @@ serve(async (req) => {
       { data: shopifyProducts },
       { data: latestRecos },
       { data: marketingSourcesData },
+      { data: marketIntelligenceData },
       perplexityContext,
     ] = await Promise.all([
       supabase
@@ -289,6 +292,13 @@ serve(async (req) => {
         .eq("is_active", true)
         .order("category"),
 
+      supabase
+        .from("market_intelligence")
+        .select("month_year, gemini_ads_analysis, gemini_email_analysis, gemini_offers_analysis, updated_at")
+        .eq("status", "complete")
+        .order("month_year", { ascending: false })
+        .limit(3),
+
       needsPerplexityResearch(userMessage) ? callPerplexity(userMessage) : Promise.resolve(""),
     ]);
 
@@ -296,7 +306,44 @@ serve(async (req) => {
     const children = allChildren ?? [];
     const products = shopifyProducts ?? [];
     const personas = (personaRows ?? []).filter((p: any) => !p.is_pool);
-    const marketingSources = marketingSourcesData ?? [];
+    const marketIntelligence = marketIntelligenceData ?? [];
+
+    // === CONSTRUCTION SECTION INTELLIGENCE DE MARCHÉ RÉCENTE ===
+    let marketIntelPrompt = "";
+    if (marketIntelligence.length > 0) {
+      const summaries: string[] = [];
+      for (const mi of marketIntelligence) {
+        const month = mi.month_year;
+        const parts: string[] = [`Mois : ${month}`];
+
+        // Extract key insights from each Gemini analysis (truncated for context size)
+        const extractInsights = (analysis: any, label: string) => {
+          if (!analysis?.analysis) return;
+          const a = analysis.analysis;
+          const trends = Array.isArray(a.tendances_marche) ? a.tendances_marche.slice(0, 3).join(" | ") : "";
+          const errors = Array.isArray(a.erreurs_a_eviter) ? a.erreurs_a_eviter.slice(0, 2).join(" | ") : "";
+          const hooks = Array.isArray(a.hooks_performants) ? a.hooks_performants.slice(0, 3).map((h: any) => typeof h === "string" ? h : h.hook || h.title || JSON.stringify(h)).join(" | ") : "";
+          if (trends) parts.push(`  ${label} tendances : ${trends}`);
+          if (hooks) parts.push(`  ${label} hooks : ${hooks}`);
+          if (errors) parts.push(`  ${label} erreurs : ${errors}`);
+        };
+
+        extractInsights(mi.gemini_ads_analysis, "Ads");
+        extractInsights(mi.gemini_email_analysis, "Email");
+        extractInsights(mi.gemini_offers_analysis, "Offres");
+
+        if (parts.length > 1) summaries.push(parts.join("\n"));
+      }
+      if (summaries.length > 0) {
+        marketIntelPrompt = `=== INTELLIGENCE DE MARCHÉ RÉCENTE (${summaries.length} mois) ===
+
+Ces analyses sont issues de recherches de marché automatisées (Perplexity + Gemini) réalisées spécifiquement pour la marque :
+
+${summaries.join("\n\n")}
+
+Utilise ces tendances récentes comme base de tes recommandations. Elles sont plus fiables que des connaissances génériques.`;
+      }
+    }
 
     // === CONSTRUCTION SECTION SOURCES MARKETING ===
     const sourcesByCategory: Record<string, string[]> = {};
@@ -439,6 +486,13 @@ RÈGLES ABSOLUES :
 4. Les prix mentionnés doivent correspondre aux vrais prix du catalogue
 5. Quand tu cites un persona, utilise son code ET son nom (ex: "P1 Clara")
 
+RÈGLE DE FRAÎCHEUR DES SOURCES :
+- Ne cite JAMAIS de ressource, étude, benchmark ou article datant de plus de 12 mois
+- Privilégie TOUJOURS les données des 3 à 6 derniers mois quand elles sont disponibles
+- Si tu disposes de l'intelligence de marché pré-calculée (section ci-dessous), appuie-toi dessus en priorité : ces analyses sont issues de recherches récentes et vérifiées
+- Quand Perplexity fournit des résultats, vérifie mentalement leur date avant de les citer
+- Si tu n'as que des références anciennes sur un sujet, indique-le explicitement plutôt que de présenter des données obsolètes comme actuelles
+
 INTERDICTION ABSOLUE D'HALLUCINATION PRODUIT :
 - Ne cite JAMAIS un ingrédient, un composant, un claim ou un pourcentage qui ne figure pas EXPLICITEMENT dans la fiche produit du catalogue
 - Si tu ne connais pas la composition exacte d'un produit, dis-le clairement plutôt que d'inventer
@@ -490,10 +544,12 @@ Mois actuel : ${currentMonthSessions} sessions | Mois précédent : ${prevMonthS
 
 ${marketingSourcesPrompt}
 
-${perplexityContext ? `=== RECHERCHE TEMPS RÉEL (Perplexity sonar-pro) ===
+${marketIntelPrompt ? `${marketIntelPrompt}
+
+` : ""}${perplexityContext ? `=== RECHERCHE TEMPS RÉEL (Perplexity sonar-pro) ===
 ${perplexityContext}
 
-Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes.` : ""}
+Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
 ${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
 ${recosContext}` : ""}`;
