@@ -668,7 +668,7 @@ ${recosContext}` : ""}`;
         const geminiErrMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
         console.error(`[Aski] Gemini fallback also failed: ${geminiErrMsg}`);
 
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "google",
           model: geminiModel,
@@ -678,7 +678,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", fallback: true, error: geminiErrMsg.slice(0, 200) },
-        }).then(() => console.log("LOG OK:", geminiModel, "fallback-error")).catch((e: any) => console.error("LOG FAIL gemini-fallback-error:", e.message));
+        });
 
         return new Response(JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
