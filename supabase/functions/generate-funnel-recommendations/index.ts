@@ -168,9 +168,10 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content ?? "[]";
 
-    // Fire-and-forget: log Gemini usage (model captured dynamically from body)
-    const geminiModelUsed = "google/gemini-2.5-flash";
-    const geminiTokens = aiData.usage?.total_tokens || 0;
+    // Log Gemini usage (model captured dynamically from variable above)
+    const geminiInputTokens = aiData.usage?.prompt_tokens || 0;
+    const geminiOutputTokens = aiData.usage?.completion_tokens || 0;
+    const geminiTokens = aiData.usage?.total_tokens || (geminiInputTokens + geminiOutputTokens);
     supabase
       .from("api_usage_logs")
       .insert({
@@ -178,10 +179,12 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown :
         api_provider: "lovable-ai",
         model: geminiModelUsed,
         tokens_used: geminiTokens,
+        input_tokens: geminiInputTokens,
+        output_tokens: geminiOutputTokens,
         total_tokens: geminiTokens,
         api_calls: 1,
       })
-      .then(() => {}).catch(() => {});
+      .then(() => console.log("LOG OK:", geminiModelUsed)).catch((e: any) => console.error("LOG FAIL funnel:", e.message));
 
     // Parse JSON from AI response (handle possible markdown wrapping)
     let recommendations: { step: string; issue: string; recommendation: string; kept_from_previous?: boolean }[];

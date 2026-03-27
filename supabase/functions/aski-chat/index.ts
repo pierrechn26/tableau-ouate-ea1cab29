@@ -82,7 +82,7 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
         api_calls: 1,
         metadata: { type: "web_search" },
       })
-      .then(() => {}).catch(() => {});
+      .then(() => console.log("LOG OK:", perplexityModel)).catch((e: any) => console.error("LOG FAIL perplexity:", e.message));
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
     console.error("Perplexity call failed:", err);
@@ -555,7 +555,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", http_status: aiResponse.status, error: errText.slice(0, 200) },
-        }).then(() => {}).catch(() => {});
+        }).then(() => console.log("LOG OK:", sonnetModel, "error-attempt")).catch((e: any) => console.error("LOG FAIL anthropic-error:", e.message));
         throw new Error(`Anthropic API error ${aiResponse.status}`);
       }
 
@@ -580,7 +580,7 @@ ${recosContext}` : ""}`;
         total_tokens: totalTokens,
         api_calls: 1,
         metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
-      }).then(() => {}).catch(() => {});
+      }).then(() => console.log("LOG OK:", sonnetModel, "main-response")).catch((e: any) => console.error("LOG FAIL anthropic-main:", e.message));
 
     } catch (sonnetError: unknown) {
       const errMsg = sonnetError instanceof Error ? sonnetError.message : String(sonnetError);
@@ -598,7 +598,7 @@ ${recosContext}` : ""}`;
         total_tokens: 0,
         api_calls: 1,
         metadata: { type: "main_response", status: isTimeout ? "timeout" : "error", error: errMsg.slice(0, 200) },
-      }).then(() => {}).catch(() => {});
+       }).then(() => console.log("LOG OK:", sonnetModel, "timeout-error")).catch((e: any) => console.error("LOG FAIL anthropic-timeout:", e.message));
 
       // ── TENTATIVE 2 : Gemini 2.5 Pro via Lovable AI Gateway ──
       console.log("[Aski] Falling back to Gemini 2.5 Pro...");
@@ -650,7 +650,7 @@ ${recosContext}` : ""}`;
           total_tokens: totalTokens,
           api_calls: 1,
           metadata: { type: "main_response", status: "success", fallback: true, sonnet_failure: isTimeout ? "timeout" : "error" },
-        }).then(() => {}).catch(() => {});
+        }).then(() => console.log("LOG OK:", geminiModel, "fallback-success")).catch((e: any) => console.error("LOG FAIL gemini-fallback:", e.message));
 
       } catch (geminiError: unknown) {
         const geminiErrMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
@@ -666,7 +666,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", fallback: true, error: geminiErrMsg.slice(0, 200) },
-        }).then(() => {}).catch(() => {});
+        }).then(() => console.log("LOG OK:", geminiModel, "fallback-error")).catch((e: any) => console.error("LOG FAIL gemini-fallback-error:", e.message));
 
         return new Response(JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -720,7 +720,7 @@ ${recosContext}` : ""}`;
             total_tokens: titleTokens,
             api_calls: 1,
             metadata: { type: "title_generation" },
-          }).then(() => {}).catch(() => {});
+          }).then(() => console.log("LOG OK:", sonnetModel, "title-generation")).catch((e: any) => console.error("LOG FAIL anthropic-title:", e.message));
         }
       } catch {
         chatTitle = userMessage.slice(0, 40);
