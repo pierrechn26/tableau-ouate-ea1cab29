@@ -555,7 +555,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", http_status: aiResponse.status, error: errText.slice(0, 200) },
-        }).then(() => {}).catch(() => {});
+        }).then(() => console.log("LOG OK:", sonnetModel, "error-attempt")).catch((e: any) => console.error("LOG FAIL anthropic-error:", e.message));
         throw new Error(`Anthropic API error ${aiResponse.status}`);
       }
 
