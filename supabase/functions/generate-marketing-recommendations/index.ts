@@ -768,7 +768,7 @@ serve(async (req) => {
         const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
 
         const { text, tokens, inputTokens, outputTokens, modelUsed } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
-        logUsage(supabase, "anthropic", modelUsed, { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: tokens }, { type: "finalize", rec_id: recommendation_id });
+        await logUsage(supabase, "anthropic", modelUsed, { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: tokens }, { type: "finalize", rec_id: recommendation_id });
 
         let parsed: any;
         try {
