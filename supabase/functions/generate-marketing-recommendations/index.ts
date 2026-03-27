@@ -61,7 +61,7 @@ function cleanJsonResponse(raw: string): string {
   return cleaned.trim();
 }
 
-function logUsage(
+async function logUsage(
   supabase: any,
   provider: string,
   model: string,
@@ -71,21 +71,25 @@ function logUsage(
   const inputTokens = typeof usage === "number" ? 0 : (usage.input_tokens || 0);
   const outputTokens = typeof usage === "number" ? 0 : (usage.output_tokens || 0);
   const totalTokens = typeof usage === "number" ? usage : (usage.total_tokens || (inputTokens + outputTokens));
-  supabase
-    .from("api_usage_logs")
-    .insert({
-      edge_function: "generate-marketing-recommendations",
-      api_provider: provider,
-      model,
-      tokens_used: totalTokens,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      total_tokens: totalTokens,
-      api_calls: 1,
-      metadata: metadata || {},
-    })
-    .then(() => console.log("LOG OK:", model))
-    .catch((e: any) => console.error("LOG FAIL marketing:", e.message));
+  try {
+    const { error } = await supabase
+      .from("api_usage_logs")
+      .insert({
+        edge_function: "generate-marketing-recommendations",
+        api_provider: provider,
+        model,
+        tokens_used: totalTokens,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        api_calls: 1,
+        metadata: metadata || {},
+      });
+    if (error) console.error("LOG FAIL marketing:", model, error.message);
+    else console.log("LOG OK:", model);
+  } catch (e: any) {
+    console.error("LOG EXCEPTION marketing:", model, e.message);
+  }
 }
 
 const PROJECT_ID = "ouate";
