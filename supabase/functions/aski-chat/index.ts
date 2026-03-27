@@ -306,7 +306,44 @@ serve(async (req) => {
     const children = allChildren ?? [];
     const products = shopifyProducts ?? [];
     const personas = (personaRows ?? []).filter((p: any) => !p.is_pool);
-    const marketingSources = marketingSourcesData ?? [];
+    const marketIntelligence = marketIntelligenceData ?? [];
+
+    // === CONSTRUCTION SECTION INTELLIGENCE DE MARCHÉ RÉCENTE ===
+    let marketIntelPrompt = "";
+    if (marketIntelligence.length > 0) {
+      const summaries: string[] = [];
+      for (const mi of marketIntelligence) {
+        const month = mi.month_year;
+        const parts: string[] = [`Mois : ${month}`];
+
+        // Extract key insights from each Gemini analysis (truncated for context size)
+        const extractInsights = (analysis: any, label: string) => {
+          if (!analysis?.analysis) return;
+          const a = analysis.analysis;
+          const trends = Array.isArray(a.tendances_marche) ? a.tendances_marche.slice(0, 3).join(" | ") : "";
+          const errors = Array.isArray(a.erreurs_a_eviter) ? a.erreurs_a_eviter.slice(0, 2).join(" | ") : "";
+          const hooks = Array.isArray(a.hooks_performants) ? a.hooks_performants.slice(0, 3).map((h: any) => typeof h === "string" ? h : h.hook || h.title || JSON.stringify(h)).join(" | ") : "";
+          if (trends) parts.push(`  ${label} tendances : ${trends}`);
+          if (hooks) parts.push(`  ${label} hooks : ${hooks}`);
+          if (errors) parts.push(`  ${label} erreurs : ${errors}`);
+        };
+
+        extractInsights(mi.gemini_ads_analysis, "Ads");
+        extractInsights(mi.gemini_email_analysis, "Email");
+        extractInsights(mi.gemini_offers_analysis, "Offres");
+
+        if (parts.length > 1) summaries.push(parts.join("\n"));
+      }
+      if (summaries.length > 0) {
+        marketIntelPrompt = `=== INTELLIGENCE DE MARCHÉ RÉCENTE (${summaries.length} mois) ===
+
+Ces analyses sont issues de recherches de marché automatisées (Perplexity + Gemini) réalisées spécifiquement pour ${brandName || "la marque"} :
+
+${summaries.join("\n\n")}
+
+Utilise ces tendances récentes comme base de tes recommandations. Elles sont plus fiables que des connaissances génériques.`;
+      }
+    }
 
     // === CONSTRUCTION SECTION SOURCES MARKETING ===
     const sourcesByCategory: Record<string, string[]> = {};
