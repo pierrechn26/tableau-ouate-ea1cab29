@@ -80,6 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      aski_memory: {
+        Row: {
+          category: string
+          confidence: number
+          created_at: string
+          expires_at: string
+          id: string
+          insight: string
+          is_active: boolean
+          last_confirmed_at: string
+          source_chat_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          confidence?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          insight: string
+          is_active?: boolean
+          last_confirmed_at?: string
+          source_chat_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          confidence?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          insight?: string
+          is_active?: boolean
+          last_confirmed_at?: string
+          source_chat_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       aski_messages: {
         Row: {
           chat_id: string

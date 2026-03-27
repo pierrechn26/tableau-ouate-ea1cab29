@@ -256,6 +256,7 @@ serve(async (req) => {
       { data: latestRecos },
       { data: marketingSourcesData },
       { data: marketIntelligenceData },
+      { data: askiMemories },
       perplexityContext,
     ] = await Promise.all([
       supabase
@@ -298,6 +299,14 @@ serve(async (req) => {
         .eq("status", "complete")
         .order("month_year", { ascending: false })
         .limit(3),
+
+      supabase
+        .from("aski_memory")
+        .select("category, insight, confidence")
+        .eq("is_active", true)
+        .gte("confidence", 2)
+        .order("confidence", { ascending: false })
+        .limit(15),
 
       needsPerplexityResearch(userMessage) ? callPerplexity(userMessage) : Promise.resolve(""),
     ]);
@@ -552,7 +561,15 @@ ${perplexityContext}
 Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
 ${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
-${recosContext}` : ""}`;
+${recosContext}` : ""}
+
+${(askiMemories ?? []).length > 0 ? `=== MÉMOIRE DE LA MARQUE (${(askiMemories ?? []).length} directives confirmées) ===
+
+Ces directives ont été explicitement exprimées par l'équipe marketing lors de précédentes conversations. Respecte-les dans tes réponses :
+
+${(askiMemories ?? []).map((m: any) => `• [${m.category === "brand_directive" ? "Marque" : m.category === "content_rule" ? "Contenu" : "Canal"}] ${m.insight} (confirmé ${m.confidence}x)`).join("\n")}
+
+IMPORTANT : Ces directives sont prioritaires sur tes propres suppositions. Ne les contredis pas sauf si l'utilisateur te donne explicitement une nouvelle consigne contraire.` : ""}`;
 
     // === CONSTRUCTION DES MESSAGES ANTHROPIC ===
     // Le system prompt est un paramètre séparé — les messages ne contiennent QUE user/assistant
