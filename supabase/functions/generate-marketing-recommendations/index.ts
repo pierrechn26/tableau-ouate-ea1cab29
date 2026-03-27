@@ -61,7 +61,7 @@ function cleanJsonResponse(raw: string): string {
   return cleaned.trim();
 }
 
-function logUsage(
+async function logUsage(
   supabase: any,
   provider: string,
   model: string,
@@ -71,21 +71,25 @@ function logUsage(
   const inputTokens = typeof usage === "number" ? 0 : (usage.input_tokens || 0);
   const outputTokens = typeof usage === "number" ? 0 : (usage.output_tokens || 0);
   const totalTokens = typeof usage === "number" ? usage : (usage.total_tokens || (inputTokens + outputTokens));
-  supabase
-    .from("api_usage_logs")
-    .insert({
-      edge_function: "generate-marketing-recommendations",
-      api_provider: provider,
-      model,
-      tokens_used: totalTokens,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      total_tokens: totalTokens,
-      api_calls: 1,
-      metadata: metadata || {},
-    })
-    .then(() => console.log("LOG OK:", model))
-    .catch((e: any) => console.error("LOG FAIL marketing:", e.message));
+  try {
+    const { error } = await supabase
+      .from("api_usage_logs")
+      .insert({
+        edge_function: "generate-marketing-recommendations",
+        api_provider: provider,
+        model,
+        tokens_used: totalTokens,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        api_calls: 1,
+        metadata: metadata || {},
+      });
+    if (error) console.error("LOG FAIL marketing:", model, error.message);
+    else console.log("LOG OK:", model);
+  } catch (e: any) {
+    console.error("LOG EXCEPTION marketing:", model, e.message);
+  }
 }
 
 const PROJECT_ID = "ouate";
@@ -764,7 +768,7 @@ serve(async (req) => {
         const finalizePrompt = buildFinalizePrompt(existingRec, intelligence);
 
         const { text, tokens, inputTokens, outputTokens, modelUsed } = await callSonnet(baseSystem, finalizePrompt, 16000, 130000);
-        logUsage(supabase, "anthropic", modelUsed, { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: tokens }, { type: "finalize", rec_id: recommendation_id });
+        await logUsage(supabase, "anthropic", modelUsed, { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: tokens }, { type: "finalize", rec_id: recommendation_id });
 
         let parsed: any;
         try {
@@ -887,7 +891,7 @@ serve(async (req) => {
         );
       }
 
-      logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
+      await logUsage(supabase, "anthropic", sonnetModelUsed!, { input_tokens: sonnetInputTokens!, output_tokens: sonnetOutputTokens!, total_tokens: sonnetTokens! }, { type, has_rec_id: !!recommendation_id });
 
       // ── Parse ─────────────────────────────────────────────────────
       let parsed: any;
@@ -971,7 +975,7 @@ serve(async (req) => {
             const items = category === "ads" ? adsItems : category === "offers" ? offersItems : emailsItems;
             const miniPrompt = buildMiniChecklistPrompt(category as any, items, intelligence);
             const { text: miniText, tokens: miniTokens, inputTokens: miniInput, outputTokens: miniOutput, modelUsed: miniModel } = await callSonnet(baseSystem, miniPrompt, 1500, 30000);
-            logUsage(supabase, "anthropic", miniModel, { input_tokens: miniInput, output_tokens: miniOutput, total_tokens: miniTokens }, { type: "mini_checklist", category });
+            await logUsage(supabase, "anthropic", miniModel, { input_tokens: miniInput, output_tokens: miniOutput, total_tokens: miniTokens }, { type: "mini_checklist", category });
             const mini = JSON.parse(cleanJsonResponse(miniText));
             checklistItems = mini.checklist || [];
             personaFocus = mini.persona_focus || {};
