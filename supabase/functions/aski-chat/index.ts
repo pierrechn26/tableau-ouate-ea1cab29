@@ -13,6 +13,21 @@ async function reportEdgeFunctionError(functionName: string, error: unknown, con
   } catch { /* fire-and-forget */ }
 }
 
+// Helper: log API usage with a FRESH Supabase client (same pattern as Perplexity which works)
+async function logApiUsage(payload: Record<string, unknown>) {
+  try {
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data, error } = await client.from("api_usage_logs").insert(payload).select();
+    if (error) {
+      console.error("LOG FAIL:", payload.model, error.message, error.code, error.details);
+    } else {
+      console.log("LOG OK:", payload.model, payload.metadata && (payload.metadata as any).type, "row inserted:", !!data);
+    }
+  } catch (e: any) {
+    console.error("LOG EXCEPTION:", payload.model, e.message);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -68,21 +83,18 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
     });
 
     const data = await response.json();
-    // Fire-and-forget: log Perplexity usage
+    // Log Perplexity usage
     const perplexityModel = "sonar-pro";
     const perplexityTotalTokens = data.usage?.total_tokens || 0;
-    createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-      .from("api_usage_logs")
-      .insert({
-        edge_function: "aski-chat",
-        api_provider: "perplexity",
-        model: perplexityModel,
-        tokens_used: perplexityTotalTokens,
-        total_tokens: perplexityTotalTokens,
-        api_calls: 1,
-        metadata: { type: "web_search" },
-      })
-      .then(() => console.log("LOG OK:", perplexityModel)).catch((e: any) => console.error("LOG FAIL perplexity:", e.message));
+    logApiUsage({
+      edge_function: "aski-chat",
+      api_provider: "perplexity",
+      model: perplexityModel,
+      tokens_used: perplexityTotalTokens,
+      total_tokens: perplexityTotalTokens,
+      api_calls: 1,
+      metadata: { type: "web_search" },
+    });
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
     console.error("Perplexity call failed:", err);
@@ -545,7 +557,7 @@ ${recosContext}` : ""}`;
         const errText = await aiResponse.text();
         console.error(`[Aski] Anthropic error ${aiResponse.status}:`, errText);
         // Log échec Sonnet
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "anthropic",
           model: sonnetModel,
@@ -555,7 +567,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", http_status: aiResponse.status, error: errText.slice(0, 200) },
-        }).then(() => console.log("LOG OK:", sonnetModel, "error-attempt")).catch((e: any) => console.error("LOG FAIL anthropic-error:", e.message));
+        });
         throw new Error(`Anthropic API error ${aiResponse.status}`);
       }
 
@@ -570,7 +582,7 @@ ${recosContext}` : ""}`;
       // Coût estimé : $3/M input, $15/M output
       const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
 
-      supabase.from("api_usage_logs").insert({
+      await logApiUsage({
         edge_function: "aski-chat",
         api_provider: "anthropic",
         model: sonnetModel,
@@ -580,7 +592,7 @@ ${recosContext}` : ""}`;
         total_tokens: totalTokens,
         api_calls: 1,
         metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
-      }).then(() => console.log("LOG OK:", sonnetModel, "main-response")).catch((e: any) => console.error("LOG FAIL anthropic-main:", e.message));
+      });
 
     } catch (sonnetError: unknown) {
       const errMsg = sonnetError instanceof Error ? sonnetError.message : String(sonnetError);
@@ -588,7 +600,7 @@ ${recosContext}` : ""}`;
       console.error(`[Aski] Sonnet failed (${isTimeout ? "timeout" : "error"}): ${errMsg}`);
 
       // Log tentative échouée Sonnet
-      supabase.from("api_usage_logs").insert({
+      await logApiUsage({
         edge_function: "aski-chat",
         api_provider: "anthropic",
         model: sonnetModel,
@@ -598,7 +610,7 @@ ${recosContext}` : ""}`;
         total_tokens: 0,
         api_calls: 1,
         metadata: { type: "main_response", status: isTimeout ? "timeout" : "error", error: errMsg.slice(0, 200) },
-       }).then(() => console.log("LOG OK:", sonnetModel, "timeout-error")).catch((e: any) => console.error("LOG FAIL anthropic-timeout:", e.message));
+      });
 
       // ── TENTATIVE 2 : Gemini 2.5 Pro via Lovable AI Gateway ──
       console.log("[Aski] Falling back to Gemini 2.5 Pro...");
@@ -640,7 +652,7 @@ ${recosContext}` : ""}`;
         const totalTokens = inputTokens + outputTokens;
         modelUsed = "gemini-2.5-pro-fallback";
 
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "google",
           model: geminiModel,
@@ -650,13 +662,13 @@ ${recosContext}` : ""}`;
           total_tokens: totalTokens,
           api_calls: 1,
           metadata: { type: "main_response", status: "success", fallback: true, sonnet_failure: isTimeout ? "timeout" : "error" },
-        }).then(() => console.log("LOG OK:", geminiModel, "fallback-success")).catch((e: any) => console.error("LOG FAIL gemini-fallback:", e.message));
+        });
 
       } catch (geminiError: unknown) {
         const geminiErrMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
         console.error(`[Aski] Gemini fallback also failed: ${geminiErrMsg}`);
 
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "google",
           model: geminiModel,
@@ -666,7 +678,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", fallback: true, error: geminiErrMsg.slice(0, 200) },
-        }).then(() => console.log("LOG OK:", geminiModel, "fallback-error")).catch((e: any) => console.error("LOG FAIL gemini-fallback-error:", e.message));
+        });
 
         return new Response(JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }), {
           status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -710,7 +722,7 @@ ${recosContext}` : ""}`;
         // Fire-and-forget: log title generation
         const titleTokens = (titleData.usage?.input_tokens ?? 0) + (titleData.usage?.output_tokens ?? 0);
         if (titleTokens > 0) {
-          supabase.from("api_usage_logs").insert({
+          await logApiUsage({
             edge_function: "aski-chat",
             api_provider: "anthropic",
             model: sonnetModel,
@@ -720,7 +732,7 @@ ${recosContext}` : ""}`;
             total_tokens: titleTokens,
             api_calls: 1,
             metadata: { type: "title_generation" },
-          }).then(() => console.log("LOG OK:", sonnetModel, "title-generation")).catch((e: any) => console.error("LOG FAIL anthropic-title:", e.message));
+          });
         }
       } catch {
         chatTitle = userMessage.slice(0, 40);
