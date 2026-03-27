@@ -600,7 +600,7 @@ ${recosContext}` : ""}`;
       console.error(`[Aski] Sonnet failed (${isTimeout ? "timeout" : "error"}): ${errMsg}`);
 
       // Log tentative échouée Sonnet
-      supabase.from("api_usage_logs").insert({
+      await logApiUsage({
         edge_function: "aski-chat",
         api_provider: "anthropic",
         model: sonnetModel,
@@ -610,7 +610,7 @@ ${recosContext}` : ""}`;
         total_tokens: 0,
         api_calls: 1,
         metadata: { type: "main_response", status: isTimeout ? "timeout" : "error", error: errMsg.slice(0, 200) },
-       }).then(() => console.log("LOG OK:", sonnetModel, "timeout-error")).catch((e: any) => console.error("LOG FAIL anthropic-timeout:", e.message));
+      });
 
       // ── TENTATIVE 2 : Gemini 2.5 Pro via Lovable AI Gateway ──
       console.log("[Aski] Falling back to Gemini 2.5 Pro...");
