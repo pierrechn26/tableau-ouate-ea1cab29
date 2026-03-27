@@ -544,10 +544,12 @@ Mois actuel : ${currentMonthSessions} sessions | Mois précédent : ${prevMonthS
 
 ${marketingSourcesPrompt}
 
-${perplexityContext ? `=== RECHERCHE TEMPS RÉEL (Perplexity sonar-pro) ===
+${marketIntelPrompt ? `${marketIntelPrompt}
+
+` : ""}${perplexityContext ? `=== RECHERCHE TEMPS RÉEL (Perplexity sonar-pro) ===
 ${perplexityContext}
 
-Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes.` : ""}
+Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
 ${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
 ${recosContext}` : ""}`;
