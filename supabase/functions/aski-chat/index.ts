@@ -557,7 +557,7 @@ ${recosContext}` : ""}`;
         const errText = await aiResponse.text();
         console.error(`[Aski] Anthropic error ${aiResponse.status}:`, errText);
         // Log échec Sonnet
-        supabase.from("api_usage_logs").insert({
+        await logApiUsage({
           edge_function: "aski-chat",
           api_provider: "anthropic",
           model: sonnetModel,
@@ -567,7 +567,7 @@ ${recosContext}` : ""}`;
           total_tokens: 0,
           api_calls: 1,
           metadata: { type: "main_response", status: "error", http_status: aiResponse.status, error: errText.slice(0, 200) },
-        }).then(() => console.log("LOG OK:", sonnetModel, "error-attempt")).catch((e: any) => console.error("LOG FAIL anthropic-error:", e.message));
+        });
         throw new Error(`Anthropic API error ${aiResponse.status}`);
       }
 
