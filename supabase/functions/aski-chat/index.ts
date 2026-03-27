@@ -337,7 +337,7 @@ serve(async (req) => {
       if (summaries.length > 0) {
         marketIntelPrompt = `=== INTELLIGENCE DE MARCHÉ RÉCENTE (${summaries.length} mois) ===
 
-Ces analyses sont issues de recherches de marché automatisées (Perplexity + Gemini) réalisées spécifiquement pour ${brandName || "la marque"} :
+Ces analyses sont issues de recherches de marché automatisées (Perplexity + Gemini) réalisées spécifiquement pour la marque :
 
 ${summaries.join("\n\n")}
 
