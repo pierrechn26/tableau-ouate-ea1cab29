@@ -83,21 +83,18 @@ Réponds en français. Sois concis et actionnable. Maximum 400 mots.`,
     });
 
     const data = await response.json();
-    // Fire-and-forget: log Perplexity usage
+    // Log Perplexity usage
     const perplexityModel = "sonar-pro";
     const perplexityTotalTokens = data.usage?.total_tokens || 0;
-    createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-      .from("api_usage_logs")
-      .insert({
-        edge_function: "aski-chat",
-        api_provider: "perplexity",
-        model: perplexityModel,
-        tokens_used: perplexityTotalTokens,
-        total_tokens: perplexityTotalTokens,
-        api_calls: 1,
-        metadata: { type: "web_search" },
-      })
-      .then(() => console.log("LOG OK:", perplexityModel)).catch((e: any) => console.error("LOG FAIL perplexity:", e.message));
+    logApiUsage({
+      edge_function: "aski-chat",
+      api_provider: "perplexity",
+      model: perplexityModel,
+      tokens_used: perplexityTotalTokens,
+      total_tokens: perplexityTotalTokens,
+      api_calls: 1,
+      metadata: { type: "web_search" },
+    });
     return data.choices?.[0]?.message?.content || "";
   } catch (err) {
     console.error("Perplexity call failed:", err);
