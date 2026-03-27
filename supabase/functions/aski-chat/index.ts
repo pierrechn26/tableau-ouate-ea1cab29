@@ -720,7 +720,7 @@ ${recosContext}` : ""}`;
             total_tokens: titleTokens,
             api_calls: 1,
             metadata: { type: "title_generation" },
-          }).then(() => {}).catch(() => {});
+          }).then(() => console.log("LOG OK:", sonnetModel, "title-generation")).catch((e: any) => console.error("LOG FAIL anthropic-title:", e.message));
         }
       } catch {
         chatTitle = userMessage.slice(0, 40);

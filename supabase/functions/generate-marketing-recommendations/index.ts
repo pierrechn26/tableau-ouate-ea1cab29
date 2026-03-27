@@ -84,8 +84,8 @@ function logUsage(
       api_calls: 1,
       metadata: metadata || {},
     })
-    .then(() => {})
-    .catch(() => {});
+    .then(() => console.log("LOG OK:", model))
+    .catch((e: any) => console.error("LOG FAIL marketing:", e.message));
 }
 
 const PROJECT_ID = "ouate";
