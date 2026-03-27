@@ -580,7 +580,7 @@ ${recosContext}` : ""}`;
         total_tokens: totalTokens,
         api_calls: 1,
         metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
-      }).then(() => {}).catch(() => {});
+      }).then(() => console.log("LOG OK:", sonnetModel, "main-response")).catch((e: any) => console.error("LOG FAIL anthropic-main:", e.message));
 
     } catch (sonnetError: unknown) {
       const errMsg = sonnetError instanceof Error ? sonnetError.message : String(sonnetError);
