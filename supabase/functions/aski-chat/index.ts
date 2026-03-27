@@ -720,19 +720,23 @@ ${recosContext}` : ""}`;
         const titleData = await titleResponse.json();
         chatTitle = titleData.content?.[0]?.text?.trim() ?? "Nouvelle conversation";
 
-        // Fire-and-forget: log title generation
-        const titleTokens = (titleData.usage?.input_tokens ?? 0) + (titleData.usage?.output_tokens ?? 0);
+        // Fire-and-forget: log title generation with cache tokens
+        const titleInput = titleData.usage?.input_tokens ?? 0;
+        const titleOutput = titleData.usage?.output_tokens ?? 0;
+        const titleCacheCreation = titleData.usage?.cache_creation_input_tokens ?? 0;
+        const titleCacheRead = titleData.usage?.cache_read_input_tokens ?? 0;
+        const titleTokens = titleInput + titleOutput + titleCacheCreation + titleCacheRead;
         if (titleTokens > 0) {
           await logApiUsage({
             edge_function: "aski-chat",
             api_provider: "anthropic",
             model: sonnetModel,
             tokens_used: titleTokens,
-            input_tokens: titleData.usage?.input_tokens ?? 0,
-            output_tokens: titleData.usage?.output_tokens ?? 0,
+            input_tokens: titleInput + titleCacheCreation + titleCacheRead,
+            output_tokens: titleOutput,
             total_tokens: titleTokens,
             api_calls: 1,
-            metadata: { type: "title_generation" },
+            metadata: { type: "title_generation", cache_creation_tokens: titleCacheCreation, cache_read_tokens: titleCacheRead },
           });
         }
       } catch {
