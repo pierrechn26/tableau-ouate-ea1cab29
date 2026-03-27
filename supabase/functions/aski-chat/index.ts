@@ -383,7 +383,12 @@ Appuie-toi sur ces ressources pour orienter tes recommandations quand c'est pert
     const brandName = "Ouate Paris";
     const brandTone = "Ton bienveillant, expert et rassurant. Vocabulaire naturel et doux adapté à l'univers des soins pour enfants. Éviter le jargon marketing agressif. Privilégier les formulations positives et rassurantes pour les parents.";
 
+    const today = new Date().toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
     const systemPrompt = `Tu es Aski, l'assistant IA du dashboard Ask-It pour la marque ${brandName}.
+
+DATE DU JOUR : ${today}
+Utilise cette date comme référence pour tout planning, calendrier commercial, saisonnalité ou échéance.
 
 TON RÔLE :
 Tu aides l'équipe marketing de la marque à comprendre leurs données, exploiter leurs personas, et prendre des décisions marketing éclairées. Tu as accès à toutes les données du diagnostic, les personas, les métriques de vente et le catalogue produits.
