@@ -722,7 +722,7 @@ ${recosContext}` : ""}`;
         // Fire-and-forget: log title generation
         const titleTokens = (titleData.usage?.input_tokens ?? 0) + (titleData.usage?.output_tokens ?? 0);
         if (titleTokens > 0) {
-          supabase.from("api_usage_logs").insert({
+          await logApiUsage({
             edge_function: "aski-chat",
             api_provider: "anthropic",
             model: sonnetModel,
@@ -732,7 +732,7 @@ ${recosContext}` : ""}`;
             total_tokens: titleTokens,
             api_calls: 1,
             metadata: { type: "title_generation" },
-          }).then(() => console.log("LOG OK:", sonnetModel, "title-generation")).catch((e: any) => console.error("LOG FAIL anthropic-title:", e.message));
+          });
         }
       } catch {
         chatTitle = userMessage.slice(0, 40);
