@@ -575,23 +575,24 @@ ${recosContext}` : ""}`;
       responseText = aiData.content?.[0]?.text ?? "";
       inputTokens = aiData.usage?.input_tokens ?? 0;
       outputTokens = aiData.usage?.output_tokens ?? 0;
-      const totalTokens = inputTokens + outputTokens;
+      const cacheCreationTokens = aiData.usage?.cache_creation_input_tokens ?? 0;
+      const cacheReadTokens = aiData.usage?.cache_read_input_tokens ?? 0;
+      const totalTokens = inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens;
       modelUsed = sonnetModel;
       sonnetSucceeded = true;
 
-      // Coût estimé : $3/M input, $15/M output
-      const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000);
+      const estimatedCostUsd = (inputTokens * 3 / 1_000_000) + (outputTokens * 15 / 1_000_000) + (cacheCreationTokens * 3.75 / 1_000_000) + (cacheReadTokens * 0.30 / 1_000_000);
 
       await logApiUsage({
         edge_function: "aski-chat",
         api_provider: "anthropic",
         model: sonnetModel,
         tokens_used: totalTokens,
-        input_tokens: inputTokens,
+        input_tokens: inputTokens + cacheCreationTokens + cacheReadTokens,
         output_tokens: outputTokens,
         total_tokens: totalTokens,
         api_calls: 1,
-        metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd },
+        metadata: { type: "main_response", status: "success", estimated_cost_usd: estimatedCostUsd, cache_creation_tokens: cacheCreationTokens, cache_read_tokens: cacheReadTokens },
       });
 
     } catch (sonnetError: unknown) {
