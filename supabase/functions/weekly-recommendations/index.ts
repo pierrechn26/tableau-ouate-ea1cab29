@@ -1,8 +1,10 @@
 // ============================================================
 // weekly-recommendations — Cron hebdomadaire (lundi 07:00 UTC)
 // Génère automatiquement les recommandations marketing V3
-// Architecture : market_intelligence pré-calculée + Claude Sonnet 4.6
+// Architecture : market_intelligence pré-calculée + Claude Sonnet
 // Chaque recommandation = 1 ligne = 1 appel Sonnet
+// BATCH MODE: max 3 recos per invocation (~135s) to stay within
+// Supabase 150s timeout. Re-invoke to generate more.
 // ============================================================
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -14,6 +16,7 @@ const corsHeaders = {
 };
 
 const PROJECT_ID = "ouate";
+const MAX_RECOS_PER_INVOCATION = 3;
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -64,7 +67,7 @@ async function logUsage(
   metadata?: Record<string, any>
 ) {
   try {
-    await supabase.from("api_usage_logs").insert({
+    const { error } = await supabase.from("api_usage_logs").insert({
       edge_function: "weekly-recommendations",
       api_provider: provider,
       model,
@@ -75,16 +78,19 @@ async function logUsage(
       api_calls: 1,
       metadata: metadata || {},
     });
+    if (error) console.error("LOG INSERT ERROR:", error.message);
   } catch (e: any) {
     console.error("LOG EXCEPTION:", e.message);
   }
 }
 
-// ── Claude Sonnet 4.6 ─────────────────────────────────────────────────
+// ── Claude Sonnet ─────────────────────────────────────────────────
+
+const SONNET_MODEL = "claude-sonnet-4-20250514";
 
 async function callSonnet(
   systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs = 120000
-): Promise<{ text: string; inputTokens: number; outputTokens: number; totalTokens: number }> {
+): Promise<{ text: string; inputTokens: number; outputTokens: number; totalTokens: number; model: string }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
@@ -99,7 +105,7 @@ async function callSonnet(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: SONNET_MODEL,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: "user", content: userPrompt }],
@@ -112,11 +118,13 @@ async function callSonnet(
       throw new Error(`Sonnet error ${response.status}: ${errText}`);
     }
     const data = await response.json();
-    const inputTokens = data.usage?.input_tokens || 0;
-    const outputTokens = data.usage?.output_tokens || 0;
+    const inputTokens = data.usage?.input_tokens ?? 0;
+    const outputTokens = data.usage?.output_tokens ?? 0;
+    const actualModel = data.model || SONNET_MODEL;
     const text = data.content?.[0]?.text;
     if (!text) throw new Error("Empty response from Sonnet");
-    return { text, inputTokens, outputTokens, totalTokens: inputTokens + outputTokens };
+    console.log(`[weekly-recs] Sonnet response: ${inputTokens} in / ${outputTokens} out tokens`);
+    return { text, inputTokens, outputTokens, totalTokens: inputTokens + outputTokens, model: actualModel };
   } catch (e) {
     clearTimeout(timeout);
     throw e;
@@ -183,6 +191,8 @@ serve(async (req) => {
     // STEP 1 : CHARGEMENT DU CONTEXTE
     // ════════════════════════════════════════════════════════
 
+    const weekStart = getMonday(new Date());
+
     // A) Plan client
     const { data: planData } = await supabase
       .from("client_plan")
@@ -198,9 +208,32 @@ serve(async (req) => {
     const planName = planData?.plan ?? "growth";
     const limits = planLimits[planName] ?? planLimits.growth;
     const monthlyLimit = planData?.recos_monthly_limit ?? limits.monthly;
-    let recosToGenerate = limits.weekly;
+    const weeklyTarget = limits.weekly;
 
-    // B) Vérifier quota mensuel
+    // B) Check how many V3 recos already exist for THIS week
+    const { data: existingRecos } = await supabase
+      .from("marketing_recommendations")
+      .select("id, category")
+      .eq("week_start", weekStart)
+      .eq("recommendation_version", 3)
+      .eq("status", "active");
+
+    const existingCount = existingRecos?.length ?? 0;
+    const existingByCategory: Record<string, number> = { ads: 0, emails: 0, offers: 0 };
+    (existingRecos || []).forEach((r: any) => {
+      if (r.category && existingByCategory[r.category] !== undefined) {
+        existingByCategory[r.category]++;
+      }
+    });
+
+    if (existingCount >= weeklyTarget && !isForce) {
+      console.log(`[weekly-recs] Already ${existingCount}/${weeklyTarget} recos this week. Skipping.`);
+      return new Response(JSON.stringify({ status: "already_complete", existing: existingCount, target: weeklyTarget }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // C) Vérifier quota mensuel
     const now = new Date();
     const utcMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const utcNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
@@ -212,21 +245,27 @@ serve(async (req) => {
       .lt("generated_at", utcNextMonth);
 
     const totalUsed = usedThisMonth ?? 0;
-    const remaining = Math.max(0, monthlyLimit - totalUsed);
+    const monthlyRemaining = Math.max(0, monthlyLimit - totalUsed);
 
-    if (remaining === 0) {
-      console.log("[weekly-recs] Quota exhausted, nothing to generate");
+    if (monthlyRemaining === 0) {
+      console.log("[weekly-recs] Monthly quota exhausted");
       return new Response(JSON.stringify({ status: "quota_exhausted", total_used: totalUsed, monthly_limit: monthlyLimit }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (recosToGenerate > remaining) {
-      recosToGenerate = remaining;
-      console.log(`[weekly-recs] Reducing to ${recosToGenerate} recos (quota limit)`);
+    // How many still needed this week, capped by monthly quota and batch limit
+    const stillNeeded = Math.min(weeklyTarget - existingCount, monthlyRemaining);
+    const recosThisBatch = Math.min(stillNeeded, MAX_RECOS_PER_INVOCATION);
+
+    if (recosThisBatch <= 0) {
+      console.log("[weekly-recs] Nothing to generate this batch");
+      return new Response(JSON.stringify({ status: "nothing_to_generate" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // C) Market intelligence
+    // D) Market intelligence
     const { data: intelligence } = await supabase
       .from("market_intelligence")
       .select("*")
@@ -243,37 +282,33 @@ serve(async (req) => {
       });
     }
 
-    // D) Personas actifs
-    const { data: personas } = await supabase
-      .from("personas")
-      .select("code, name, full_label, description, criteria, session_count, avg_matching_score, is_existing_client_persona")
-      .eq("is_active", true)
-      .order("session_count", { ascending: false });
+    // E-G) Load context in parallel
+    const [personasRes, feedbackRes, sourcesRes, productsRes] = await Promise.all([
+      supabase.from("personas")
+        .select("code, name, full_label, description, criteria, session_count, avg_matching_score, is_existing_client_persona")
+        .eq("is_active", true)
+        .order("session_count", { ascending: false }),
+      supabase.from("marketing_recommendations")
+        .select("category, persona_code, content, targeting, feedback_score, feedback_notes, feedback_results")
+        .not("feedback_score", "is", null)
+        .order("completed_at", { ascending: false })
+        .limit(20),
+      supabase.from("marketing_sources")
+        .select("category, source_name, source_url, description, tier")
+        .eq("is_active", true).eq("project_id", PROJECT_ID)
+        .order("tier", { ascending: true }).limit(50),
+      supabase.from("ouate_products")
+        .select("title, handle, price_min, price_max, product_type, tags, status")
+        .eq("status", "active"),
+    ]);
 
-    // E) Feedback des recommandations passées
-    const { data: pastFeedback } = await supabase
-      .from("marketing_recommendations")
-      .select("category, persona_code, content, targeting, feedback_score, feedback_notes, feedback_results")
-      .not("feedback_score", "is", null)
-      .order("completed_at", { ascending: false })
-      .limit(20);
+    const personas = personasRes.data || [];
+    const pastFeedback = feedbackRes.data || [];
+    const marketingSources = sourcesRes.data || [];
+    const products = productsRes.data || [];
 
-    // F) Sources marketing
-    const { data: marketingSources } = await supabase
-      .from("marketing_sources")
-      .select("category, source_name, source_url, description, tier")
-      .eq("is_active", true)
-      .eq("project_id", PROJECT_ID)
-      .order("tier", { ascending: true })
-      .limit(50);
-
-    // G) Produits catalogue
-    const { data: products } = await supabase
-      .from("ouate_products")
-      .select("title, handle, price_min, price_max, product_type, tags, status")
-      .eq("status", "active");
-
-    console.log(`[weekly-recs] Context loaded: ${personas?.length || 0} personas, ${pastFeedback?.length || 0} past feedback, ${marketingSources?.length || 0} sources, ${products?.length || 0} products`);
+    console.log(`[weekly-recs] Context: ${personas.length} personas, ${pastFeedback.length} feedback, ${marketingSources.length} sources, ${products.length} products. Intelligence: ${intelligence.month_year}`);
+    console.log(`[weekly-recs] Week ${weekStart}: ${existingCount} existing, ${stillNeeded} needed, generating ${recosThisBatch} this batch`);
 
     // ════════════════════════════════════════════════════════
     // STEP 2 : RÉPARTITION INTELLIGENTE
@@ -307,33 +342,70 @@ Retourne UNIQUEMENT un JSON : { "ads": N, "emails": N, "offers": N, "reasoning":
     await logUsage(supabase, "anthropic", "claude-sonnet-4-6", distResult, { step: "distribution", recos_total: recosToGenerate });
 
     let distribution: { ads: number; emails: number; offers: number; reasoning: string };
-    try {
-      distribution = JSON.parse(cleanJsonResponse(distResult.text));
-    } catch {
-      // Fallback: equal distribution
-      const third = Math.floor(recosToGenerate / 3);
-      const remainder = recosToGenerate - third * 3;
-      distribution = { ads: third + (remainder > 0 ? 1 : 0), emails: third + (remainder > 1 ? 1 : 0), offers: third, reasoning: "Répartition par défaut (parsing échoué)" };
+    let totalTokensUsed = 0;
+
+    if (existingCount === 0) {
+      // Full distribution for the whole week
+      const feedbackSummary = pastFeedback.map((f: any) => ({
+        category: f.category, persona: f.persona_code, score: f.feedback_score, notes: f.feedback_notes,
+      }));
+
+      const distributionPrompt = `Tu reçois des données sur une marque e-commerce de skincare enfants. Détermine la répartition optimale de ${weeklyTarget} recommandations marketing cette semaine entre 3 catégories : ads, emails, offers.
+
+Base ta décision sur :
+1. Les performances des personas : ${JSON.stringify(personas.map((p: any) => ({ code: p.code, name: p.name, sessions: p.session_count, score: p.avg_matching_score })))}
+2. Le contexte de marché (tendances identifiées) : mois=${intelligence.month_year}
+3. Les résultats passés : ${JSON.stringify(feedbackSummary)}
+4. Le calendrier commercial : date du jour = ${new Date().toISOString().slice(0, 10)}
+5. L'équilibre — ne jamais mettre 0 dans une catégorie sauf si total < 3
+
+Retourne UNIQUEMENT un JSON : { "ads": N, "emails": N, "offers": N, "reasoning": "string — 1 phrase" }`;
+
+      const distResult = await callSonnet(
+        "Tu es un stratège marketing IA. Retourne UNIQUEMENT du JSON valide, sans backticks.",
+        distributionPrompt, 200, 15000
+      );
+
+      await logUsage(supabase, "anthropic", distResult.model, distResult, { step: "distribution", recos_total: weeklyTarget });
+      totalTokensUsed += distResult.totalTokens;
+
+      try {
+        distribution = JSON.parse(cleanJsonResponse(distResult.text));
+      } catch {
+        const third = Math.floor(weeklyTarget / 3);
+        const remainder = weeklyTarget - third * 3;
+        distribution = { ads: third + (remainder > 0 ? 1 : 0), emails: third + (remainder > 1 ? 1 : 0), offers: third, reasoning: "Répartition par défaut (parsing échoué)" };
+      }
+
+      // Validate sum
+      const distTotal = distribution.ads + distribution.emails + distribution.offers;
+      if (distTotal !== weeklyTarget) {
+        distribution.ads += weeklyTarget - distTotal;
+      }
+
+      console.log(`[weekly-recs] Distribution: ads=${distribution.ads}, emails=${distribution.emails}, offers=${distribution.offers}. Reasoning: ${distribution.reasoning}`);
+    } else {
+      // Continue from where we left off — compute remaining
+      const targetAds = Math.ceil(weeklyTarget * 0.4);
+      const targetEmails = Math.ceil(weeklyTarget * 0.33);
+      const targetOffers = weeklyTarget - targetAds - targetEmails;
+      distribution = {
+        ads: Math.max(0, targetAds - existingByCategory.ads),
+        emails: Math.max(0, targetEmails - existingByCategory.emails),
+        offers: Math.max(0, targetOffers - existingByCategory.offers),
+        reasoning: `Continuation: ${existingCount} already generated`,
+      };
+      console.log(`[weekly-recs] Continuing. Remaining: ads=${distribution.ads}, emails=${distribution.emails}, offers=${distribution.offers}`);
     }
 
-    // Validate distribution sums to recosToGenerate
-    const distTotal = distribution.ads + distribution.emails + distribution.offers;
-    if (distTotal !== recosToGenerate) {
-      const diff = recosToGenerate - distTotal;
-      distribution.ads += diff; // add remainder to ads
-    }
-
-    console.log(`[weekly-recs] Distribution: ads=${distribution.ads}, emails=${distribution.emails}, offers=${distribution.offers}. Reasoning: ${distribution.reasoning}`);
-
     // ════════════════════════════════════════════════════════
-    // STEP 3 : GÉNÉRATION SÉQUENTIELLE
+    // STEP 3 : GÉNÉRATION SÉQUENTIELLE (max 3 per batch)
     // ════════════════════════════════════════════════════════
 
-    const weekStart = getMonday(new Date());
     const generatedIds: string[] = [];
-    let totalTokensUsed = distResult.totalTokens;
+    const generatedBriefs: { id: string; category: string; persona: string; brief: string; time_ms: number }[] = [];
 
-    const baseSystem = `Tu es le directeur marketing IA d'Ask-It. Tu génères UNE recommandation marketing pour une marque e-commerce.
+    const baseSystem = `Tu es le directeur marketing IA d'Ask-It. Tu génères UNE recommandation marketing pour Ouate Paris, marque de skincare enfants.
 
 RÈGLES :
 1. Ne recommande JAMAIS un produit hors catalogue fourni
@@ -351,22 +423,27 @@ Retourne UNIQUEMENT un JSON valide. Pas de markdown, pas de backticks.`;
 
     const contextBlock = `
 === CATALOGUE PRODUITS ===
-${JSON.stringify((products || []).map((p: any) => ({ title: p.title, prix: p.price_min !== p.price_max ? `${p.price_min}-${p.price_max}€` : `${p.price_min}€`, type: p.product_type })), null, 1)}
+${JSON.stringify(products.map((p: any) => ({ title: p.title, prix: p.price_min !== p.price_max ? `${p.price_min}-${p.price_max}€` : `${p.price_min}€`, type: p.product_type })), null, 1)}
 
 === PERSONAS ===
-${JSON.stringify((personas || []).map((p: any) => ({ code: p.code, nom: p.name, label: p.full_label, sessions: p.session_count, description: p.description })), null, 1)}
+${JSON.stringify(personas.map((p: any) => ({ code: p.code, nom: p.name, label: p.full_label, sessions: p.session_count, description: p.description })), null, 1)}
 
 === SOURCES MARKETING (top 20) ===
-${JSON.stringify((marketingSources || []).slice(0, 20).map((s: any) => ({ nom: s.source_name, categorie: s.category, url: s.source_url })), null, 1)}`;
+${JSON.stringify(marketingSources.slice(0, 20).map((s: any) => ({ nom: s.source_name, categorie: s.category, url: s.source_url })), null, 1)}`;
 
-    // Build ordered list of recos to generate
-    const recoQueue: { category: string; index: number }[] = [];
-    for (let i = 0; i < distribution.ads; i++) recoQueue.push({ category: "ads", index: i + 1 });
-    for (let i = 0; i < distribution.emails; i++) recoQueue.push({ category: "emails", index: i + 1 });
-    for (let i = 0; i < distribution.offers; i++) recoQueue.push({ category: "offers", index: i + 1 });
+    // Build queue for THIS BATCH only
+    const recoQueue: { category: string; index: number; catTotal: number }[] = [];
+    let batchCount = 0;
+    for (const cat of ["ads", "emails", "offers"] as const) {
+      const needed = distribution[cat];
+      for (let i = 0; i < needed && batchCount < recosThisBatch; i++) {
+        recoQueue.push({ category: cat, index: existingByCategory[cat] + i + 1, catTotal: existingByCategory[cat] + needed });
+        batchCount++;
+      }
+    }
 
-    for (const { category, index } of recoQueue) {
-      const catTotal = category === "ads" ? distribution.ads : category === "emails" ? distribution.emails : distribution.offers;
+    for (const { category, index, catTotal } of recoQueue) {
+      const recoStart = Date.now();
 
       // Category-specific intelligence
       const catIntel = category === "ads"
@@ -376,7 +453,7 @@ ${JSON.stringify((marketingSources || []).slice(0, 20).map((s: any) => ({ nom: s
         : intelligence.gemini_offers_analysis;
 
       // Past feedback for this category
-      const catFeedback = (pastFeedback || []).filter((f: any) => f.category === category);
+      const catFeedback = pastFeedback.filter((f: any) => f.category === category);
       const goodPatterns = catFeedback.filter((f: any) => f.feedback_score === "good").map((f: any) => f.feedback_notes || "").filter(Boolean);
       const poorPatterns = catFeedback.filter((f: any) => f.feedback_score === "poor").map((f: any) => f.feedback_notes || "").filter(Boolean);
 
@@ -408,7 +485,7 @@ Retourne UNIQUEMENT ce JSON :
         console.log(`[weekly-recs] Generating ${category} #${index}/${catTotal}...`);
         const result = await callSonnet(baseSystem, userPrompt, 4000, 90000);
 
-        await logUsage(supabase, "anthropic", "claude-sonnet-4-6", result, {
+        await logUsage(supabase, "anthropic", result.model, result, {
           step: "generation", category, index, total: catTotal,
         });
         totalTokensUsed += result.totalTokens;
@@ -418,7 +495,7 @@ Retourne UNIQUEMENT ce JSON :
           parsed = JSON.parse(cleanJsonResponse(result.text));
         } catch (parseErr) {
           console.error(`[weekly-recs] JSON parse failed for ${category} #${index}:`, result.text.slice(0, 300));
-          continue; // skip this reco, try next
+          continue;
         }
 
         // ── STEP 4: PERSIST immediately ────────────────────────
@@ -439,7 +516,6 @@ Retourne UNIQUEMENT ce JSON :
             persona_code: parsed.persona_code || null,
             priority: parsed.priority || 1,
             action_status: "todo",
-            // Keep legacy columns empty for V3 recos
             ads_v2: [],
             offers_v2: [],
             emails_v2: [],
@@ -447,10 +523,10 @@ Retourne UNIQUEMENT ce JSON :
             checklist: [{ id: `task-${category}-${index}`, title: parsed.title, category, completed: false }],
             persona_focus: null,
             generation_config: {
-              models_used: { generation: "anthropic/claude-sonnet-4-6" },
+              models_used: { generation: `anthropic/${result.model}` },
               market_intelligence_id: intelligence.id,
               market_intelligence_month: intelligence.month_year,
-              distribution: distribution,
+              distribution,
               reco_index: index,
               reco_total: catTotal,
             },
@@ -463,13 +539,17 @@ Retourne UNIQUEMENT ce JSON :
           continue;
         }
 
+        const elapsed = Date.now() - recoStart;
         generatedIds.push(inserted.id);
-        console.log(`[weekly-recs] Saved ${category} #${index} → ${inserted.id}`);
+        generatedBriefs.push({
+          id: inserted.id, category, persona: parsed.persona_cible || "?",
+          brief: parsed.brief || parsed.title || "", time_ms: elapsed,
+        });
+        console.log(`[weekly-recs] ✓ ${category} #${index} → ${inserted.id} (${parsed.persona_cible}, ${elapsed}ms)`);
 
       } catch (err: any) {
         console.error(`[weekly-recs] Error generating ${category} #${index}:`, err.message);
         reportError("weekly-recommendations", err, { step: "generation", category, index });
-        // Continue to next reco
       }
     }
 
@@ -512,13 +592,18 @@ Retourne UNIQUEMENT ce JSON :
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[weekly-recs] Done. Generated ${generatedIds.length}/${recosToGenerate} recos in ${durationMs}ms. Total tokens: ${totalTokensUsed}`);
+    const totalExisting = existingCount + generatedIds.length;
+    const isComplete = totalExisting >= weeklyTarget;
+
+    console.log(`[weekly-recs] Batch done. Generated ${generatedIds.length} recos in ${durationMs}ms. Week total: ${totalExisting}/${weeklyTarget}. Tokens: ${totalTokensUsed}`);
 
     return new Response(JSON.stringify({
-      status: "success",
-      generated: generatedIds.length,
-      target: recosToGenerate,
+      status: isComplete ? "complete" : "partial",
+      generated_this_batch: generatedIds.length,
+      total_this_week: totalExisting,
+      weekly_target: weeklyTarget,
       distribution,
+      briefs: generatedBriefs,
       generated_ids: generatedIds,
       duration_ms: durationMs,
       total_tokens: totalTokensUsed,
