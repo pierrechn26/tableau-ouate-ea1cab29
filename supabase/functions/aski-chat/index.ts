@@ -316,6 +316,7 @@ serve(async (req) => {
     const products = shopifyProducts ?? [];
     const personas = (personaRows ?? []).filter((p: any) => !p.is_pool);
     const marketIntelligence = marketIntelligenceData ?? [];
+    const marketingSources = marketingSourcesData ?? [];
 
     // === CONSTRUCTION SECTION INTELLIGENCE DE MARCHÉ RÉCENTE ===
     let marketIntelPrompt = "";
