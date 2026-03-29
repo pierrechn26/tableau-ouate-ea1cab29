@@ -51,4 +51,7 @@ verify_jwt = false
 [functions.monthly-market-intelligence]
 verify_jwt = false
 
+[functions.weekly-recommendations]
+verify_jwt = false
+
 

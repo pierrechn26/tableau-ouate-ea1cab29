@@ -605,12 +605,21 @@ export type Database = {
       }
       marketing_recommendations: {
         Row: {
+          action_status: string
           ads_recommendations: Json | null
           ads_v2: Json
+          brief: string | null
           campaigns_overview: Json
+          category: string | null
           checklist: Json | null
+          completed_at: string | null
+          content: Json
           email_recommendations: Json | null
           emails_v2: Json
+          feedback_entered_at: string | null
+          feedback_notes: string | null
+          feedback_results: Json | null
+          feedback_score: string | null
           generated_at: string | null
           generated_categories: Json | null
           generation_config: Json
@@ -618,19 +627,33 @@ export type Database = {
           id: string
           offers_recommendations: Json | null
           offers_v2: Json
+          persona_cible: string | null
+          persona_code: string | null
           persona_focus: Json | null
+          priority: number
           recommendation_version: number
           sources_consulted: Json | null
+          sources_inspirations: Json
           status: string | null
+          targeting: Json
           week_start: string
         }
         Insert: {
+          action_status?: string
           ads_recommendations?: Json | null
           ads_v2?: Json
+          brief?: string | null
           campaigns_overview?: Json
+          category?: string | null
           checklist?: Json | null
+          completed_at?: string | null
+          content?: Json
           email_recommendations?: Json | null
           emails_v2?: Json
+          feedback_entered_at?: string | null
+          feedback_notes?: string | null
+          feedback_results?: Json | null
+          feedback_score?: string | null
           generated_at?: string | null
           generated_categories?: Json | null
           generation_config?: Json
@@ -638,19 +661,33 @@ export type Database = {
           id?: string
           offers_recommendations?: Json | null
           offers_v2?: Json
+          persona_cible?: string | null
+          persona_code?: string | null
           persona_focus?: Json | null
+          priority?: number
           recommendation_version?: number
           sources_consulted?: Json | null
+          sources_inspirations?: Json
           status?: string | null
+          targeting?: Json
           week_start: string
         }
         Update: {
+          action_status?: string
           ads_recommendations?: Json | null
           ads_v2?: Json
+          brief?: string | null
           campaigns_overview?: Json
+          category?: string | null
           checklist?: Json | null
+          completed_at?: string | null
+          content?: Json
           email_recommendations?: Json | null
           emails_v2?: Json
+          feedback_entered_at?: string | null
+          feedback_notes?: string | null
+          feedback_results?: Json | null
+          feedback_score?: string | null
           generated_at?: string | null
           generated_categories?: Json | null
           generation_config?: Json
@@ -658,10 +695,15 @@ export type Database = {
           id?: string
           offers_recommendations?: Json | null
           offers_v2?: Json
+          persona_cible?: string | null
+          persona_code?: string | null
           persona_focus?: Json | null
+          priority?: number
           recommendation_version?: number
           sources_consulted?: Json | null
+          sources_inspirations?: Json
           status?: string | null
+          targeting?: Json
           week_start?: string
         }
         Relationships: []
