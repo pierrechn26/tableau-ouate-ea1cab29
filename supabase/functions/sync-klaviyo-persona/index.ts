@@ -43,7 +43,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { session_id } = await req.json();
+    let session_id: string | undefined;
+    try {
+      const body = await req.json();
+      session_id = body?.session_id;
+    } catch {
+      console.error("[sync-klaviyo-persona] Invalid or empty JSON body");
+      return new Response(JSON.stringify({ error: "Invalid or empty JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!session_id) {
       return new Response(JSON.stringify({ error: "Missing session_id" }), {
