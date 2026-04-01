@@ -202,8 +202,12 @@ Deno.serve(async (req) => {
     const responseText = await klaviyoResponse.text();
     console.log("[sync-klaviyo-persona] Klaviyo profile-import response:", klaviyoResponse.status, responseText);
 
-    if (!klaviyoResponse.ok) {
+    // 409 = profile already exists, treat as success (upsert behavior)
+    if (klaviyoResponse.status === 409) {
+      console.log("[sync-klaviyo-persona] Profile already exists (409), treating as success for:", normalizedEmail);
+    } else if (!klaviyoResponse.ok) {
       console.error("[sync-klaviyo-persona] Klaviyo error:", klaviyoResponse.status, responseText);
+      await reportEdgeFunctionError("sync-klaviyo-persona", new Error(`Klaviyo profile import failed: ${klaviyoResponse.status}`), { type: "sync_failure", severity: "error" });
       return new Response(
         JSON.stringify({ success: false, error: `Klaviyo ${klaviyoResponse.status}`, details: responseText }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
