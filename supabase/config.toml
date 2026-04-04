@@ -54,4 +54,7 @@ verify_jwt = false
 [functions.weekly-recommendations]
 verify_jwt = false
 
+[functions.generate-recommendation-content]
+verify_jwt = false
+
 

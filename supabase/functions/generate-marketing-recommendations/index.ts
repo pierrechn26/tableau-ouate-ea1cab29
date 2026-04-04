@@ -128,7 +128,7 @@ serve(async (req) => {
       const [recsResult, quota, intelligenceResult] = await Promise.all([
         supabase
           .from("marketing_recommendations")
-          .select("*")
+          .select("*, generation_status")
           .eq("status", "active")
           .order("generated_at", { ascending: false }),
         getQuota(supabase),
