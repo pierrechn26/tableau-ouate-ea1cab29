@@ -309,9 +309,9 @@ Retourne UNIQUEMENT un JSON valide, sans backticks :
 Semaine du : ${weekStart}
 
 === ANALYSE DE MARCHÉ (${intelligence.month_year}) ===
-ADS: ${JSON.stringify(intelSummary.ads, null, 1).slice(0, 2000)}
-EMAILS: ${JSON.stringify(intelSummary.emails, null, 1).slice(0, 2000)}
-OFFRES: ${JSON.stringify(intelSummary.offers, null, 1).slice(0, 2000)}
+ADS: ${JSON.stringify(intelSummary.ads, null, 1).slice(0, 1500)}
+EMAILS: ${JSON.stringify(intelSummary.emails, null, 1).slice(0, 1500)}
+OFFRES: ${JSON.stringify(intelSummary.offers, null, 1).slice(0, 1500)}
 
 === PERSONAS ACTIFS ===
 ${JSON.stringify(personas.map((p: any) => ({
