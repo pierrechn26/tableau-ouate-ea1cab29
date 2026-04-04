@@ -17,24 +17,50 @@ const PROJECT_ID = "ouate";
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function getMonday(d: Date): string {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = date.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const diff = day === 0 ? -6 : 1 - day; // if Sunday go back 6, otherwise go back to Monday
+  date.setUTCDate(date.getUTCDate() + diff);
   return date.toISOString().slice(0, 10);
 }
 
 function getCurrentMonthYear(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-function cleanJsonResponse(raw: string): string {
+function robustJsonParse(raw: string): any {
+  // Log first 500 chars for debugging
+  console.log(`[weekly-recs] Sonnet raw response (first 500): ${raw.slice(0, 500)}`);
+
+  // A) Try direct parse
+  try {
+    return JSON.parse(raw.trim());
+  } catch { /* continue */ }
+
+  // B) Clean markdown backticks
   let cleaned = raw.trim();
   if (cleaned.startsWith("```json")) cleaned = cleaned.slice(7);
   else if (cleaned.startsWith("```")) cleaned = cleaned.slice(3);
   if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3);
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch { /* continue */ }
+
+  // C) Extract first { to last }
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const extracted = raw.slice(firstBrace, lastBrace + 1);
+    try {
+      return JSON.parse(extracted);
+    } catch { /* continue */ }
+  }
+
+  // D) All attempts failed — log full response and throw
+  console.error("[weekly-recs] JSON parse failed after all attempts. Full response:", raw);
+  throw new Error("Failed to parse briefs JSON from Sonnet after 3 attempts");
 }
 
 async function reportError(functionName: string, error: unknown, context?: Record<string, unknown>) {
@@ -85,7 +111,7 @@ async function logUsage(
 const SONNET_MODEL = "claude-sonnet-4-20250514";
 
 async function callSonnet(
-  systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs = 60000
+  systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs = 130000
 ): Promise<{ text: string; inputTokens: number; outputTokens: number; totalTokens: number; model: string }> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
@@ -132,24 +158,39 @@ async function callSonnet(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
   const startTime = Date.now();
+  const now = new Date();
+
+  // Diagnostic log
+  console.log(`[weekly-recs] Started at ${now.toISOString()}, day of week: ${now.getUTCDay()} (0=Sun, 1=Mon, ..., 6=Sat)`);
+
   let body: any = {};
   try { const t = await req.text(); if (t) body = JSON.parse(t); } catch {}
 
   const isForce = body.force === true;
+
+  // ── GUARD: Only run on Monday (UTC) unless force=true ──
+  if (!isForce && now.getUTCDay() !== 1) {
+    console.log(`[weekly-recs] Skipped: not Monday (day=${now.getUTCDay()}). Use { "force": true } to override.`);
+    return new Response(JSON.stringify({ status: "skipped", reason: "not_monday", day: now.getUTCDay() }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   console.log(`[weekly-recs] Starting briefs pre-calculation. force=${isForce}`);
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
   try {
     // ════════════════════════════════════════════════════════
     // STEP 1 : CHARGEMENT DU CONTEXTE (~2s)
     // ════════════════════════════════════════════════════════
 
-    const weekStart = getMonday(new Date());
+    const weekStart = getMonday(now);
+    console.log(`[weekly-recs] week_start=${weekStart}, date=${now.toISOString().slice(0, 10)}`);
 
     // A) Plan client
     const { data: planData } = await supabase
@@ -186,7 +227,6 @@ serve(async (req) => {
     }
 
     // C) Vérifier quota mensuel
-    const now = new Date();
     const utcMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const utcNextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 
@@ -200,7 +240,7 @@ serve(async (req) => {
     const monthlyRemaining = Math.max(0, monthlyLimit - totalUsed);
 
     if (monthlyRemaining === 0) {
-      console.log("[weekly-recs] Monthly quota exhausted");
+      console.log("[weekly-recs] Monthly quota exhausted. Skipping gracefully.");
       return new Response(JSON.stringify({ status: "quota_exhausted", total_used: totalUsed, monthly_limit: monthlyLimit }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -210,6 +250,7 @@ serve(async (req) => {
     const recosToGenerate = Math.min(weeklyTarget - (isForce ? 0 : existingCount), monthlyRemaining);
 
     if (recosToGenerate <= 0) {
+      console.log("[weekly-recs] Nothing to generate. Skipping.");
       return new Response(JSON.stringify({ status: "nothing_to_generate" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -226,8 +267,8 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!intelligence) {
-      console.error("[weekly-recs] No market intelligence available");
-      return new Response(JSON.stringify({ status: "no_intelligence_available" }), {
+      console.log("[weekly-recs] No market intelligence available. Skipping gracefully.");
+      return new Response(JSON.stringify({ status: "skipped", reason: "no_market_intelligence" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -252,10 +293,17 @@ serve(async (req) => {
     const pastFeedback = feedbackRes.data || [];
     const products = productsRes.data || [];
 
+    if (personas.length === 0) {
+      console.log("[weekly-recs] No active personas found. Skipping gracefully.");
+      return new Response(JSON.stringify({ status: "skipped", reason: "no_active_personas" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`[weekly-recs] Context loaded: ${personas.length} personas, ${pastFeedback.length} feedback, ${products.length} products. Intelligence: ${intelligence.month_year}`);
 
     // ════════════════════════════════════════════════════════
-    // STEP 2 : GÉNÉRATION DE TOUS LES BRIEFS EN 1 APPEL (~15-20s)
+    // STEP 2 : GÉNÉRATION DE TOUS LES BRIEFS EN 1 APPEL
     // ════════════════════════════════════════════════════════
 
     const feedbackSummary = pastFeedback.map((f: any) => ({
@@ -306,7 +354,7 @@ Retourne UNIQUEMENT un JSON valide, sans backticks :
       offers: intelligence.gemini_offers_analysis?.analysis || intelligence.gemini_offers_analysis || {},
     };
 
-    const userPrompt = `Date du jour : ${new Date().toISOString().slice(0, 10)}
+    const userPrompt = `Date du jour : ${now.toISOString().slice(0, 10)}
 Semaine du : ${weekStart}
 
 === ANALYSE DE MARCHÉ (${intelligence.month_year}) ===
@@ -332,33 +380,15 @@ ${JSON.stringify(feedbackSummary, null, 1)}
 
 Génère exactement ${recosToGenerate} recommandations avec une répartition intelligente entre ads, emails et offers.`;
 
-    console.log(`[weekly-recs] Calling Sonnet for ${recosToGenerate} briefs...`);
-    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 8000, 120000);
+    console.log(`[weekly-recs] Calling Sonnet for ${recosToGenerate} briefs (timeout: 130s)...`);
+    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 8000, 130000);
 
     await logUsage(supabase, "anthropic", sonnetResult.model, sonnetResult, {
       step: "briefs_generation", recos_count: recosToGenerate,
     });
 
-    let briefsData: { distribution_reasoning: string; recommendations: any[] };
-    try {
-      const cleaned = cleanJsonResponse(sonnetResult.text);
-      briefsData = JSON.parse(cleaned);
-    } catch (parseErr) {
-      // Try to extract JSON object from the response
-      const jsonMatch = sonnetResult.text.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          briefsData = JSON.parse(jsonMatch[0]);
-        } catch {
-          console.error("[weekly-recs] Parse failed. First 800 chars:", sonnetResult.text.slice(0, 800));
-          console.error("[weekly-recs] Last 300 chars:", sonnetResult.text.slice(-300));
-          throw new Error("Failed to parse briefs JSON from Sonnet");
-        }
-      } else {
-        console.error("[weekly-recs] No JSON found. First 800 chars:", sonnetResult.text.slice(0, 800));
-        throw new Error("Failed to parse briefs JSON from Sonnet");
-      }
-    }
+    // Robust JSON parsing with 3 fallback levels
+    const briefsData = robustJsonParse(sonnetResult.text) as { distribution_reasoning: string; recommendations: any[] };
 
     if (!briefsData.recommendations || !Array.isArray(briefsData.recommendations)) {
       throw new Error("Invalid briefs format: missing recommendations array");
@@ -379,14 +409,12 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
       const category = rec.category || "ads";
       distribution[category] = (distribution[category] || 0) + 1;
 
-      // Determine the matching gemini analysis key
       const geminiAnalysisKey = category === "ads"
         ? "gemini_ads_analysis"
         : category === "emails"
         ? "gemini_email_analysis"
         : "gemini_offers_analysis";
 
-      // Build persona metrics from loaded personas
       const matchedPersona = personas.find((p: any) => p.code === rec.persona_code);
       const personaMetrics = matchedPersona ? {
         code: matchedPersona.code,
@@ -398,7 +426,6 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
         criteria: matchedPersona.criteria,
       } : {};
 
-      // Build feedback history for this category
       const categoryFeedback = pastFeedback
         .filter((f: any) => f.category === category)
         .map((f: any) => ({ score: f.feedback_score, notes: f.feedback_notes, persona: f.persona_code }));
@@ -430,11 +457,9 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
           priority: rec.priority || 1,
           action_status: "todo",
           pre_calculated_context: preCalculatedContext,
-          // Content fields intentionally empty — filled on click
           content: {},
           targeting: {},
           sources_inspirations: [],
-          // Legacy V2 fields
           ads_v2: [],
           offers_v2: [],
           emails_v2: [],
@@ -506,7 +531,6 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
     }
 
     const durationMs = Date.now() - startTime;
-
     console.log(`[weekly-recs] Done. ${generatedIds.length} briefs created in ${durationMs}ms. Tokens: ${sonnetResult.totalTokens}`);
 
     return new Response(JSON.stringify({
