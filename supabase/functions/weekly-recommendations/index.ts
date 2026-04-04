@@ -277,7 +277,8 @@ Tu dois planifier exactement ${recosToGenerate} recommandations pour cette semai
 - Varie les personas ciblés — ne pas concentrer toutes les recos sur le même persona
 - Priorise les approches qui ont donné de bons résultats (feedback 'good') et évite celles qui ont mal marché ('poor')
 - Tiens compte du calendrier (fête des mères, rentrée, etc.)
-- Chaque brief doit être suffisamment précis pour qu'un autre IA puisse générer le contenu complet ensuite
+- Chaque brief doit être CONCIS (2-3 phrases max) mais suffisamment précis pour qu'un autre IA puisse générer le contenu complet ensuite
+- Les generation_instructions doivent être denses : 3-4 phrases max, pas de répétition
 
 Retourne UNIQUEMENT un JSON valide, sans backticks :
 {
@@ -309,9 +310,9 @@ Retourne UNIQUEMENT un JSON valide, sans backticks :
 Semaine du : ${weekStart}
 
 === ANALYSE DE MARCHÉ (${intelligence.month_year}) ===
-ADS: ${JSON.stringify(intelSummary.ads, null, 1).slice(0, 2000)}
-EMAILS: ${JSON.stringify(intelSummary.emails, null, 1).slice(0, 2000)}
-OFFRES: ${JSON.stringify(intelSummary.offers, null, 1).slice(0, 2000)}
+ADS: ${JSON.stringify(intelSummary.ads, null, 1).slice(0, 1500)}
+EMAILS: ${JSON.stringify(intelSummary.emails, null, 1).slice(0, 1500)}
+OFFRES: ${JSON.stringify(intelSummary.offers, null, 1).slice(0, 1500)}
 
 === PERSONAS ACTIFS ===
 ${JSON.stringify(personas.map((p: any) => ({
@@ -332,7 +333,7 @@ ${JSON.stringify(feedbackSummary, null, 1)}
 Génère exactement ${recosToGenerate} recommandations avec une répartition intelligente entre ads, emails et offers.`;
 
     console.log(`[weekly-recs] Calling Sonnet for ${recosToGenerate} briefs...`);
-    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 4000, 60000);
+    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 8000, 120000);
 
     await logUsage(supabase, "anthropic", sonnetResult.model, sonnetResult, {
       step: "briefs_generation", recos_count: recosToGenerate,
@@ -340,10 +341,23 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
 
     let briefsData: { distribution_reasoning: string; recommendations: any[] };
     try {
-      briefsData = JSON.parse(cleanJsonResponse(sonnetResult.text));
+      const cleaned = cleanJsonResponse(sonnetResult.text);
+      briefsData = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error("[weekly-recs] Failed to parse Sonnet response:", sonnetResult.text.slice(0, 500));
-      throw new Error("Failed to parse briefs JSON from Sonnet");
+      // Try to extract JSON object from the response
+      const jsonMatch = sonnetResult.text.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          briefsData = JSON.parse(jsonMatch[0]);
+        } catch {
+          console.error("[weekly-recs] Parse failed. First 800 chars:", sonnetResult.text.slice(0, 800));
+          console.error("[weekly-recs] Last 300 chars:", sonnetResult.text.slice(-300));
+          throw new Error("Failed to parse briefs JSON from Sonnet");
+        }
+      } else {
+        console.error("[weekly-recs] No JSON found. First 800 chars:", sonnetResult.text.slice(0, 800));
+        throw new Error("Failed to parse briefs JSON from Sonnet");
+      }
     }
 
     if (!briefsData.recommendations || !Array.isArray(briefsData.recommendations)) {
