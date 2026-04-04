@@ -332,7 +332,7 @@ ${JSON.stringify(feedbackSummary, null, 1)}
 Génère exactement ${recosToGenerate} recommandations avec une répartition intelligente entre ads, emails et offers.`;
 
     console.log(`[weekly-recs] Calling Sonnet for ${recosToGenerate} briefs...`);
-    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 4000, 120000);
+    const sonnetResult = await callSonnet(systemPrompt, userPrompt, 8000, 120000);
 
     await logUsage(supabase, "anthropic", sonnetResult.model, sonnetResult, {
       step: "briefs_generation", recos_count: recosToGenerate,
