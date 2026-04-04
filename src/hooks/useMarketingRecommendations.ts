@@ -2,72 +2,68 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export interface QuotaData {
-  total_generated: number;
-  monthly_limit: number;
-  remaining: number;
-  plan: string;
-  generations_log: {
-    timestamp: string;
-    type: "global" | "ads" | "offers" | "emails";
-    count: number;
-    recommendation_id: string;
-  }[];
-}
-
-export interface MarketingRecommendationData {
+export interface Recommendation {
   id: string;
-  week_start: string;
+  title: string;
+  brief: string | null;
+  category: string | null;
+  persona_cible: string | null;
+  persona_code: string | null;
+  priority: number;
+  generation_status: string;
+  action_status: string;
   generated_at: string | null;
+  week_start: string;
+  recommendation_version: number;
+  generation_type: string | null;
+  content: any;
+  targeting: any;
+  sources_inspirations: any;
+  pre_calculated_context: any;
+  feedback_score: string | null;
+  feedback_notes: string | null;
+  feedback_results: any;
+  feedback_entered_at: string | null;
+  completed_at: string | null;
+  // Legacy fields kept for backward compat
+  ads_v2: any;
+  offers_v2: any;
+  emails_v2: any;
+  campaigns_overview: any;
+  checklist: any;
   persona_focus: any;
-  checklist: any[];
+  generation_config: any;
   ads_recommendations: any;
   email_recommendations: any;
   offers_recommendations: any;
   sources_consulted: any;
   status: string | null;
-  generation_type: string | null;
-  generated_categories: string[] | null;
-  // V2 columns
-  ads_v2: any[];
-  offers_v2: any[];
-  emails_v2: any[];
-  campaigns_overview: any[];
-  recommendation_version: number;
-  generation_config: any;
+  generated_categories: any;
 }
 
-export type GenerationType =
-  | "global"
-  | "ads"
-  | "offers"
-  | "emails"
-  | "single_ad"
-  | "single_offer"
-  | "single_email";
+export interface RecommendationStats {
+  total: number;
+  pending: number;
+  complete: number;
+  todo: number;
+  in_progress: number;
+  done: number;
+}
 
-// Steps reflect the new simplified architecture
-export type GenerationStep =
-  | "generate"
-  | "generate_ads"
-  | "generate_offers"
-  | "generate_emails"
-  | "finalize"
-  | null;
+// Keep legacy exports for backward compat (MarketingOverviewTab etc.)
+export type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
+export type GenerationStep = null;
+export interface QuotaData {
+  total_generated: number;
+  monthly_limit: number;
+  remaining: number;
+  plan: string;
+  generations_log: any[];
+}
 
 export function useMarketingRecommendations() {
-  const [allRecommendations, setAllRecommendations] = useState<MarketingRecommendationData[]>([]);
-  const [quota, setQuota] = useState<QuotaData>({
-    total_generated: 0,
-    monthly_limit: 60,
-    remaining: 60,
-    plan: "growth",
-    generations_log: [],
-  });
+  const [allRecommendations, setAllRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [generatingType, setGeneratingType] = useState<GenerationType | null>(null);
-  const [generationStep, setGenerationStep] = useState<GenerationStep>(null);
-  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const { toast } = useToast();
 
   const fetchRecommendations = useCallback(async () => {
@@ -78,16 +74,7 @@ export function useMarketingRecommendations() {
         { method: "GET" }
       );
       if (error) throw error;
-
-      if (result?.recommendations) {
-        setAllRecommendations(result.recommendations);
-      } else {
-        setAllRecommendations([]);
-      }
-
-      if (result?.quota) {
-        setQuota(result.quota);
-      }
+      setAllRecommendations(result?.recommendations ?? []);
     } catch (err) {
       console.error("Erreur fetch recommandations:", err);
       toast({
@@ -101,256 +88,114 @@ export function useMarketingRecommendations() {
     }
   }, [toast]);
 
-  const generateByCategory = useCallback(
-    async (type: GenerationType) => {
-      setGeneratingType(type);
-      setGenerationStep(null);
-      setQuotaExceeded(false);
+  // Generate full content for a pending recommendation
+  const generateContent = useCallback(async (recommendationId: string) => {
+    // Optimistic: set to generating
+    setAllRecommendations((prev) =>
+      prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "generating" } : r)
+    );
 
-      try {
-        if (type === "global") {
-          // ── Global : 4 appels séquentiels orchestrés par le frontend ──
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-recommendation-content",
+        { body: { recommendation_id: recommendationId } }
+      );
+      if (error) throw error;
 
-          // 1. Générer les Ads (crée une nouvelle ligne)
-          setGenerationStep("generate_ads");
-          const adsResult = await supabase.functions.invoke(
-            "generate-marketing-recommendations",
-            { body: { type: "ads" } }
-          );
-          if (adsResult.error) throw new Error(adsResult.error.message);
-          if (adsResult.data?.error) {
-            if (adsResult.data.error === "quota_exceeded") {
-              setQuotaExceeded(true);
-              setQuota((prev) => ({
-                ...prev,
-                remaining: adsResult.data.remaining ?? 0,
-                total_generated: adsResult.data.current ?? prev.total_generated,
-              }));
-              toast({
-                title: "Quota atteint",
-                description: `Limite mensuelle atteinte. Passez au plan supérieur pour plus de recommandations.`,
-                variant: "destructive",
-              });
-              return;
-            }
-            throw new Error(adsResult.data.error);
-          }
-          const recommendation_id: string = adsResult.data.recommendation_id;
-
-          // 2. Générer les Offres (update la même ligne)
-          setGenerationStep("generate_offers");
-          const offersResult = await supabase.functions.invoke(
-            "generate-marketing-recommendations",
-            { body: { type: "offers", recommendation_id } }
-          );
-          if (offersResult.error) throw new Error(offersResult.error.message);
-          if (offersResult.data?.error) throw new Error(offersResult.data.error);
-
-          // 3. Générer les Emails (update la même ligne)
-          setGenerationStep("generate_emails");
-          const emailsResult = await supabase.functions.invoke(
-            "generate-marketing-recommendations",
-            { body: { type: "emails", recommendation_id } }
-          );
-          if (emailsResult.error) throw new Error(emailsResult.error.message);
-          if (emailsResult.data?.error) throw new Error(emailsResult.data.error);
-
-          // 4. Finaliser (campaigns + checklist + persona_focus)
-          setGenerationStep("finalize");
-          const finalResult = await supabase.functions.invoke(
-            "generate-marketing-recommendations",
-            { body: { type: "finalize", recommendation_id } }
-          );
-          if (finalResult.error) throw new Error(finalResult.error.message);
-          if (finalResult.data?.error) throw new Error(finalResult.data.error);
-
-          if (finalResult.data?.recommendations) {
-            setAllRecommendations(finalResult.data.recommendations);
-          }
-          if (finalResult.data?.quota) {
-            setQuota(finalResult.data.quota);
-          }
-
-          toast({
-            title: "Recommandations générées",
-            description: "9 recommandations marketing prêtes (Ads + Offres + Emails).",
-          });
-        } else {
-          // ── Catégorie ou single : 1 seul appel ──
-          setGenerationStep("generate");
-
-          const result = await supabase.functions.invoke(
-            "generate-marketing-recommendations",
-            { body: { type } }
-          );
-
-          if (result.error) throw new Error(result.error.message);
-
-          if (result.data?.error) {
-            if (result.data.error === "quota_exceeded") {
-              setQuotaExceeded(true);
-              setQuota((prev) => ({
-                ...prev,
-                remaining: result.data.remaining ?? 0,
-                total_generated: result.data.current ?? prev.total_generated,
-              }));
-              toast({
-                title: "Quota atteint",
-                description: `Vous avez utilisé ${result.data.current}/${result.data.limit} recommandations ce mois.`,
-                variant: "destructive",
-              });
-              return;
-            }
-            if (result.data.error === "no_intelligence") {
-              toast({
-                title: "Intelligence mensuelle manquante",
-                description:
-                  "Aucune analyse de marché disponible. Lancez l'intelligence mensuelle d'abord.",
-                variant: "destructive",
-              });
-              return;
-            }
-            throw new Error(result.data.error);
-          }
-
-          if (result.data?.recommendations) {
-            setAllRecommendations(result.data.recommendations);
-          }
-          if (result.data?.quota) {
-            setQuota(result.data.quota);
-          }
-
-          const count = type.startsWith("single_") ? 1 : 3;
-          const typeLabel =
-            type === "ads"
-              ? "Ads"
-              : type === "offers"
-              ? "Offres"
-              : type === "emails"
-              ? "Emails"
-              : type === "single_ad"
-              ? "Ad"
-              : type === "single_offer"
-              ? "Offre"
-              : "Email";
-
-          toast({
-            title: "Recommandations générées",
-            description: `${count} recommandation${count > 1 ? "s" : ""} ${typeLabel} prête${count > 1 ? "s" : ""}.`,
-          });
-        }
-      } catch (err: any) {
-        console.error("[generate]", err);
+      if (data?.status === "error") {
+        setAllRecommendations((prev) =>
+          prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "error" } : r)
+        );
         toast({
           title: "Erreur de génération",
-          description: err?.message || "La génération a échoué. Veuillez réessayer.",
+          description: data.message || "La génération a échoué. Réessayez.",
           variant: "destructive",
         });
-      } finally {
-        setGeneratingType(null);
-        setGenerationStep(null);
-        // Always refresh after generation attempt
+        return;
+      }
+
+      // Update local state with complete content
+      if (data?.recommendation) {
+        setAllRecommendations((prev) =>
+          prev.map((r) => r.id === recommendationId ? { ...r, ...data.recommendation, generation_status: "complete" } : r)
+        );
+      } else {
+        // Fallback: refetch all
         await fetchRecommendations();
       }
-    },
-    [toast, fetchRecommendations]
-  );
-
-  const updateChecklistItem = useCallback(
-    async (recId: string, taskId: string, completed: boolean) => {
-      const rec = allRecommendations.find((r) => r.id === recId);
-      if (!rec) return;
-
-      const newChecklist = (rec.checklist || []).map((item: any) =>
-        item.id === taskId ? { ...item, completed } : item
-      );
-
+    } catch (err: any) {
+      console.error("[generateContent]", err);
       setAllRecommendations((prev) =>
-        prev.map((r) => (r.id === recId ? { ...r, checklist: newChecklist } : r))
+        prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "error" } : r)
       );
+      toast({
+        title: "Erreur",
+        description: err?.message || "La génération a échoué.",
+        variant: "destructive",
+      });
+    }
+  }, [toast, fetchRecommendations]);
 
-      try {
-        const { error } = await supabase
-          .from("marketing_recommendations")
-          .update({ checklist: newChecklist as any })
-          .eq("id", recId);
-        if (error) throw error;
-      } catch (err) {
-        console.error("Erreur update checklist:", err);
-        setAllRecommendations((prev) =>
-          prev.map((r) => (r.id === recId ? { ...r, checklist: rec.checklist } : r))
+  // Update action_status (todo / in_progress / done)
+  const updateStatus = useCallback(async (recommendationId: string, status: "todo" | "in_progress" | "done") => {
+    const prev = allRecommendations.find((r) => r.id === recommendationId);
+    // Optimistic
+    setAllRecommendations((all) =>
+      all.map((r) => r.id === recommendationId ? { ...r, action_status: status, completed_at: status === "done" ? new Date().toISOString() : r.completed_at } : r)
+    );
+
+    try {
+      const { error } = await supabase.functions.invoke(
+        "generate-marketing-recommendations",
+        { body: { action: "update_status", recommendation_id: recommendationId, action_status: status } }
+      );
+      if (error) throw error;
+    } catch (err) {
+      console.error("[updateStatus]", err);
+      // Rollback
+      if (prev) {
+        setAllRecommendations((all) =>
+          all.map((r) => r.id === recommendationId ? prev : r)
         );
       }
-    },
-    [allRecommendations]
-  );
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut.",
+        variant: "destructive",
+      });
+    }
+  }, [allRecommendations, toast]);
 
   useEffect(() => {
     fetchRecommendations();
   }, [fetchRecommendations]);
 
-  // ── Aggregated V2 data from all recommendations ──────────────────
-  const isGenerating = generatingType !== null;
+  // Split by category (V3 individual recos)
+  const v3Recos = allRecommendations.filter((r) => r.recommendation_version === 3);
+  const recommendations = {
+    ads: v3Recos.filter((r) => r.category === "ads").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
+    emails: v3Recos.filter((r) => r.category === "emails").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
+    offers: v3Recos.filter((r) => r.category === "offers").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
+  };
 
-  const allAdsV2 = allRecommendations.flatMap((r) =>
-    Array.isArray(r.ads_v2) && r.ads_v2.length > 0
-      ? r.ads_v2.map((ad: any) => ({ ...ad, _generated_at: r.generated_at, _rec_id: r.id }))
-      : []
-  );
-  const allOffersV2 = allRecommendations.flatMap((r) =>
-    Array.isArray(r.offers_v2) && r.offers_v2.length > 0
-      ? r.offers_v2.map((offer: any) => ({ ...offer, _generated_at: r.generated_at, _rec_id: r.id }))
-      : []
-  );
-  const allEmailsV2 = allRecommendations.flatMap((r) =>
-    Array.isArray(r.emails_v2) && r.emails_v2.length > 0
-      ? r.emails_v2.map((email: any) => ({ ...email, _generated_at: r.generated_at, _rec_id: r.id }))
-      : []
-  );
-
-  const latestRec = allRecommendations[0] || null;
-  const campaignsData = Array.isArray(latestRec?.campaigns_overview)
-    ? latestRec.campaigns_overview
-    : [];
-  const isV2 = allAdsV2.length > 0 || allOffersV2.length > 0 || allEmailsV2.length > 0;
-
-  const adsData =
-    allAdsV2.length > 0
-      ? { _v2: true, items: allAdsV2 }
-      : { _v2: false, ...(latestRec?.ads_recommendations || {}) };
-  const offersData =
-    allOffersV2.length > 0
-      ? { _v2: true, items: allOffersV2 }
-      : { _v2: false, ...(latestRec?.offers_recommendations || {}) };
-  const emailsData =
-    allEmailsV2.length > 0
-      ? { _v2: true, items: allEmailsV2 }
-      : { _v2: false, ...(latestRec?.email_recommendations || {}) };
-
-  const latestChecklist = (latestRec?.checklist || []) as any[];
-  const latestChecklistRecId = latestRec?.id || null;
+  const stats: RecommendationStats = {
+    total: v3Recos.length,
+    pending: v3Recos.filter((r) => r.generation_status === "pending").length,
+    complete: v3Recos.filter((r) => r.generation_status === "complete").length,
+    todo: v3Recos.filter((r) => r.action_status === "todo").length,
+    in_progress: v3Recos.filter((r) => r.action_status === "in_progress").length,
+    done: v3Recos.filter((r) => r.action_status === "done").length,
+  };
 
   return {
     allRecommendations,
-    latestRec,
-    quota,
+    recommendations,
+    stats,
+    loading: isLoading,
     isLoading,
-    isGenerating,
-    generatingType,
-    generationStep,
-    quotaExceeded,
-    generateByCategory,
-    updateChecklistItem: (taskId: string, completed: boolean) => {
-      if (!latestChecklistRecId) return;
-      updateChecklistItem(latestChecklistRecId, taskId, completed);
-    },
+    generateContent,
+    updateStatus,
+    refresh: fetchRecommendations,
     refetch: fetchRecommendations,
-    isV2,
-    adsData,
-    offersData,
-    emailsData,
-    campaignsData,
-    latestChecklist,
-    generationConfig: latestRec?.generation_config ?? {},
   };
 }

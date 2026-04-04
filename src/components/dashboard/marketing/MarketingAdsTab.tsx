@@ -1,105 +1,46 @@
 import { Megaphone } from "lucide-react";
-import { AdsRecommendationCard } from "./AdsRecommendationCard";
-import { LegacyAds } from "./legacy/LegacyRecommendations";
-import { GenerateCategoryButton } from "./GenerateCategoryButton";
-import { GenerationType, GenerationStep, QuotaData } from "@/hooks/useMarketingRecommendations";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Badge } from "@/components/ui/badge";
-import { type UsageLimits } from "@/hooks/useUsageLimits";
+import { RecommendationCard } from "./RecommendationCard";
+import { type Recommendation } from "@/hooks/useMarketingRecommendations";
 
 interface Props {
-  adsData: any;
-  isV2: boolean;
-  campaignsData?: any[];
-  quota: QuotaData;
-  isGenerating: boolean;
-  generatingType: GenerationType | null;
-  generationStep: GenerationStep;
-  onGenerate: (type: GenerationType) => void;
-  usageLimits?: UsageLimits;
+  recommendations: Recommendation[];
+  onGenerateContent: (id: string) => void;
+  onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
 }
 
-function isNew(dateStr: string | null | undefined): boolean {
-  if (!dateStr) return false;
-  const diff = Date.now() - new Date(dateStr).getTime();
-  return diff < 24 * 60 * 60 * 1000;
-}
-
-function groupByDate(items: any[]): { date: string; items: any[] }[] {
-  const map = new Map<string, any[]>();
-  for (const item of items) {
-    const date = item._generated_at || "unknown";
-    if (!map.has(date)) map.set(date, []);
-    map.get(date)!.push(item);
-  }
-  return Array.from(map.entries()).map(([date, items]) => ({ date, items }));
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "d MMMM yyyy 'à' HH:mm", { locale: fr });
-  } catch {
-    return dateStr;
-  }
-}
-
-export function MarketingAdsTab({ adsData, isV2, campaignsData = [], quota, isGenerating, generatingType, generationStep, onGenerate, usageLimits }: Props) {
-  const isV2Mode = isV2 && adsData._v2 && Array.isArray(adsData.items) && adsData.items.length > 0;
-  const items: any[] = isV2Mode ? adsData.items : [];
-  const groups = groupByDate(items);
+export function MarketingAdsTab({ recommendations, onGenerateContent, onStatusChange }: Props) {
+  const allDone = recommendations.length > 0 && recommendations.every((r) => r.action_status === "done");
 
   return (
     <div className="space-y-5">
-      {/* Header + generate button */}
-      <div className="flex items-start gap-3 justify-between">
-        <div className="flex items-center gap-2">
-          <Megaphone className="w-5 h-5 text-primary" />
-          <h3 className="text-xl font-bold text-foreground font-heading">
-            Recommandations Ads
-            {items.length > 0 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                · {items.length} recommandation{items.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </h3>
-        </div>
-        <div className="w-64 shrink-0">
-          <GenerateCategoryButton
-            type="ads"
-            label="Générer 3 recommandations Ads"
-            icon={<Megaphone className="w-3.5 h-3.5" />}
-            quota={quota}
-            isGenerating={isGenerating}
-            generatingType={generatingType}
-            generationStep={generationStep}
-            onGenerate={onGenerate}
-            singleType="single_ad"
-            usageLimits={usageLimits}
-          />
-        </div>
+      <div className="flex items-center gap-2">
+        <Megaphone className="w-5 h-5 text-primary" />
+        <h3 className="text-xl font-bold text-foreground font-heading">Recommandations Ads</h3>
+        <span className="text-sm text-muted-foreground ml-1">
+          · {recommendations.length} recommandation{recommendations.length !== 1 ? "s" : ""} cette semaine
+        </span>
       </div>
 
-      {isV2Mode ? (
-        <div className="space-y-6">
-          {groups.map(({ date, items: groupItems }) => (
-            <div key={date} className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="h-px flex-1 bg-border" />
-                <span>Générées le {formatDate(date)}</span>
-                {isNew(date) && <Badge className="text-[10px] px-1.5 py-0 h-4 bg-primary/15 text-primary border-primary/30 border">Nouveau</Badge>}
-                <div className="h-px flex-1 bg-border" />
-              </div>
-              <div className="space-y-3">
-                {groupItems.map((ad: any, idx: number) => (
-                  <AdsRecommendationCard key={ad.id ?? idx} ad={ad} campaignsData={campaignsData} />
-                ))}
-              </div>
-            </div>
+      {allDone && (
+        <p className="text-sm text-primary font-medium">✓ Toutes les recommandations de la semaine sont terminées</p>
+      )}
+
+      {recommendations.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">
+          Aucune recommandation Ads cette semaine. Les recommandations sont générées automatiquement chaque lundi.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {recommendations.map((rec) => (
+            <RecommendationCard
+              key={rec.id}
+              recommendation={rec}
+              onGenerateContent={onGenerateContent}
+              onStatusChange={onStatusChange}
+              category="ads"
+            />
           ))}
         </div>
-      ) : (
-        <LegacyAds ads={adsData} />
       )}
     </div>
   );
