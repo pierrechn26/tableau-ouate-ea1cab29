@@ -277,7 +277,8 @@ Tu dois planifier exactement ${recosToGenerate} recommandations pour cette semai
 - Varie les personas ciblés — ne pas concentrer toutes les recos sur le même persona
 - Priorise les approches qui ont donné de bons résultats (feedback 'good') et évite celles qui ont mal marché ('poor')
 - Tiens compte du calendrier (fête des mères, rentrée, etc.)
-- Chaque brief doit être suffisamment précis pour qu'un autre IA puisse générer le contenu complet ensuite
+- Chaque brief doit être CONCIS (2-3 phrases max) mais suffisamment précis pour qu'un autre IA puisse générer le contenu complet ensuite
+- Les generation_instructions doivent être denses : 3-4 phrases max, pas de répétition
 
 Retourne UNIQUEMENT un JSON valide, sans backticks :
 {
