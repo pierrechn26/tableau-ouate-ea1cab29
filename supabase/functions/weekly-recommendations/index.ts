@@ -340,10 +340,23 @@ Génère exactement ${recosToGenerate} recommandations avec une répartition int
 
     let briefsData: { distribution_reasoning: string; recommendations: any[] };
     try {
-      briefsData = JSON.parse(cleanJsonResponse(sonnetResult.text));
+      const cleaned = cleanJsonResponse(sonnetResult.text);
+      briefsData = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error("[weekly-recs] Failed to parse Sonnet response:", sonnetResult.text.slice(0, 500));
-      throw new Error("Failed to parse briefs JSON from Sonnet");
+      // Try to extract JSON object from the response
+      const jsonMatch = sonnetResult.text.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          briefsData = JSON.parse(jsonMatch[0]);
+        } catch {
+          console.error("[weekly-recs] Parse failed. First 800 chars:", sonnetResult.text.slice(0, 800));
+          console.error("[weekly-recs] Last 300 chars:", sonnetResult.text.slice(-300));
+          throw new Error("Failed to parse briefs JSON from Sonnet");
+        }
+      } else {
+        console.error("[weekly-recs] No JSON found. First 800 chars:", sonnetResult.text.slice(0, 800));
+        throw new Error("Failed to parse briefs JSON from Sonnet");
+      }
     }
 
     if (!briefsData.recommendations || !Array.isArray(briefsData.recommendations)) {
