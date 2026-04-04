@@ -623,6 +623,7 @@ export type Database = {
           generated_at: string | null
           generated_categories: Json | null
           generation_config: Json
+          generation_status: string
           generation_type: string | null
           id: string
           offers_recommendations: Json | null
@@ -630,6 +631,7 @@ export type Database = {
           persona_cible: string | null
           persona_code: string | null
           persona_focus: Json | null
+          pre_calculated_context: Json | null
           priority: number
           recommendation_version: number
           sources_consulted: Json | null
@@ -657,6 +659,7 @@ export type Database = {
           generated_at?: string | null
           generated_categories?: Json | null
           generation_config?: Json
+          generation_status?: string
           generation_type?: string | null
           id?: string
           offers_recommendations?: Json | null
@@ -664,6 +667,7 @@ export type Database = {
           persona_cible?: string | null
           persona_code?: string | null
           persona_focus?: Json | null
+          pre_calculated_context?: Json | null
           priority?: number
           recommendation_version?: number
           sources_consulted?: Json | null
@@ -691,6 +695,7 @@ export type Database = {
           generated_at?: string | null
           generated_categories?: Json | null
           generation_config?: Json
+          generation_status?: string
           generation_type?: string | null
           id?: string
           offers_recommendations?: Json | null
@@ -698,6 +703,7 @@ export type Database = {
           persona_cible?: string | null
           persona_code?: string | null
           persona_focus?: Json | null
+          pre_calculated_context?: Json | null
           priority?: number
           recommendation_version?: number
           sources_consulted?: Json | null
