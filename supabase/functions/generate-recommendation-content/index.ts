@@ -253,6 +253,12 @@ Si format CARROUSEL :
 SEGMENTS EMAIL — PAS QUE DES PERSONAS :
 Ne cible PAS toujours un seul persona. Utilise aussi des segments comportementaux : 'Engagés 90j non-acheteurs', 'Acheteurs all time', 'Abandons panier 7j', 'VIP top 20% LTV', 'Nouveaux inscrits 30j'.
 
+TYPES D'EMAILS — PRIORITÉ AUX NEWSLETTERS :
+Quand tu génères des recommandations emailing, favorise les NEWSLETTERS (contenu éditorial envoyé à une large base) plutôt que les flows automatisés. Répartition cible :
+- 60-70% newsletters (éducatif, conseils, nouveautés, tendances, témoignages)
+- 30-40% flows et campagnes (post-diagnostic, winback, abandon panier, promotionnel)
+Les newsletters permettent de toucher toute la base ou de larges segments et de construire la relation de confiance avec la marque.
+
 Retourne :
 {
   "title": "string",
