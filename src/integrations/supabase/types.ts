@@ -641,6 +641,7 @@ export type Database = {
           sources_inspirations: Json
           status: string | null
           targeting: Json
+          title: string | null
           week_start: string
         }
         Insert: {
@@ -677,6 +678,7 @@ export type Database = {
           sources_inspirations?: Json
           status?: string | null
           targeting?: Json
+          title?: string | null
           week_start: string
         }
         Update: {
@@ -713,6 +715,7 @@ export type Database = {
           sources_inspirations?: Json
           status?: string | null
           targeting?: Json
+          title?: string | null
           week_start?: string
         }
         Relationships: []
