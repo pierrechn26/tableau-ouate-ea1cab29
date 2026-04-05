@@ -2,14 +2,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
   ChevronRight,
   Star,
-  Loader2,
-  AlertCircle,
-  RotateCcw,
   Check,
   Copy,
   BookOpen,
@@ -62,16 +58,8 @@ function CopyIcon({ text }: { text: string }) {
     } catch {}
   };
   return (
-    <button
-      onClick={handleCopy}
-      className="shrink-0 p-1 rounded hover:bg-muted/60 transition-colors"
-      title="Copier"
-    >
-      {copied ? (
-        <Check className="w-3.5 h-3.5 text-primary" />
-      ) : (
-        <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-      )}
+    <button onClick={handleCopy} className="shrink-0 p-1 rounded hover:bg-muted/60 transition-colors" title="Copier">
+      {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
     </button>
   );
 }
@@ -84,7 +72,7 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
         <CopyIcon text={value} />
       </div>
-      <div className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground">
+      <div className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line">
         {value}
       </div>
     </div>
@@ -104,31 +92,19 @@ function InfoRow({ label, value }: { label: string; value: any }) {
 // ── Collapsible Section ────────────────────────────────────────────
 
 function CollapsibleSection({ title, icon: Icon, children, defaultOpen = false }: {
-  title: string;
-  icon: any;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+  title: string; icon: any; children: React.ReactNode; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-t border-border/40">
-      <button
-        className="w-full flex items-center gap-2 py-3 px-1 text-sm font-medium text-foreground hover:text-primary transition-colors"
-        onClick={() => setOpen((o) => !o)}
-      >
+      <button className="w-full flex items-center gap-2 py-3 px-1 text-sm font-medium text-foreground hover:text-primary transition-colors" onClick={() => setOpen((o) => !o)}>
         <Icon className="w-4 h-4 text-primary/70" />
         <span className="flex-1 text-left">{title}</span>
         {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
             <div className="pb-4 px-1 space-y-2">{children}</div>
           </motion.div>
         )}
@@ -141,18 +117,68 @@ function CollapsibleSection({ title, icon: Icon, children, defaultOpen = false }
 
 function AdsContent({ content }: { content: any }) {
   if (!content) return null;
+  const format = content.format || "";
+  const isVideo = format.includes("video") || format.includes("ugc") || format === "story";
+  const isCarousel = format === "carousel";
+
+  if (isCarousel && Array.isArray(content.slides)) {
+    return (
+      <div className="space-y-1">
+        {content.slides.map((s: any, i: number) => (
+          <div key={i} className="mb-3">
+            <CopyBlock label={`Slide ${s.numero || i + 1} — Visuel`} value={safeStr(s.visuel)} />
+            <CopyBlock label={`Slide ${s.numero || i + 1} — Texte`} value={safeStr(s.texte_slide)} />
+          </div>
+        ))}
+        <div className="border-t border-border/30 pt-3 mt-3">
+          <CopyBlock label="Texte principal" value={safeStr(content.texte_principal)} />
+          <CopyBlock label="Titre" value={safeStr(content.titre)} />
+          <CopyBlock label="Description" value={safeStr(content.description)} />
+        </div>
+        {content.cta && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase">CTA :</span>
+            <Badge variant="outline" className="text-xs font-bold text-primary border-primary/40 bg-primary/5">{safeStr(content.cta)}</Badge>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (isVideo) {
+    return (
+      <div className="space-y-1">
+        <CopyBlock label="Hook" value={safeStr(content.hook || content.hook_text)} />
+        <CopyBlock label="Script" value={safeStr(content.script || content.script_ou_descriptif)} />
+        {content.note_production && (
+          <p className="text-xs text-muted-foreground italic mt-2 px-1">{safeStr(content.note_production)}</p>
+        )}
+        <div className="border-t border-border/30 pt-3 mt-3">
+          <CopyBlock label="Texte principal" value={safeStr(content.texte_principal || content.ad_copy?.primary_text)} />
+          <CopyBlock label="Titre" value={safeStr(content.titre || content.ad_copy?.headline)} />
+          <CopyBlock label="Description" value={safeStr(content.description || content.ad_copy?.description)} />
+        </div>
+        {content.cta && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase">CTA :</span>
+            <Badge variant="outline" className="text-xs font-bold text-primary border-primary/40 bg-primary/5">{safeStr(content.cta)}</Badge>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Image format
   return (
     <div className="space-y-1">
-      <CopyBlock label="Hook texte" value={safeStr(content.hook_text)} />
-      {content.hook_audio && <CopyBlock label="Hook audio" value={safeStr(content.hook_audio)} />}
-      <CopyBlock label="Script / Descriptif" value={safeStr(content.script_ou_descriptif)} />
-      {content.ad_copy && (
-        <div className="border-t border-border/30 pt-3 mt-3">
-          <CopyBlock label="Primary Text" value={safeStr(content.ad_copy?.primary_text)} />
-          <CopyBlock label="Headline" value={safeStr(content.ad_copy?.headline)} />
-          <CopyBlock label="Description" value={safeStr(content.ad_copy?.description)} />
-        </div>
-      )}
+      {content.concept_visuel && <CopyBlock label="Concept visuel" value={safeStr(content.concept_visuel)} />}
+      {!content.concept_visuel && content.hook_text && <CopyBlock label="Hook texte" value={safeStr(content.hook_text)} />}
+      {!content.concept_visuel && content.script_ou_descriptif && <CopyBlock label="Descriptif visuel" value={safeStr(content.script_ou_descriptif)} />}
+      <div className="border-t border-border/30 pt-3 mt-3">
+        <CopyBlock label="Texte principal" value={safeStr(content.texte_principal || content.ad_copy?.primary_text)} />
+        <CopyBlock label="Titre" value={safeStr(content.titre || content.ad_copy?.headline)} />
+        <CopyBlock label="Description" value={safeStr(content.description || content.ad_copy?.description)} />
+      </div>
       {content.cta && (
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase">CTA :</span>
@@ -187,7 +213,7 @@ function OffersContent({ content }: { content: any }) {
   return (
     <div className="space-y-3">
       {content.concept && <CopyBlock label="Concept" value={safeStr(content.concept)} />}
-      {content.type_offre && <InfoRow label="Type d'offre" value={content.type_offre} />}
+      {content.type_offre && <InfoRow label="Type d'offre" value={OFFER_TYPE_LABELS[content.type_offre] || content.type_offre} />}
       {Array.isArray(content.composition) && content.composition.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Composition</p>
@@ -222,11 +248,52 @@ function OffersContent({ content }: { content: any }) {
   );
 }
 
+const OFFER_TYPE_LABELS: Record<string, string> = {
+  bundle: "Bundle",
+  upsell: "Upsell",
+  cross_sell: "Cross-sell",
+  offre_lancement: "Offre de Lancement",
+  programme_fidelite: "Programme Fidélité",
+  offre_saisonniere: "Offre Saisonnière",
+  cadeau_avec_achat: "Cadeau avec Achat",
+  vente_privee: "Vente Privée",
+  parrainage: "Parrainage",
+};
+
+// ── Targeting renderers ──────────────────────────────────────────────
+
 function AdsTargeting({ targeting }: { targeting: any }) {
   if (!targeting) return null;
+  // Build KPI display
+  let kpiDisplay = "";
+  if (targeting.kpi_attendu) {
+    const k = targeting.kpi_attendu;
+    const parts = [];
+    if (k.metrique && k.valeur_cible) parts.push(`${k.metrique} ${k.valeur_cible}`);
+    if (k.metrique_secondaire && k.valeur_secondaire) parts.push(`${k.metrique_secondaire} ${k.valeur_secondaire}`);
+    if (k.ctr) parts.push(`CTR ${k.ctr}`);
+    if (k.roas) parts.push(`ROAS ${k.roas}`);
+    kpiDisplay = parts.join(" · ");
+  }
+
   return (
     <div>
-      {Array.isArray(targeting.audiences) && targeting.audiences.length > 0 && (
+      {targeting.type_audience && <InfoRow label="Type d'audience" value={targeting.type_audience} />}
+      {Array.isArray(targeting.suggestions_audiences) && targeting.suggestions_audiences.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
+          <ul className="space-y-1">
+            {targeting.suggestions_audiences.map((a: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-foreground">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                {a}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {/* Legacy audiences field */}
+      {!targeting.suggestions_audiences && Array.isArray(targeting.audiences) && targeting.audiences.length > 0 && (
         <div className="mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
           <ul className="space-y-1">
@@ -241,7 +308,7 @@ function AdsTargeting({ targeting }: { targeting: any }) {
       )}
       <InfoRow label="Budget suggéré" value={targeting.budget_suggere} />
       <InfoRow label="Plateforme" value={targeting.plateforme} />
-      {targeting.kpi_attendu && <InfoRow label="KPI attendu" value={`${safeStr(targeting.kpi_attendu.metrique)} : ${safeStr(targeting.kpi_attendu.valeur_cible)}`} />}
+      {kpiDisplay && <InfoRow label="KPI attendu" value={kpiDisplay} />}
       {targeting.ab_test && <CopyBlock label="Suggestion A/B test" value={safeStr(targeting.ab_test)} />}
     </div>
   );
@@ -249,29 +316,40 @@ function AdsTargeting({ targeting }: { targeting: any }) {
 
 function EmailsTargeting({ targeting }: { targeting: any }) {
   if (!targeting) return null;
+  let kpiDisplay = "";
+  if (targeting.kpi_attendu) {
+    const parts = [];
+    if (targeting.kpi_attendu.taux_ouverture_vise) parts.push(`Ouverture ${targeting.kpi_attendu.taux_ouverture_vise}`);
+    if (targeting.kpi_attendu.taux_clic_vise) parts.push(`Clic ${targeting.kpi_attendu.taux_clic_vise}`);
+    kpiDisplay = parts.join(" · ");
+  }
   return (
     <div>
-      <InfoRow label="Segment Klaviyo" value={targeting.segment} />
+      <InfoRow label="Segment" value={targeting.segment} />
       <InfoRow label="Timing" value={targeting.timing} />
+      {targeting.trigger && <InfoRow label="Trigger" value={targeting.trigger} />}
       {targeting.position_dans_flow && <InfoRow label="Position dans le flow" value={targeting.position_dans_flow} />}
-      {targeting.kpi_attendu && (
-        <>
-          <InfoRow label="Taux d'ouverture visé" value={targeting.kpi_attendu.taux_ouverture_vise} />
-          <InfoRow label="Taux de clic visé" value={targeting.kpi_attendu.taux_clic_vise} />
-        </>
-      )}
+      {kpiDisplay && <InfoRow label="KPI attendu" value={kpiDisplay} />}
     </div>
   );
 }
 
 function OffersTargeting({ targeting }: { targeting: any }) {
   if (!targeting) return null;
+  let kpiDisplay = "";
+  if (targeting.kpi_attendu) {
+    const k = targeting.kpi_attendu;
+    const parts = [];
+    if (k.metrique && k.valeur_cible) parts.push(`${k.metrique} ${k.valeur_cible}`);
+    if (k.metrique_secondaire && k.valeur_secondaire) parts.push(`${k.metrique_secondaire} ${k.valeur_secondaire}`);
+    kpiDisplay = parts.join(" · ");
+  }
   return (
     <div>
       <InfoRow label="Canal" value={targeting.canal} />
       <InfoRow label="Période" value={targeting.periode} />
       <InfoRow label="Durée" value={targeting.duree} />
-      {targeting.kpi_attendu && <InfoRow label="KPI attendu" value={`${safeStr(targeting.kpi_attendu.metrique)} : ${safeStr(targeting.kpi_attendu.valeur_cible)}`} />}
+      {kpiDisplay && <InfoRow label="KPI attendu" value={kpiDisplay} />}
     </div>
   );
 }
@@ -305,63 +383,53 @@ function SourcesList({ sources }: { sources: any[] }) {
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
-  onGenerateContent: (id: string) => void;
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   category: "ads" | "emails" | "offers";
 }
 
-export function RecommendationCard({ recommendation: rec, onGenerateContent, onStatusChange, category }: RecommendationCardProps) {
-  const status = rec.generation_status;
-  const isComplete = status === "complete";
-  const isPending = status === "pending";
-  const isGenerating = status === "generating";
-  const isError = status === "error";
+export function RecommendationCard({ recommendation: rec, onStatusChange, category }: RecommendationCardProps) {
   const isDone = rec.action_status === "done";
-
   const personaLabel = rec.persona_code ? getPersonaLabel(rec.persona_code) : rec.persona_cible;
-  const formatSuggere = rec.pre_calculated_context?.generation_instructions ? undefined : undefined;
-  const contentFormat = rec.content?.format || rec.pre_calculated_context?.format_suggere;
+  const contentFormat = rec.content?.format;
 
-  // Priority indicator
   const priorityLabel = rec.priority === 1 ? "★ Priorité haute" : rec.priority === 2 ? "★★ Moyenne" : "★★★ Basse";
   const priorityColor = rec.priority === 1 ? "text-primary" : rec.priority === 2 ? "text-accent" : "text-muted-foreground";
 
   return (
-    <Card className={cn(
-      "border overflow-hidden transition-all duration-200",
-      isPending && "border-dashed border-border/80 bg-muted/10",
-      isGenerating && "border-primary/30 bg-primary/5",
-      isError && "border-destructive/30",
-      isDone && "opacity-60",
-      isComplete && !isDone && "border-border/60 shadow-sm hover:shadow-md"
-    )}>
-      <div className="p-4 space-y-3">
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
-              <span className={cn("text-[10px] font-bold", priorityColor)}>{priorityLabel}</span>
-              {contentFormat && <FormatBadge value={contentFormat} />}
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
-                {CATEGORY_LABELS[category]}
-              </Badge>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card className={cn(
+        "border overflow-hidden transition-all duration-200",
+        isDone && "opacity-60",
+        !isDone && "border-border/60 shadow-sm hover:shadow-md"
+      )}>
+        <div className="p-4 space-y-3">
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
+                <span className={cn("text-[10px] font-bold", priorityColor)}>{priorityLabel}</span>
+                {contentFormat && <FormatBadge value={contentFormat} />}
+                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
+                  {CATEGORY_LABELS[category]}
+                </Badge>
+              </div>
+              <h4 className="text-sm font-bold text-foreground leading-snug">{safeStr(rec.title) || "Recommandation"}</h4>
+              {personaLabel && (
+                <p className="text-xs text-muted-foreground mt-0.5">Pour {personaLabel}</p>
+              )}
             </div>
-            <h4 className="text-sm font-bold text-foreground leading-snug">{safeStr(rec.title) || "Recommandation"}</h4>
-            {personaLabel && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Pour {personaLabel}
-              </p>
+            {rec.persona_code && (
+              <div className="shrink-0">
+                <PersonaBadge code={rec.persona_code} />
+              </div>
             )}
           </div>
-          {rec.persona_code && (
-            <div className="shrink-0">
-              <PersonaBadge code={rec.persona_code} />
-            </div>
-          )}
-        </div>
 
-        {/* ── Status selector (complete only) ── */}
-        {isComplete && (
+          {/* ── Status selector ── */}
           <div className="flex items-center gap-1">
             {STATUS_OPTIONS.map((opt) => (
               <button
@@ -383,78 +451,34 @@ export function RecommendationCard({ recommendation: rec, onGenerateContent, onS
               </button>
             ))}
           </div>
-        )}
 
-        {/* ── Brief (always visible) ── */}
-        {rec.brief && (
-          <p className="text-[13px] text-foreground/80 leading-relaxed">{rec.brief}</p>
-        )}
+          {/* ── Brief ── */}
+          {rec.brief && (
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-line">{rec.brief}</p>
+          )}
 
-        {/* ── Pending: CTA button ── */}
-        {isPending && (
-          <Button
-            onClick={() => onGenerateContent(rec.id)}
-            className="w-full mt-2"
-            size="sm"
-          >
-            Voir la recommandation complète →
-          </Button>
-        )}
+          {/* ── Collapsible sections ── */}
+          {rec.content && Object.keys(rec.content).length > 0 && (
+            <div className="mt-1">
+              <CollapsibleSection title="Contenu créatif" icon={BookOpen}>
+                {category === "ads" && <AdsContent content={rec.content} />}
+                {category === "emails" && <EmailsContent content={rec.content} />}
+                {category === "offers" && <OffersContent content={rec.content} />}
+              </CollapsibleSection>
 
-        {/* ── Generating: loader ── */}
-        {isGenerating && (
-          <div className="flex flex-col items-center gap-2 py-3">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <p className="text-xs text-muted-foreground">Génération en cours... ~30 secondes</p>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-primary/60 rounded-full"
-                initial={{ width: "5%" }}
-                animate={{ width: "90%" }}
-                transition={{ duration: 30, ease: "linear" }}
-              />
+              <CollapsibleSection title="Ciblage & mise en œuvre" icon={Target}>
+                {category === "ads" && <AdsTargeting targeting={rec.targeting} />}
+                {category === "emails" && <EmailsTargeting targeting={rec.targeting} />}
+                {category === "offers" && <OffersTargeting targeting={rec.targeting} />}
+              </CollapsibleSection>
+
+              <CollapsibleSection title="Sources & inspirations" icon={Lightbulb}>
+                <SourcesList sources={Array.isArray(rec.sources_inspirations) ? rec.sources_inspirations : []} />
+              </CollapsibleSection>
             </div>
-          </div>
-        )}
-
-        {/* ── Error: retry ── */}
-        {isError && (
-          <div className="flex items-center gap-2 mt-1">
-            <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-            <span className="text-xs text-destructive">La génération a échoué.</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto h-7 text-xs"
-              onClick={() => onGenerateContent(rec.id)}
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              Réessayer
-            </Button>
-          </div>
-        )}
-
-        {/* ── Complete: collapsible sections ── */}
-        {isComplete && rec.content && Object.keys(rec.content).length > 0 && (
-          <div className="mt-1">
-            <CollapsibleSection title="Contenu créatif" icon={BookOpen}>
-              {category === "ads" && <AdsContent content={rec.content} />}
-              {category === "emails" && <EmailsContent content={rec.content} />}
-              {category === "offers" && <OffersContent content={rec.content} />}
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Ciblage & mise en œuvre" icon={Target}>
-              {category === "ads" && <AdsTargeting targeting={rec.targeting} />}
-              {category === "emails" && <EmailsTargeting targeting={rec.targeting} />}
-              {category === "offers" && <OffersTargeting targeting={rec.targeting} />}
-            </CollapsibleSection>
-
-            <CollapsibleSection title="Sources & inspirations" icon={Lightbulb}>
-              <SourcesList sources={Array.isArray(rec.sources_inspirations) ? rec.sources_inspirations : []} />
-            </CollapsibleSection>
-          </div>
-        )}
-      </div>
-    </Card>
+          )}
+        </div>
+      </Card>
+    </motion.div>
   );
 }

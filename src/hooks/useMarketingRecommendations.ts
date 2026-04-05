@@ -19,7 +19,6 @@ export interface Recommendation {
   content: any;
   targeting: any;
   sources_inspirations: any;
-  pre_calculated_context: any;
   feedback_score: string | null;
   feedback_notes: string | null;
   feedback_results: any;
@@ -39,6 +38,7 @@ export interface Recommendation {
   sources_consulted: any;
   status: string | null;
   generated_categories: any;
+  pre_calculated_context: any;
 }
 
 export interface RecommendationStats {
@@ -50,20 +50,18 @@ export interface RecommendationStats {
   done: number;
 }
 
-// Keep legacy exports for backward compat (MarketingOverviewTab etc.)
-export type GenerationType = "global" | "ads" | "offers" | "emails" | "single_ad" | "single_offer" | "single_email";
-export type GenerationStep = null;
 export interface QuotaData {
-  total_generated: number;
-  monthly_limit: number;
+  used: number;
+  limit: number;
   remaining: number;
   plan: string;
-  generations_log: any[];
 }
 
 export function useMarketingRecommendations() {
   const [allRecommendations, setAllRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null); // category being generated
+  const [quota, setQuota] = useState<QuotaData>({ used: 0, limit: 60, remaining: 60, plan: "growth" });
   const { toast } = useToast();
 
   const fetchRecommendations = useCallback(async () => {
@@ -75,6 +73,14 @@ export function useMarketingRecommendations() {
       );
       if (error) throw error;
       setAllRecommendations(result?.recommendations ?? []);
+      if (result?.quota) {
+        setQuota({
+          used: result.quota.total_generated ?? 0,
+          limit: result.quota.monthly_limit ?? 60,
+          remaining: result.quota.remaining ?? 60,
+          plan: result.quota.plan ?? "growth",
+        });
+      }
     } catch (err) {
       console.error("Erreur fetch recommandations:", err);
       toast({
@@ -88,24 +94,26 @@ export function useMarketingRecommendations() {
     }
   }, [toast]);
 
-  // Generate full content for a pending recommendation
-  const generateContent = useCallback(async (recommendationId: string) => {
-    // Optimistic: set to generating
-    setAllRecommendations((prev) =>
-      prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "generating" } : r)
-    );
-
+  // Generate a new recommendation on-demand
+  const generateRecommendation = useCallback(async (category: "ads" | "emails" | "offers") => {
+    setIsGenerating(category);
     try {
       const { data, error } = await supabase.functions.invoke(
         "generate-recommendation-content",
-        { body: { recommendation_id: recommendationId } }
+        { body: { category } }
       );
       if (error) throw error;
 
-      if (data?.status === "error") {
-        setAllRecommendations((prev) =>
-          prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "error" } : r)
-        );
+      if (data?.error === "quota_exceeded") {
+        toast({
+          title: "Limite atteinte",
+          description: `Vous avez atteint votre limite mensuelle de ${data.limit} recommandations.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.error) {
         toast({
           title: "Erreur de génération",
           description: data.message || "La génération a échoué. Réessayez.",
@@ -114,27 +122,33 @@ export function useMarketingRecommendations() {
         return;
       }
 
-      // Update local state with complete content
+      // Add the new recommendation to local state
       if (data?.recommendation) {
-        setAllRecommendations((prev) =>
-          prev.map((r) => r.id === recommendationId ? { ...r, ...data.recommendation, generation_status: "complete" } : r)
-        );
-      } else {
-        // Fallback: refetch all
-        await fetchRecommendations();
+        setAllRecommendations((prev) => [data.recommendation, ...prev]);
+        if (data.quota) {
+          setQuota({
+            used: data.quota.used,
+            limit: data.quota.limit,
+            remaining: data.quota.remaining,
+            plan: quota.plan,
+          });
+        }
+        toast({
+          title: "Recommandation générée ✨",
+          description: `"${data.recommendation.title}" est prête.`,
+        });
       }
     } catch (err: any) {
-      console.error("[generateContent]", err);
-      setAllRecommendations((prev) =>
-        prev.map((r) => r.id === recommendationId ? { ...r, generation_status: "error" } : r)
-      );
+      console.error("[generateRecommendation]", err);
       toast({
         title: "Erreur",
         description: err?.message || "La génération a échoué.",
         variant: "destructive",
       });
+    } finally {
+      setIsGenerating(null);
     }
-  }, [toast, fetchRecommendations]);
+  }, [toast, quota.plan]);
 
   // Update action_status (todo / in_progress / done)
   const updateStatus = useCallback(async (recommendationId: string, status: "todo" | "in_progress" | "done") => {
@@ -152,7 +166,6 @@ export function useMarketingRecommendations() {
       if (error) throw error;
     } catch (err) {
       console.error("[updateStatus]", err);
-      // Rollback
       if (prev) {
         setAllRecommendations((all) =>
           all.map((r) => r.id === recommendationId ? prev : r)
@@ -172,10 +185,17 @@ export function useMarketingRecommendations() {
 
   // Split by category (V3 individual recos)
   const v3Recos = allRecommendations.filter((r) => r.recommendation_version === 3);
+  const sortFn = (a: Recommendation, b: Recommendation) => {
+    // Done items at the bottom
+    if (a.action_status === "done" && b.action_status !== "done") return 1;
+    if (a.action_status !== "done" && b.action_status === "done") return -1;
+    return a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime();
+  };
+
   const recommendations = {
-    ads: v3Recos.filter((r) => r.category === "ads").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
-    emails: v3Recos.filter((r) => r.category === "emails").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
-    offers: v3Recos.filter((r) => r.category === "offers").sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime()),
+    ads: v3Recos.filter((r) => r.category === "ads").sort(sortFn),
+    emails: v3Recos.filter((r) => r.category === "emails").sort(sortFn),
+    offers: v3Recos.filter((r) => r.category === "offers").sort(sortFn),
   };
 
   const stats: RecommendationStats = {
@@ -191,9 +211,11 @@ export function useMarketingRecommendations() {
     allRecommendations,
     recommendations,
     stats,
+    quota,
     loading: isLoading,
     isLoading,
-    generateContent,
+    isGenerating,
+    generateRecommendation,
     updateStatus,
     refresh: fetchRecommendations,
     refetch: fetchRecommendations,

@@ -17,8 +17,10 @@ export function MarketingRecommendations() {
   const {
     recommendations,
     stats,
+    quota,
     loading,
-    generateContent,
+    isGenerating,
+    generateRecommendation,
     updateStatus,
   } = useMarketingRecommendations();
 
@@ -40,7 +42,7 @@ export function MarketingRecommendations() {
         {stats.total > 0 && (
           <p className="text-xs text-muted-foreground">
             {stats.total} recommandation{stats.total !== 1 ? "s" : ""} cette semaine
-            {stats.pending > 0 && <> · <span className="text-primary font-medium">{stats.pending} à découvrir</span></>}
+            {stats.todo > 0 && <> · <span className="text-primary font-medium">{stats.todo} à traiter</span></>}
             {stats.done > 0 && <> · {stats.done} terminée{stats.done !== 1 ? "s" : ""}</>}
           </p>
         )}
@@ -79,24 +81,30 @@ export function MarketingRecommendations() {
         <TabsContent value="ads" className="mt-0">
           <MarketingAdsTab
             recommendations={recommendations.ads}
-            onGenerateContent={generateContent}
+            onGenerateRecommendation={() => generateRecommendation("ads")}
             onStatusChange={updateStatus}
+            isGenerating={isGenerating === "ads"}
+            quota={quota}
           />
         </TabsContent>
 
         <TabsContent value="offers" className="mt-0">
           <MarketingOffersTab
             recommendations={recommendations.offers}
-            onGenerateContent={generateContent}
+            onGenerateRecommendation={() => generateRecommendation("offers")}
             onStatusChange={updateStatus}
+            isGenerating={isGenerating === "offers"}
+            quota={quota}
           />
         </TabsContent>
 
         <TabsContent value="emails" className="mt-0">
           <MarketingEmailsTab
             recommendations={recommendations.emails}
-            onGenerateContent={generateContent}
+            onGenerateRecommendation={() => generateRecommendation("emails")}
             onStatusChange={updateStatus}
+            isGenerating={isGenerating === "emails"}
+            quota={quota}
           />
         </TabsContent>
       </Tabs>
