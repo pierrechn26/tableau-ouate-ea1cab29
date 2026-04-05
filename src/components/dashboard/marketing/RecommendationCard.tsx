@@ -398,7 +398,11 @@ interface RecommendationCardProps {
 
 export function RecommendationCard({ recommendation: rec, onStatusChange, category }: RecommendationCardProps) {
   const isDone = rec.action_status === "done";
-  const personaLabel = rec.persona_code ? getPersonaLabel(rec.persona_code) : rec.persona_cible;
+  const { getName } = usePersonaProfiles();
+
+  // Resolve persona_cible: prefer it if present, resolve codes to names
+  const rawPersona = rec.persona_cible || rec.persona_code || "";
+  const personaLabel = resolvePersonaCodes(rawPersona, getName);
   const contentFormat = rec.content?.format;
 
   const priorityLabel = rec.priority === 1 ? "★ Priorité haute" : rec.priority === 2 ? "★★ Moyenne" : "★★★ Basse";
