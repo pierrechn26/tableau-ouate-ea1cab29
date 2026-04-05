@@ -406,8 +406,12 @@ function SourcesList({ sources }: { sources: any[] }) {
         <div key={i} className="flex items-start gap-2 text-xs">
           <span>{SOURCE_ICONS[s.type] || "📄"}</span>
           <div>
-            <span className="font-medium text-foreground">{safeStr(s.source_name)}</span>
-            {s.description && String(s.description).trim() && <p className="text-muted-foreground">{safeStr(s.description)}</p>}
+            {s.url ? (
+              <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{safeStr(s.source_name)}</a>
+            ) : (
+              <span className="font-medium text-foreground">{safeStr(s.source_name)}</span>
+            )}
+            {s.description && String(s.description).trim() && <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(safeStr(s.description)) }} />}
           </div>
         </div>
       ))}
