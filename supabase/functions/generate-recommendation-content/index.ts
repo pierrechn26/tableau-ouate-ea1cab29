@@ -314,7 +314,7 @@ Retourne :
     "timing": "string",
     "trigger": "string ou null",
     "position_dans_flow": "string ou null",
-    "kpi_attendu": { "taux_ouverture_vise": "25-35%", "taux_clic_vise": "3-5%" }
+     "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
   },
   "sources_inspirations": [...]
 }`,
