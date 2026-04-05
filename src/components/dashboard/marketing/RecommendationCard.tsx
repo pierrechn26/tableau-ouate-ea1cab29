@@ -342,7 +342,7 @@ function AdsTargeting({ targeting }: { targeting: any }) {
         </div>
       )}
       <InfoRow label="Budget suggéré" value={targeting.budget_suggere} />
-      <InfoRow label="Plateforme" value={targeting.plateforme} />
+      <InfoRow label="Plateforme · Format" value={targeting.plateforme} />
       {kpiDisplay && <InfoRow label="KPI attendu" value={kpiDisplay} />}
       {targeting.ab_test && <CopyBlock label="Suggestion A/B test" value={safeStr(targeting.ab_test)} />}
     </div>
