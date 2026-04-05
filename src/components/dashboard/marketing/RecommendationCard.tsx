@@ -15,10 +15,19 @@ import {
 import { PersonaBadge } from "./shared/PersonaBadge";
 import { FormatBadge } from "./shared/FormatBadge";
 import { type Recommendation } from "@/hooks/useMarketingRecommendations";
-import { getPersonaLabel } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ──────────────────────────────────────────────────────────
+
+/** Resolve persona codes (P1,P2) to display names using profiles */
+function resolvePersonaCodes(raw: string, getName: (code: string) => string): string {
+  if (!raw) return "";
+  // If it contains P followed by digit, resolve codes
+  const codePattern = /\bP\d+\b/g;
+  if (!codePattern.test(raw)) return raw; // Already names
+  return raw.replace(/\bP\d+\b/g, (match) => getName(match));
+}
 
 function safeStr(v: any): string {
   if (v === null || v === undefined) return "";
