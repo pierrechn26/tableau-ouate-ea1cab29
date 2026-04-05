@@ -562,6 +562,7 @@ export type Database = {
           project_id: string
           status: string
           updated_at: string | null
+          weekly_trends_refresh: Json | null
         }
         Insert: {
           client_context?: Json | null
@@ -581,6 +582,7 @@ export type Database = {
           project_id?: string
           status?: string
           updated_at?: string | null
+          weekly_trends_refresh?: Json | null
         }
         Update: {
           client_context?: Json | null
@@ -600,6 +602,7 @@ export type Database = {
           project_id?: string
           status?: string
           updated_at?: string | null
+          weekly_trends_refresh?: Json | null
         }
         Relationships: []
       }
