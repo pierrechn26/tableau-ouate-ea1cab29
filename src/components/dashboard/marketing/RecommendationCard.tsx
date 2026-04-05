@@ -106,9 +106,10 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
         <CopyIcon text={value} />
       </div>
-      <div className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line">
-        {value}
-      </div>
+      <div
+        className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line"
+        dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(value) }}
+      />
     </div>
   );
 }
