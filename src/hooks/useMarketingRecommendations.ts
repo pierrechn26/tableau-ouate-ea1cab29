@@ -161,7 +161,7 @@ export function useMarketingRecommendations() {
     try {
       const { error } = await supabase.functions.invoke(
         "generate-marketing-recommendations",
-        { body: { action: "update_status", recommendation_id: recommendationId, action_status: status } }
+        { body: { action: "update_status", recommendation_id: recommendationId, status } }
       );
       if (error) throw error;
     } catch (err) {

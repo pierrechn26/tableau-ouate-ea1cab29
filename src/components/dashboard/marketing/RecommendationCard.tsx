@@ -15,10 +15,19 @@ import {
 import { PersonaBadge } from "./shared/PersonaBadge";
 import { FormatBadge } from "./shared/FormatBadge";
 import { type Recommendation } from "@/hooks/useMarketingRecommendations";
-import { getPersonaLabel } from "@/constants/personas";
+import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { cn } from "@/lib/utils";
 
 // ── Helpers ──────────────────────────────────────────────────────────
+
+/** Resolve persona codes (P1,P2) to display names using profiles */
+function resolvePersonaCodes(raw: string, getName: (code: string) => string): string {
+  if (!raw) return "";
+  // If it contains P followed by digit, resolve codes
+  const codePattern = /\bP\d+\b/g;
+  if (!codePattern.test(raw)) return raw; // Already names
+  return raw.replace(/\bP\d+\b/g, (match) => getName(match));
+}
 
 function safeStr(v: any): string {
   if (v === null || v === undefined) return "";
@@ -389,7 +398,11 @@ interface RecommendationCardProps {
 
 export function RecommendationCard({ recommendation: rec, onStatusChange, category }: RecommendationCardProps) {
   const isDone = rec.action_status === "done";
-  const personaLabel = rec.persona_code ? getPersonaLabel(rec.persona_code) : rec.persona_cible;
+  const { getName } = usePersonaProfiles();
+
+  // Resolve persona_cible: prefer it if present, resolve codes to names
+  const rawPersona = rec.persona_cible || rec.persona_code || "";
+  const personaLabel = resolvePersonaCodes(rawPersona, getName);
   const contentFormat = rec.content?.format;
 
   const priorityLabel = rec.priority === 1 ? "★ Priorité haute" : rec.priority === 2 ? "★★ Moyenne" : "★★★ Basse";
@@ -423,8 +436,10 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
               )}
             </div>
             {rec.persona_code && (
-              <div className="shrink-0">
-                <PersonaBadge code={rec.persona_code} />
+              <div className="shrink-0 flex flex-wrap gap-1">
+                {rec.persona_code.split(",").map((code: string) => (
+                  <PersonaBadge key={code.trim()} code={code.trim()} />
+                ))}
               </div>
             )}
           </div>
