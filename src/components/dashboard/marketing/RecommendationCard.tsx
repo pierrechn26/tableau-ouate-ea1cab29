@@ -372,15 +372,16 @@ const SOURCE_ICONS: Record<string, string> = {
 };
 
 function SourcesList({ sources }: { sources: any[] }) {
-  if (!sources || sources.length === 0) return <p className="text-xs text-muted-foreground">Aucune source disponible.</p>;
+  const validSources = (sources || []).filter((s: any) => s && s.source_name && String(s.source_name).trim());
+  if (validSources.length === 0) return <p className="text-xs text-muted-foreground italic">Aucune source spécifique</p>;
   return (
     <div className="space-y-2">
-      {sources.map((s: any, i: number) => (
+      {validSources.map((s: any, i: number) => (
         <div key={i} className="flex items-start gap-2 text-xs">
           <span>{SOURCE_ICONS[s.type] || "📄"}</span>
           <div>
             <span className="font-medium text-foreground">{safeStr(s.source_name)}</span>
-            {s.description && <p className="text-muted-foreground">{safeStr(s.description)}</p>}
+            {s.description && String(s.description).trim() && <p className="text-muted-foreground">{safeStr(s.description)}</p>}
           </div>
         </div>
       ))}

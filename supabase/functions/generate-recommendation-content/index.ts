@@ -284,8 +284,17 @@ Retourne :
   "sources_inspirations": [...]
 }`,
     offers: `
-TYPES D'OFFRES — VARIÉTÉ :
-Ne propose PAS uniquement des bundles. Varie : offre de lancement, programme fidélité, offre parrainage, upsell post-achat, cross-sell, offre saisonnière, vente privée, cadeau avec achat.
+TYPES D'OFFRES — VARIÉTÉ OBLIGATOIRE :
+Ne propose PAS uniquement des bundles. Tu DOIS varier les types d'offres. Voici les types à utiliser en alternance :
+- Bundle : regroupement de produits complémentaires (max 1 sur 4 recommandations offres)
+- Cadeau avec achat : un produit offert à partir d'un montant minimum (ex: 'Vos débarbouillettes offertes dès 40€ d achat')
+- Upsell post-achat : proposition d'ajout immédiatement après une commande
+- Programme fidélité : récompense les achats répétés (points, paliers)
+- Offre saisonnière : liée à un événement calendaire sans remise (coffret fête des mères, routine rentrée)
+- Vente privée / accès anticipé : exclusivité sans remise, sentiment de privilège
+- Cross-sell : suggestion de produits complémentaires sur la page panier
+- Parrainage : le client invite un proche, les deux reçoivent un avantage
+Avant de générer, vérifie les offres déjà générées cette semaine. Si les précédentes étaient des bundles, propose un TYPE DIFFÉRENT.
 
 Retourne :
 {
