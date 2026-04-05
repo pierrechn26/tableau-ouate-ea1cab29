@@ -143,6 +143,23 @@ INTERPRÉTATION DES MÉTRIQUES :
 - Contextualise chaque chiffre
 - Précise toujours DE QUOI on parle quand tu cites un volume
 
+ANTI-HALLUCINATION PRODUITS :
+- Ne recommande JAMAIS un format de produit qui n'existe pas dans le catalogue (ex: 'mini-format', 'format voyage', 'échantillon') sauf si ce format est EXPLICITEMENT listé dans le catalogue.
+- Si tu proposes une offre de type 'cadeau' ou 'échantillon', vérifie que le produit existe dans le format proposé. Si tu n'es pas sûr, propose le produit en format standard.
+- Ne crée JAMAIS de variantes fictives d'un produit existant (ex: 'Mon nettoyant douceur 30ml' si seul le format 150ml existe).
+
+BUDGET PUBLICITAIRE RÉALISTE :
+- Budget test initial : 30-50€/jour maximum (pas 150€/jour)
+- Budget scale (après validation) : 80-150€/jour
+- Toujours préciser : 'X€/jour en test, puis scale à Y€/jour si [condition de performance]'
+- Ne recommande JAMAIS un budget test supérieur à 80€/jour pour une première campagne
+
+TRANCHE D'ÂGE CIBLAGE :
+La tranche d'âge cible de la marque est 4-12 ans. Dans les suggestions d'audience, utilise TOUJOURS 'Parents d'enfants 4-12 ans', JAMAIS 3-12 ou 3-15 ou toute autre tranche qui sort du périmètre 4-12.
+
+CODES PERSONAS DANS LES SOURCES :
+Dans le champ sources_inspirations, n'utilise JAMAIS les codes techniques des personas (P1, P2, P3...). Utilise uniquement les prénoms. Exemple : 'Nathalie a 0% de conversion' PAS 'Nathalie (P2) a 0% de conversion'.
+
 SOURCES ET FAITS :
 - N'invente JAMAIS d'actualité, d'étude ou d'enquête
 - Si tu cites une tendance, formule-la comme observation sans inventer de source datée
@@ -152,6 +169,10 @@ Le champ sources_inspirations ne doit JAMAIS être un tableau d'objets vides. Ch
 - source_name : le nom de la source ou de l'inspiration (JAMAIS vide)
 - description : une phrase expliquant pourquoi c'est pertinent (JAMAIS vide)
 - type : 'source_marketing' ou 'inspiration_marque'
+Si tu cites une marque en inspiration (type 'inspiration_marque'), ajoute l'URL du site de la marque dans un champ 'url'. Exemple :
+{ "source_name": "Stratégie échantillonnage Sephora", "description": "...", "type": "inspiration_marque", "url": "https://www.sephora.fr" }
+Pour les sources de type 'source_marketing' (principes marketing), ne mets PAS d'URL (ce sont des concepts, pas des sites).
+N'invente JAMAIS d'URL — si tu ne connais pas l'URL exacte d'une marque, mets null.
 Si tu n'as pas de source spécifique, cite les principes marketing sur lesquels tu t'appuies (ex: { source_name: 'Principe de réciprocité', description: 'Un cadeau sans condition crée un sentiment de dette positive qui augmente la probabilité d achat', type: 'source_marketing' }).
 
 SCRIPTS VIDÉO — FORMATAGE :
@@ -178,6 +199,20 @@ VARIÉTÉ — Avant de générer, consulte la liste des recommandations déjà g
 - Cibler un PERSONA DIFFÉRENT ou un ANGLE DIFFÉRENT des recommandations précédentes
 - Les recommandations de priorité 1 doivent cibler les personas avec le plus de potentiel (volume × conversion × AOV)
 - Les recommandations de priorité 2-3 peuvent explorer des angles secondaires ou des personas moins évidents
+
+PLATEFORME — FORMAT PUBLICITAIRE :
+Le champ plateforme dans targeting doit inclure le format publicitaire recommandé. Exemples :
+- 'Meta Ads · 9:16 Story + Reel' pour les vidéos
+- 'Meta Ads · 1:1 Feed Carrousel' pour les carrousels
+- 'Meta Ads · 4:5 Feed' pour les images statiques
+- 'Meta Ads + TikTok · 9:16 vertical' si les deux plateformes sont recommandées
+
+BENCHMARKS EMAIL RÉALISTES (cosmétique enfant premium) :
+- Taux d'ouverture : 40-55% (les bases engagées en cosmétique enfant ont des taux bien supérieurs à la moyenne e-commerce)
+- Taux de clic : 4-8%
+- Si le segment est très qualifié (post-diagnostic, VIP) : ouverture 50-60%, clic 8-12%
+- Si le segment est large (toute la base) : ouverture 35-45%, clic 3-5%
+- NE JAMAIS proposer un objectif d'ouverture inférieur à 35% — ce serait un signal d'alarme, pas un objectif
 
 DATE : Nous sommes le ${dateFR}. Adapte au calendrier commercial (événements dans les 4-6 prochaines semaines).`;
 
@@ -279,7 +314,7 @@ Retourne :
     "timing": "string",
     "trigger": "string ou null",
     "position_dans_flow": "string ou null",
-    "kpi_attendu": { "taux_ouverture_vise": "25-35%", "taux_clic_vise": "3-5%" }
+     "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
   },
   "sources_inspirations": [...]
 }`,

@@ -36,6 +36,31 @@ function safeStr(v: any): string {
   return String(v);
 }
 
+/** Render basic markdown bold (**text**) to HTML */
+function renderMd(text: string): string {
+  if (!text) return "";
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+/** Component that renders text with markdown bold + preserved newlines */
+function MdText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null;
+  return (
+    <span
+      className={className}
+      style={{ whiteSpace: "pre-line" }}
+      dangerouslySetInnerHTML={{ __html: renderMd(text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')) }}
+    />
+  );
+}
+
+/** Sanitize then render markdown */
+function sanitizeAndRenderMd(text: string): string {
+  if (!text) return "";
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   ads: "Ads",
   emails: "Emailing",
@@ -81,9 +106,10 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
         <CopyIcon text={value} />
       </div>
-      <div className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line">
-        {value}
-      </div>
+      <div
+        className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line"
+        dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(value) }}
+      />
     </div>
   );
 }
@@ -316,7 +342,7 @@ function AdsTargeting({ targeting }: { targeting: any }) {
         </div>
       )}
       <InfoRow label="Budget suggéré" value={targeting.budget_suggere} />
-      <InfoRow label="Plateforme" value={targeting.plateforme} />
+      <InfoRow label="Plateforme · Format" value={targeting.plateforme} />
       {kpiDisplay && <InfoRow label="KPI attendu" value={kpiDisplay} />}
       {targeting.ab_test && <CopyBlock label="Suggestion A/B test" value={safeStr(targeting.ab_test)} />}
     </div>
@@ -380,8 +406,12 @@ function SourcesList({ sources }: { sources: any[] }) {
         <div key={i} className="flex items-start gap-2 text-xs">
           <span>{SOURCE_ICONS[s.type] || "📄"}</span>
           <div>
-            <span className="font-medium text-foreground">{safeStr(s.source_name)}</span>
-            {s.description && String(s.description).trim() && <p className="text-muted-foreground">{safeStr(s.description)}</p>}
+            {s.url ? (
+              <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{safeStr(s.source_name)}</a>
+            ) : (
+              <span className="font-medium text-foreground">{safeStr(s.source_name)}</span>
+            )}
+            {s.description && String(s.description).trim() && <p className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(safeStr(s.description)) }} />}
           </div>
         </div>
       ))}
@@ -470,7 +500,7 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
 
           {/* ── Brief ── */}
           {rec.brief && (
-            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-line">{rec.brief}</p>
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(rec.brief) }} />
           )}
 
           {/* ── Collapsible sections ── */}
