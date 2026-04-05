@@ -436,8 +436,10 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
               )}
             </div>
             {rec.persona_code && (
-              <div className="shrink-0">
-                <PersonaBadge code={rec.persona_code} />
+              <div className="shrink-0 flex flex-wrap gap-1">
+                {rec.persona_code.split(",").map((code: string) => (
+                  <PersonaBadge key={code.trim()} code={code.trim()} />
+                ))}
               </div>
             )}
           </div>
