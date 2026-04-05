@@ -496,7 +496,7 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
 
           {/* ── Brief ── */}
           {rec.brief && (
-            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-line">{rec.brief}</p>
+            <p className="text-[13px] text-foreground/80 leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(rec.brief) }} />
           )}
 
           {/* ── Collapsible sections ── */}
