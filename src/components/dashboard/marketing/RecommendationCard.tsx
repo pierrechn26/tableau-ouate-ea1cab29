@@ -36,6 +36,31 @@ function safeStr(v: any): string {
   return String(v);
 }
 
+/** Render basic markdown bold (**text**) to HTML */
+function renderMd(text: string): string {
+  if (!text) return "";
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+/** Component that renders text with markdown bold + preserved newlines */
+function MdText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null;
+  return (
+    <span
+      className={className}
+      style={{ whiteSpace: "pre-line" }}
+      dangerouslySetInnerHTML={{ __html: renderMd(text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')) }}
+    />
+  );
+}
+
+/** Sanitize then render markdown */
+function sanitizeAndRenderMd(text: string): string {
+  if (!text) return "";
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   ads: "Ads",
   emails: "Emailing",
