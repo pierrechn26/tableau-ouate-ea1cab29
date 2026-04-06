@@ -62,6 +62,14 @@ function generateAnalysis(rec: Recommendation): AnalysisBlock | null {
       });
       return out;
     }
+    // Handle flat {metrique, valeur_cible, metrique_secondaire, valeur_secondaire} format
+    if (kpi.metrique && kpi.valeur_cible) {
+      const out: Record<string, string> = { [kpi.metrique]: String(kpi.valeur_cible) };
+      if (kpi.metrique_secondaire && kpi.valeur_secondaire) {
+        out[kpi.metrique_secondaire] = String(kpi.valeur_secondaire);
+      }
+      return out;
+    }
     const out: Record<string, string> = {};
     Object.entries(kpi).forEach(([k, v]) => { out[k] = String(v); });
     return out;
