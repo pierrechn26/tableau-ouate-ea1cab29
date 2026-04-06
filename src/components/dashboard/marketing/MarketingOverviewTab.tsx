@@ -12,9 +12,10 @@ interface Props {
   quota: QuotaData;
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   onNavigateToDetail: (rec: Recommendation) => void;
+  onOpenFeedback: (rec: Recommendation) => void;
 }
 
-export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota, onStatusChange, onNavigateToDetail }: Props) {
+export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota, onStatusChange, onNavigateToDetail, onOpenFeedback }: Props) {
   const activeCount = activeTasks.length;
   const doneCount = completedTasks.length;
 
@@ -95,6 +96,7 @@ export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota
                   key={rec.id}
                   recommendation={rec}
                   onNavigateToDetail={onNavigateToDetail}
+                  onOpenFeedback={onOpenFeedback}
                 />
               ))}
             </AnimatePresence>

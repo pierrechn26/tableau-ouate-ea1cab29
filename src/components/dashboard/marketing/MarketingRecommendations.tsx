@@ -12,6 +12,7 @@ import { MarketingOverviewTab } from "./MarketingOverviewTab";
 import { MarketingAdsTab } from "./MarketingAdsTab";
 import { MarketingOffersTab } from "./MarketingOffersTab";
 import { MarketingEmailsTab } from "./MarketingEmailsTab";
+import { FeedbackForm } from "./FeedbackForm";
 import { Badge } from "@/components/ui/badge";
 
 export function MarketingRecommendations() {
@@ -25,9 +26,11 @@ export function MarketingRecommendations() {
     isGenerating,
     generateRecommendation,
     updateStatus,
+    submitFeedback,
   } = useMarketingRecommendations();
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [feedbackRec, setFeedbackRec] = useState<Recommendation | null>(null);
 
   const handleNavigateToDetail = useCallback((rec: Recommendation) => {
     const tab = rec.category === "emails" ? "emails" : rec.category === "offers" ? "offers" : "ads";
@@ -35,6 +38,10 @@ export function MarketingRecommendations() {
     setTimeout(() => {
       document.getElementById(`reco-${rec.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 150);
+  }, []);
+
+  const handleOpenFeedback = useCallback((rec: Recommendation) => {
+    setFeedbackRec(rec);
   }, []);
 
   if (loading) {
@@ -84,6 +91,7 @@ export function MarketingRecommendations() {
             quota={quota}
             onStatusChange={updateStatus}
             onNavigateToDetail={handleNavigateToDetail}
+            onOpenFeedback={handleOpenFeedback}
           />
         </TabsContent>
 
@@ -94,6 +102,7 @@ export function MarketingRecommendations() {
             onStatusChange={updateStatus}
             isGenerating={isGenerating === "ads"}
             quota={quota}
+            onOpenFeedback={handleOpenFeedback}
           />
         </TabsContent>
 
@@ -104,6 +113,7 @@ export function MarketingRecommendations() {
             onStatusChange={updateStatus}
             isGenerating={isGenerating === "offers"}
             quota={quota}
+            onOpenFeedback={handleOpenFeedback}
           />
         </TabsContent>
 
@@ -114,9 +124,20 @@ export function MarketingRecommendations() {
             onStatusChange={updateStatus}
             isGenerating={isGenerating === "emails"}
             quota={quota}
+            onOpenFeedback={handleOpenFeedback}
           />
         </TabsContent>
       </Tabs>
+
+      {/* Feedback modal */}
+      {feedbackRec && (
+        <FeedbackForm
+          open={!!feedbackRec}
+          onOpenChange={(open) => { if (!open) setFeedbackRec(null); }}
+          recommendation={feedbackRec}
+          onSubmit={submitFeedback}
+        />
+      )}
     </div>
   );
 }

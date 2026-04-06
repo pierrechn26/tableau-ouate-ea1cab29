@@ -8,7 +8,6 @@ import { FormatBadge } from "./shared/FormatBadge";
 import { type Recommendation } from "@/hooks/useMarketingRecommendations";
 import { getPersonaDisplayName } from "@/constants/personas";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 const CATEGORY_LABELS: Record<string, string> = { ads: "Ads", emails: "Emailing", offers: "Offres" };
 const CATEGORY_COLORS: Record<string, string> = {
@@ -37,11 +36,11 @@ function sanitizeAndRenderMd(text: string): string {
 interface Props {
   recommendation: Recommendation;
   onNavigateToDetail: (rec: Recommendation) => void;
+  onOpenFeedback: (rec: Recommendation) => void;
 }
 
-export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail }: Props) {
+export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, onOpenFeedback }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const { toast } = useToast();
   const category = rec.category || "ads";
   const personaLabel = resolvePersonaCodes(rec.persona_cible || rec.persona_code || "");
   const contentFormat = rec.content?.format;
@@ -52,6 +51,8 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail }:
     : null;
 
   const kpiAttendus = rec.targeting?.kpi_attendu;
+  const feedbackResults = rec.feedback_results || {};
+  const periode = feedbackResults.periode;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -93,7 +94,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail }:
               variant="ghost"
               size="sm"
               className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
-              onClick={() => toast({ title: "Bientôt disponible", description: "Le formulaire de résultat arrive dans la prochaine mise à jour." })}
+              onClick={() => onOpenFeedback(rec)}
             >
               {feedback ? "Modifier résultat" : "Ajouter résultat"}
             </Button>
@@ -128,8 +129,45 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail }:
               className="overflow-hidden"
             >
               <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
+                {/* Period */}
+                {periode && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Période de test</p>
+                    <p className="text-xs text-foreground/80">
+                      {new Date(periode.debut).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                      {" → "}
+                      {new Date(periode.fin).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                      {" "}({periode.duree_jours} jours)
+                    </p>
+                  </div>
+                )}
+
+                {/* Feedback results vs KPI */}
+                {rec.feedback_entered_at && kpiAttendus && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Résultats vs objectifs</p>
+                    <div className="text-xs text-foreground/80 space-y-0.5">
+                      {Object.entries(kpiAttendus).map(([k, v]) => {
+                        const resultKey = k === "CTR" ? "ctr" : k === "ROAS" ? "roas" : k === "taux_ouverture_vise" ? "taux_ouverture" : k === "taux_clic_vise" ? "taux_clic" : k;
+                        const actual = feedbackResults[resultKey];
+                        return (
+                          <p key={k}>
+                            <span className="text-muted-foreground">{k} :</span>{" "}
+                            {actual !== undefined ? (
+                              <span className="font-medium">{actual}</span>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
+                            <span className="text-muted-foreground/60 ml-1">(obj: {String(v)})</span>
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Brief */}
-                {rec.brief && (
+                {rec.brief && !rec.feedback_entered_at && (
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Brief</p>
                     <p
@@ -139,8 +177,8 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail }:
                   </div>
                 )}
 
-                {/* KPI attendus */}
-                {kpiAttendus && (
+                {/* KPI attendus (when no feedback yet) */}
+                {!rec.feedback_entered_at && kpiAttendus && (
                   <div>
                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">KPI attendus</p>
                     <div className="text-xs text-foreground/80 space-y-0.5">
