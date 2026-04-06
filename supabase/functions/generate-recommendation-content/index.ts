@@ -43,6 +43,91 @@ function robustJsonParse(raw: string): any {
   return null;
 }
 
+function collectTextFields(value: any, path = ""): Array<{ path: string; value: string }> {
+  if (typeof value === "string") return [{ path, value }];
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectTextFields(item, `${path}[${index}]`));
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([key, nested]) =>
+      collectTextFields(nested, path ? `${path}.${key}` : key)
+    );
+  }
+  return [];
+}
+
+function shouldValidateTextPath(path: string): boolean {
+  if (!path || path === "persona_code") return false;
+  if (path.startsWith("targeting.")) return false;
+  if (path.endsWith(".url")) return false;
+  return true;
+}
+
+function validateGeneratedCopy(parsed: any): string[] {
+  const issues: string[] = [];
+  const fields = collectTextFields(parsed).filter((entry) => shouldValidateTextPath(entry.path));
+
+  const patterns: Array<{ regex: RegExp; reason: string }> = [
+    {
+      regex: /\b(?:garantie satisfaction|satisfait ou remboursé|politique de retour)\b/i,
+      reason: "garantie ou politique non vérifiée",
+    },
+    {
+      regex: /\b(?:testé dermatologiquement|testé et approuvé par les dermatologues|approuvé par les dermatologues|prouvé cliniquement)\b/i,
+      reason: "claim scientifique ou médical non vérifié",
+    },
+    {
+      regex: /\b(?:\d[\d\s.,]*\s*(?:parents|familles|clientes?|clients?|mamans?)|des milliers de\s+(?:parents|familles|clientes?|clients?|mamans?))\b/i,
+      reason: "taille de communauté potentiellement inventée",
+    },
+    {
+      regex: /\b(?:résultat|résultats|amélior(?:ation|ée|é)|eff(?:et|ets))\b[^.!?]{0,80}\b(?:en|sous|au bout de|dès)\s+\d+\s*(?:jour|jours|semaine|semaines|mois)\b/i,
+      reason: "délai de résultat précis non vérifié",
+    },
+    {
+      regex: /\b(?:résultat|résultats)\b[^.!?]{0,80}\b(?:quelques jours|plusieurs semaines|plusieurs jours)\b/i,
+      reason: "délai de résultat non vérifié",
+    },
+    {
+      regex: /\b(?:CTR|ROAS|taux de clic|taux d'ouverture|taux d’ouverture|conversion|engagement)\b[^.!?]{0,40}\b\d{1,3}\s*%/i,
+      reason: "statistique marketing non vérifiée",
+    },
+    {
+      regex: /\b\d{1,3}\s*%\b[^.!?]{0,40}\b(?:CTR|ROAS|taux de clic|taux d'ouverture|taux d’ouverture|conversion|engagement)\b/i,
+      reason: "statistique marketing non vérifiée",
+    },
+    {
+      regex: /\b(?:UGC|ugc)\b[^.!?]{0,40}\b\d{1,3}\s*%/i,
+      reason: "statistique d'industrie non vérifiée",
+    },
+    {
+      regex: /\bautres mamans de\s*\{prénom_enfant\}/i,
+      reason: "preuve sociale non vérifiée dans l'email",
+    },
+  ];
+
+  for (const { path, value } of fields) {
+    const normalized = value.replace(/\s+/g, " ").trim();
+    if (!normalized) continue;
+
+    for (const pattern of patterns) {
+      if (pattern.regex.test(normalized)) {
+        issues.push(`${path} — ${pattern.reason} — "${normalized.slice(0, 160)}"`);
+      }
+    }
+  }
+
+  return Array.from(new Set(issues));
+}
+
+function buildRetryPrompt(basePrompt: string, issues: string[], reason: "parse" | "validation"): string {
+  if (reason === "parse") {
+    return `${basePrompt}\n\n=== CORRECTION OBLIGATOIRE ===\nTa réponse précédente a été rejetée car le JSON n'était pas parseable. Retourne un JSON VALIDE, complet, sans texte avant ni après.`;
+  }
+
+  return `${basePrompt}\n\n=== CORRECTION OBLIGATOIRE APRÈS VALIDATION ===\nTa réponse précédente a été rejetée pour non-conformité. Corrige TOUS les points suivants :\n${issues.map((issue, index) => `${index + 1}. ${issue}`).join("\n")}\n\nRetourne ensuite UN JSON COMPLET corrigé, sans texte avant ni après, et sans ajouter de chiffres, claims ou délais non vérifiés.`;
+}
+
 async function callSonnet(
   systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs = 90000
 ): Promise<{ text: string; inputTokens: number; outputTokens: number; totalTokens: number; model: string }> {
@@ -129,22 +214,51 @@ Utilise TOUJOURS les prénoms : Clara, Nathalie, Amandine, Julie, Stéphanie, Ca
 Exemple INTERDIT : 'Email exclusif aux fidèles P8/P9'
 Exemple CORRECT : 'Email exclusif aux fidèles Virginie et Marine'
 
-RÈGLE ABSOLUE — CLAIMS ET STATISTIQUES :
-N'invente JAMAIS de chiffre, de statistique, de claim ou de promesse qui ne provient pas directement des données du dashboard ou du catalogue produit.
-INTERDIT :
-- '73% de nos clientes ajoutent...' → sauf si c'est une vraie stat du dashboard
-- 'Résultats visibles en 7 jours' → sauf si c'est écrit sur la fiche produit
-- 'Garantie satisfaction' → sauf si la marque le propose réellement
-- 'Communauté de 15 000 parents' → sauf si c'est une donnée vérifiée
-- 'Testé et approuvé par les dermatologues' → sauf si c'est un claim officiel du produit
-- Tout pourcentage, tout délai de résultat, toute taille de communauté inventés
-AUTORISÉ :
-- Les vraies métriques du dashboard (AOV, conversion, volume sessions) → tu les as dans le contexte
-- Les vrais prix et noms de produits du catalogue
-- Les vrais claims écrits dans les descriptions produit du catalogue
-- Des formulations prudentes : 'Des milliers de parents nous font confiance' (vague, acceptable) au lieu de '15 000 parents' (précis, non vérifié)
-- 'Résultats constatés par nos clientes' au lieu de 'Résultats visibles en 7 jours'
-Si tu veux mentionner un chiffre ou un claim, vérifie qu'il existe dans les données fournies. Si tu ne le trouves pas → ne l'utilise pas.
+ INTERDICTION ABSOLUE — CHIFFRES ET CLAIMS INVENTÉS
+
+ Cette règle est NON NÉGOCIABLE. Sa violation rend la recommandation INUTILISABLE pour la marque.
+
+ TU NE DOIS JAMAIS ÉCRIRE :
+ - Un pourcentage inventé : '80% des enfants', '73% de nos clientes', '40% de taux de clic supplémentaires'
+ - Un délai de résultat inventé : 'Résultats visibles en 7 jours', 'Peau apaisée en 2 semaines'
+ - Une taille de communauté inventée : '15 000 parents', 'des milliers de familles'
+ - Une garantie ou politique inventée : 'Garantie satisfaction', 'Satisfait ou remboursé', 'Politique de retour'
+ - Une statistique d'industrie inventée : 'Les UGC génèrent 40% de CTR supplémentaire'
+ - Un claim scientifique ou médical inventé : 'Testé dermatologiquement', 'Prouvé cliniquement'
+
+ Ces chiffres SEMBLENT crédibles mais sont INVENTÉS. La marque pourrait les utiliser dans sa communication et s'exposer à des sanctions légales.
+
+ COMMENT VÉRIFIER : si le chiffre, le claim ou la statistique ne figure PAS dans :
+ - Les descriptions produit du catalogue fourni
+ - Les métriques du dashboard (AOV, conversion, sessions)
+ - Les données personas fournies
+ - Le contexte marque fourni
+
+ ALORS tu ne dois PAS l'utiliser.
+
+ ALTERNATIVES AUTORISÉES :
+ - Au lieu de '80% des enfants' → 'la grande majorité des enfants'
+ - Au lieu de 'Résultats en 7 jours' → 'Des résultats constatés dès les premières utilisations'
+ - Au lieu de '15 000 parents' → 'De nombreuses familles'
+ - Au lieu de 'Garantie satisfaction' → NE PAS MENTIONNER si ça n'existe pas
+ - Au lieu de '40% de CTR supplémentaire' → 'Un engagement significativement plus élevé'
+ - Au lieu de 'Testé dermatologiquement' → NE PAS MENTIONNER sauf si c'est sur la fiche produit
+
+ DANS LES SOURCES & INSPIRATIONS :
+ Les descriptions de sources ne doivent PAS contenir de statistiques inventées.
+ - INTERDIT : 'Les emails post-diagnostic génèrent 40% de taux de clic supplémentaires vs emails génériques'
+ - AUTORISÉ : 'Les emails post-diagnostic avec recommandations personnalisées sont significativement plus engageants que les emails génériques'
+
+ DANS LES SUJETS ET CONTENUS EMAIL :
+ Les formulations doivent rester honnêtes et prudentes.
+ - INTERDIT : 'Autres mamans de {prénom_enfant} ont choisi cette routine'
+ - AUTORISÉ : 'D'autres mamans comme vous ont adopté cette routine'
+
+ DANS LES SCRIPTS ET AD COPY :
+ - INTERDIT : 'Au bout de 2 semaines, j'ai vraiment vu une différence'
+ - AUTORISÉ : 'Depuis qu'on a commencé la routine, sa peau s'est vraiment améliorée' (sans délai précis inventé)
+
+ RÈGLE FINALE : En cas de doute sur la véracité d'un chiffre ou d'un claim, NE L'UTILISE PAS. Une formulation prudente et honnête est toujours préférable à un chiffre impressionnant mais inventé.
 
 DÉFINITION DES FORMATS VIDÉO — RESPECTE-LES STRICTEMENT :
 - video_ugc : UGC signifie User Generated Content. La personne PARLE FACE CAMÉRA dans un ton naturel et spontané. Ce n'est PAS une voix off. Le script doit être écrit comme si la personne s'adressait directement à la caméra. Pas de narration en fond, pas de voix off.
@@ -543,17 +657,64 @@ ${JSON.stringify(products.map((p: any) => ({
   type: p.product_type,
 })), null, 1)}`;
 
-    const result = await callSonnet(systemPrompt, userPrompt, 8000, 90000);
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalTokensUsed = 0;
+    let attempts = 0;
 
-    // ── STEP 4: PARSE & PERSIST ──
-    const parsed = robustJsonParse(result.text);
+    let result = await callSonnet(systemPrompt, userPrompt, 8000, 90000);
+    attempts += 1;
+    totalInputTokens += result.inputTokens;
+    totalOutputTokens += result.outputTokens;
+    totalTokensUsed += result.totalTokens;
+
+    // ── STEP 4: PARSE & VALIDATE ──
+    let parsed = robustJsonParse(result.text);
     if (!parsed) {
-      console.error("[gen-content] JSON parse failed. Raw (500 chars):", result.text.slice(0, 500));
-      // Do NOT deduct credit
+      console.error("[gen-content] JSON parse failed on first pass. Raw (500 chars):", result.text.slice(0, 500));
+      result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, [], "parse"), 8000, 90000);
+      attempts += 1;
+      totalInputTokens += result.inputTokens;
+      totalOutputTokens += result.outputTokens;
+      totalTokensUsed += result.totalTokens;
+      parsed = robustJsonParse(result.text);
+    }
+
+    if (!parsed) {
+      console.error("[gen-content] JSON parse failed after retry. Raw (500 chars):", result.text.slice(0, 500));
       return new Response(JSON.stringify({
         error: "parse_failed",
         message: "La génération a échoué (parsing). Réessayez.",
       }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    let validationIssues = validateGeneratedCopy(parsed);
+    if (validationIssues.length > 0) {
+      console.warn("[gen-content] Validation issues on first pass:", validationIssues);
+      result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, validationIssues, "validation"), 8000, 90000);
+      attempts += 1;
+      totalInputTokens += result.inputTokens;
+      totalOutputTokens += result.outputTokens;
+      totalTokensUsed += result.totalTokens;
+      parsed = robustJsonParse(result.text);
+
+      if (!parsed) {
+        console.error("[gen-content] JSON parse failed after validation retry. Raw (500 chars):", result.text.slice(0, 500));
+        return new Response(JSON.stringify({
+          error: "parse_failed",
+          message: "La génération a échoué (parsing après correction). Réessayez.",
+        }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      validationIssues = validateGeneratedCopy(parsed);
+      if (validationIssues.length > 0) {
+        console.error("[gen-content] Validation failed after retry:", validationIssues);
+        return new Response(JSON.stringify({
+          error: "validation_failed",
+          message: "La génération a été rejetée car elle contenait des claims ou statistiques non vérifiés.",
+          issues: validationIssues,
+        }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Insert recommendation
@@ -621,24 +782,24 @@ ${JSON.stringify(products.map((p: any) => ({
         edge_function: "generate-recommendation-content",
         api_provider: "anthropic",
         model: result.model,
-        tokens_used: result.totalTokens,
-        input_tokens: result.inputTokens,
-        output_tokens: result.outputTokens,
-        total_tokens: result.totalTokens,
+        tokens_used: totalTokensUsed,
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalTokensUsed,
         api_calls: 1,
-        metadata: { recommendation_id: inserted.id, category, persona: parsed.persona_cible, duration_ms: durationMs },
+        metadata: { recommendation_id: inserted.id, category, persona: parsed.persona_cible, duration_ms: durationMs, attempts },
       });
     } catch (e: any) {
       console.error("[gen-content] Usage log error:", e.message);
     }
 
-    console.log(`[gen-content] ✓ ${inserted.id} (${category}) complete in ${durationMs}ms (${result.totalTokens} tokens)`);
+    console.log(`[gen-content] ✓ ${inserted.id} (${category}) complete in ${durationMs}ms (${totalTokensUsed} tokens, ${attempts} attempt(s))`);
 
     return new Response(JSON.stringify({
       status: "complete",
       recommendation: inserted,
       duration_ms: durationMs,
-      tokens_used: result.totalTokens,
+      tokens_used: totalTokensUsed,
       quota: { used: currentCount + 1, limit: monthlyLimit, remaining: monthlyLimit - currentCount - 1 },
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
