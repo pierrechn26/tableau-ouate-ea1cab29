@@ -91,7 +91,7 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
         <CopyIcon text={value} />
       </div>
       <div
