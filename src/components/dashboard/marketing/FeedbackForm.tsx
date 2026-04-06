@@ -38,26 +38,39 @@ interface MetricComparison {
   score: "good" | "average" | "poor";
 }
 
-function computeComparisons(results: Record<string, any>, kpi: Record<string, any>, category: string): MetricComparison[] {
+function normalizeKpi(kpi: Record<string, any>): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (kpi.metrique && kpi.valeur_cible) result[kpi.metrique] = kpi.valeur_cible;
+  if (kpi.metrique_secondaire && kpi.valeur_secondaire) result[kpi.metrique_secondaire] = kpi.valeur_secondaire;
+  for (const [k, v] of Object.entries(kpi)) {
+    if (!["metrique", "valeur_cible", "metrique_secondaire", "valeur_secondaire"].includes(k) && typeof v === "string") {
+      result[k] = v;
+    }
+  }
+  return result;
+}
+
+function computeComparisons(results: Record<string, any>, kpiRaw: Record<string, any>, category: string): MetricComparison[] {
   const comparisons: MetricComparison[] = [];
-  const mappings: Record<string, { kpiKeys: string[]; label: string }[]> = {
+  const kpi = normalizeKpi(kpiRaw);
+  const mappings: Record<string, { kpiKeys: string[]; label: string; resultKey: string }[]> = {
     ads: [
-      { kpiKeys: ["CTR", "ctr"], label: "CTR" },
-      { kpiKeys: ["ROAS", "roas"], label: "ROAS" },
+      { kpiKeys: ["CTR", "ctr"], label: "CTR", resultKey: "ctr" },
+      { kpiKeys: ["ROAS", "roas"], label: "ROAS", resultKey: "roas" },
     ],
     emails: [
-      { kpiKeys: ["taux_ouverture_vise", "Ouverture", "ouverture"], label: "Taux d'ouverture" },
-      { kpiKeys: ["taux_clic_vise", "Clic", "clic"], label: "Taux de clic" },
+      { kpiKeys: ["taux_ouverture_vise", "Ouverture", "ouverture", "Taux d'ouverture"], label: "Taux d'ouverture", resultKey: "taux_ouverture" },
+      { kpiKeys: ["taux_clic_vise", "Clic", "clic", "Taux de clic"], label: "Taux de clic", resultKey: "taux_clic" },
     ],
     offers: [
-      { kpiKeys: ["Taux de conversion", "taux_conversion", "conversion"], label: "Taux de conversion" },
-      { kpiKeys: ["AOV impact", "panier_moyen", "aov"], label: "Panier moyen" },
+      { kpiKeys: ["Taux de conversion", "taux_conversion", "conversion"], label: "Taux de conversion", resultKey: "taux_conversion" },
+      { kpiKeys: ["AOV impact", "panier_moyen", "aov", "Panier moyen"], label: "Panier moyen", resultKey: "panier_moyen" },
     ],
   };
 
   const maps = mappings[category] || [];
   for (const m of maps) {
-    const actual = parseFloat(String(results[m.label === "CTR" ? "ctr" : m.label === "ROAS" ? "roas" : m.label === "Taux d'ouverture" ? "taux_ouverture" : m.label === "Taux de clic" ? "taux_clic" : m.label === "Taux de conversion" ? "taux_conversion" : "panier_moyen"] || ""));
+    const actual = parseFloat(String(results[m.resultKey] || ""));
     if (isNaN(actual)) continue;
 
     let range: { low: number; high: number } | null = null;
