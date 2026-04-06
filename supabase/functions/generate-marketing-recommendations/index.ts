@@ -84,28 +84,61 @@ async function getQuota(supabase: any) {
 
 // ── Feedback score calculation ────────────────────────────────────────
 
-function calculateFeedbackScore(results: any, kpiAttendu: any): string {
-  if (!results || !kpiAttendu) return "average";
+function parseRange(val: string): { low: number; high: number } | null {
+  if (!val) return null;
+  const cleaned = String(val).replace(/[%x€]/g, "").trim();
+  const rangeMatch = cleaned.match(/([\d.,]+)\s*[-–]\s*([\d.,]+)/);
+  if (rangeMatch) {
+    return { low: parseFloat(rangeMatch[1].replace(",", ".")), high: parseFloat(rangeMatch[2].replace(",", ".")) };
+  }
+  const single = parseFloat(cleaned.replace(",", "."));
+  if (!isNaN(single)) return { low: single * 0.9, high: single };
+  return null;
+}
 
-  // Extract numeric values from results and KPIs for comparison
-  const comparisons: number[] = []; // ratios of actual/expected
+function calculateFeedbackScore(results: any, kpiAttendu: any, category: string): string | null {
+  if (!results || !kpiAttendu || typeof kpiAttendu !== "object") return null;
 
-  // Generic comparison: try to match keys
-  for (const key of Object.keys(results)) {
-    const actual = parseFloat(String(results[key]).replace(/[^0-9.,]/g, "").replace(",", "."));
-    const expected = kpiAttendu[key];
-    if (isNaN(actual) || !expected) continue;
-    const expectedNum = parseFloat(String(expected).replace(/[^0-9.,]/g, "").replace(",", "."));
-    if (isNaN(expectedNum) || expectedNum === 0) continue;
-    comparisons.push(actual / expectedNum);
+  const mappings: Record<string, { resultKey: string; kpiKeys: string[] }[]> = {
+    ads: [
+      { resultKey: "ctr", kpiKeys: ["CTR", "ctr"] },
+      { resultKey: "roas", kpiKeys: ["ROAS", "roas"] },
+    ],
+    emails: [
+      { resultKey: "taux_ouverture", kpiKeys: ["taux_ouverture_vise", "Ouverture", "ouverture"] },
+      { resultKey: "taux_clic", kpiKeys: ["taux_clic_vise", "Clic", "clic"] },
+    ],
+    offers: [
+      { resultKey: "taux_conversion", kpiKeys: ["Taux de conversion", "taux_conversion", "conversion"] },
+      { resultKey: "panier_moyen", kpiKeys: ["AOV impact", "panier_moyen", "aov"] },
+    ],
+  };
+
+  const maps = mappings[category] || [];
+  const scores: string[] = [];
+
+  for (const m of maps) {
+    const actual = parseFloat(String(results[m.resultKey] ?? ""));
+    if (isNaN(actual)) continue;
+
+    let range: { low: number; high: number } | null = null;
+    for (const k of m.kpiKeys) {
+      if (kpiAttendu[k]) { range = parseRange(kpiAttendu[k]); break; }
+    }
+    if (!range) continue;
+
+    if (actual >= range.high) scores.push("good");
+    else if (actual >= range.low * 0.8) scores.push("average");
+    else scores.push("poor");
   }
 
-  if (comparisons.length === 0) return "average";
+  if (scores.length === 0) return null;
+  if (scores.length === 1) return scores[0];
 
-  const avgRatio = comparisons.reduce((a, b) => a + b, 0) / comparisons.length;
-
-  if (avgRatio >= 1.2) return "good";
-  if (avgRatio <= 0.8) return "poor";
+  const counts = { good: 0, average: 0, poor: 0 };
+  scores.forEach((s) => counts[s as keyof typeof counts]++);
+  if (counts.good >= counts.average && counts.good >= counts.poor) return "good";
+  if (counts.poor >= counts.good && counts.poor >= counts.average) return "poor";
   return "average";
 }
 
@@ -206,10 +239,10 @@ serve(async (req) => {
       if (action === "submit_feedback") {
         const { results, notes } = body;
 
-        // Get the recommendation to access kpi_attendu
+        // Get the recommendation to access kpi_attendu and category
         const { data: rec, error: recErr } = await supabase
           .from("marketing_recommendations")
-          .select("targeting, content")
+          .select("targeting, content, category")
           .eq("id", recommendation_id)
           .single();
 
@@ -220,20 +253,26 @@ serve(async (req) => {
           );
         }
 
-        // Calculate feedback_score
+        // Calculate feedback_score using category-aware logic
         const kpiAttendu = rec.targeting?.kpi_attendu || {};
-        const feedbackScore = calculateFeedbackScore(results, kpiAttendu);
+        const recCategory = rec.category || "ads";
+        const feedbackScore = calculateFeedbackScore(results, kpiAttendu, recCategory);
+
+        const updatePayload: any = {
+          feedback_results: results || {},
+          feedback_score: feedbackScore,
+          feedback_notes: notes || null,
+          feedback_entered_at: new Date().toISOString(),
+        };
+        // Only set completed if not already done
+        if (!rec.targeting?.already_done) {
+          updatePayload.action_status = "done";
+          updatePayload.completed_at = new Date().toISOString();
+        }
 
         const { error } = await supabase
           .from("marketing_recommendations")
-          .update({
-            feedback_results: results || {},
-            feedback_score: feedbackScore,
-            feedback_notes: notes || null,
-            feedback_entered_at: new Date().toISOString(),
-            action_status: "done",
-            completed_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq("id", recommendation_id);
 
         if (error) throw error;

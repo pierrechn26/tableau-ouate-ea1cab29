@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import {
   BookOpen,
   Target,
   Lightbulb,
+  BarChart3,
 } from "lucide-react";
 import { PersonaBadge } from "./shared/PersonaBadge";
 import { FormatBadge } from "./shared/FormatBadge";
@@ -421,9 +423,10 @@ interface RecommendationCardProps {
   recommendation: Recommendation;
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   category: "ads" | "emails" | "offers";
+  onOpenFeedback?: (rec: Recommendation) => void;
 }
 
-export function RecommendationCard({ recommendation: rec, onStatusChange, category }: RecommendationCardProps) {
+export function RecommendationCard({ recommendation: rec, onStatusChange, category, onOpenFeedback }: RecommendationCardProps) {
   const isDone = rec.action_status === "done";
   const { getName } = usePersonaProfiles();
 
@@ -511,6 +514,63 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
               <CollapsibleSection title="Sources & inspirations" icon={Lightbulb}>
                 <SourcesList sources={Array.isArray(rec.sources_inspirations) ? rec.sources_inspirations : []} s={s} />
               </CollapsibleSection>
+
+              {/* Results section — only when done */}
+              {isDone && (
+                <CollapsibleSection title="Résultats" icon={BarChart3} defaultOpen={!!rec.feedback_score}>
+                  {rec.feedback_entered_at ? (
+                    <div className="space-y-3">
+                      {rec.feedback_score && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Score :</span>
+                          <Badge variant="outline" className={cn("text-[10px] px-2 py-0 h-5 font-semibold",
+                            rec.feedback_score === "good" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" :
+                            rec.feedback_score === "poor" ? "bg-destructive/10 text-destructive border-destructive/30" :
+                            "bg-amber-500/10 text-amber-700 border-amber-500/30"
+                          )}>
+                            {rec.feedback_score === "good" ? "🟢 Bon" : rec.feedback_score === "poor" ? "🔴 Mauvais" : "🟡 Moyen"}
+                          </Badge>
+                        </div>
+                      )}
+                      {rec.feedback_results?.periode && (
+                        <p className="text-xs text-muted-foreground">
+                          Période : {new Date(rec.feedback_results.periode.debut).toLocaleDateString("fr-FR")} → {new Date(rec.feedback_results.periode.fin).toLocaleDateString("fr-FR")} ({rec.feedback_results.periode.duree_jours}j)
+                        </p>
+                      )}
+                      {rec.targeting?.kpi_attendu && (
+                        <div className="text-xs space-y-0.5">
+                          {Object.entries(rec.targeting.kpi_attendu).map(([k, v]) => {
+                            const resultKey = k === "CTR" ? "ctr" : k === "ROAS" ? "roas" : k === "taux_ouverture_vise" ? "taux_ouverture" : k === "taux_clic_vise" ? "taux_clic" : k;
+                            const actual = rec.feedback_results?.[resultKey];
+                            return (
+                              <p key={k}>
+                                <span className="text-muted-foreground">{k} :</span>{" "}
+                                {actual !== undefined ? <span className="font-medium text-foreground">{actual}</span> : <span className="text-muted-foreground/50">—</span>}
+                                <span className="text-muted-foreground/60 ml-1">(obj: {String(v)})</span>
+                              </p>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {rec.feedback_notes && <p className="text-xs text-foreground/80 italic">{rec.feedback_notes}</p>}
+                      {onOpenFeedback && (
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => onOpenFeedback(rec)}>
+                          Modifier les résultats
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-3">
+                      <p className="text-xs text-muted-foreground mb-2">Aucun résultat renseigné</p>
+                      {onOpenFeedback && (
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => onOpenFeedback(rec)}>
+                          Ajouter vos résultats
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CollapsibleSection>
+              )}
             </div>
           )}
         </div>

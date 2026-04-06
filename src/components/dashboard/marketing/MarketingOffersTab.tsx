@@ -10,9 +10,10 @@ interface Props {
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   isGenerating: boolean;
   quota: QuotaData;
+  onOpenFeedback?: (rec: Recommendation) => void;
 }
 
-export function MarketingOffersTab({ recommendations, onGenerateRecommendation, onStatusChange, isGenerating, quota }: Props) {
+export function MarketingOffersTab({ recommendations, onGenerateRecommendation, onStatusChange, isGenerating, quota, onOpenFeedback }: Props) {
   const allDone = recommendations.length > 0 && recommendations.every((r) => r.action_status === "done");
   const nextMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1));
   const nextMonthName = nextMonth.toLocaleDateString("fr-FR", { month: "long" });
@@ -64,7 +65,7 @@ export function MarketingOffersTab({ recommendations, onGenerateRecommendation, 
         <div className="space-y-3">
           {recommendations.map((rec) => (
             <div key={rec.id} id={`reco-${rec.id}`}>
-              <RecommendationCard recommendation={rec} onStatusChange={onStatusChange} category="offers" />
+              <RecommendationCard recommendation={rec} onStatusChange={onStatusChange} category="offers" onOpenFeedback={onOpenFeedback} />
             </div>
           ))}
         </div>

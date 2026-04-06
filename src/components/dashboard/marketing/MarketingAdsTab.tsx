@@ -10,9 +10,10 @@ interface Props {
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   isGenerating: boolean;
   quota: QuotaData;
+  onOpenFeedback?: (rec: Recommendation) => void;
 }
 
-export function MarketingAdsTab({ recommendations, onGenerateRecommendation, onStatusChange, isGenerating, quota }: Props) {
+export function MarketingAdsTab({ recommendations, onGenerateRecommendation, onStatusChange, isGenerating, quota, onOpenFeedback }: Props) {
   const allDone = recommendations.length > 0 && recommendations.every((r) => r.action_status === "done");
   const nextMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 1));
   const nextMonthName = nextMonth.toLocaleDateString("fr-FR", { month: "long" });
@@ -81,6 +82,7 @@ export function MarketingAdsTab({ recommendations, onGenerateRecommendation, onS
                 recommendation={rec}
                 onStatusChange={onStatusChange}
                 category="ads"
+                onOpenFeedback={onOpenFeedback}
               />
             </div>
           ))}
