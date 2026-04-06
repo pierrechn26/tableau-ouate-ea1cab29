@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
@@ -7,7 +7,8 @@ import {
   Gift,
   Mail,
 } from "lucide-react";
-import { useMarketingRecommendations } from "@/hooks/useMarketingRecommendations";
+import { useMarketingRecommendations, type Recommendation } from "@/hooks/useMarketingRecommendations";
+import { MarketingOverviewTab } from "./MarketingOverviewTab";
 import { MarketingAdsTab } from "./MarketingAdsTab";
 import { MarketingOffersTab } from "./MarketingOffersTab";
 import { MarketingEmailsTab } from "./MarketingEmailsTab";
@@ -16,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 export function MarketingRecommendations() {
   const {
     recommendations,
+    activeTasks,
+    completedTasks,
     stats,
     quota,
     loading,
@@ -25,6 +28,14 @@ export function MarketingRecommendations() {
   } = useMarketingRecommendations();
 
   const [activeTab, setActiveTab] = useState("overview");
+
+  const handleNavigateToDetail = useCallback((rec: Recommendation) => {
+    const tab = rec.category === "emails" ? "emails" : rec.category === "offers" ? "offers" : "ads";
+    setActiveTab(tab);
+    setTimeout(() => {
+      document.getElementById(`reco-${rec.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, []);
 
   if (loading) {
     return (
@@ -39,20 +50,14 @@ export function MarketingRecommendations() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground font-heading mb-2">Marketing IA Hub</h2>
-        {stats.total > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {stats.total} recommandation{stats.total !== 1 ? "s" : ""} cette semaine
-            {stats.todo > 0 && <> · <span className="text-primary font-medium">{stats.todo} à traiter</span></>}
-            {stats.done > 0 && <> · {stats.done} terminée{stats.done !== 1 ? "s" : ""}</>}
-          </p>
-        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex h-auto w-full items-center justify-between gap-2 rounded-lg bg-muted/30 p-1.5">
-          <TabsTrigger value="overview" className="flex-1">
+          <TabsTrigger value="overview" className="flex-1 gap-1">
             <LayoutGrid className="w-4 h-4" />
             Vue d'ensemble
+            {activeTasks.length > 0 && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{activeTasks.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="ads" className="flex-1 gap-1">
             <Megaphone className="w-4 h-4" />
@@ -72,10 +77,14 @@ export function MarketingRecommendations() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-0">
-          <div className="text-center py-12 text-muted-foreground">
-            <LayoutGrid className="w-8 h-8 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Vue d'ensemble — Refonte en cours (étape 3)</p>
-          </div>
+          <MarketingOverviewTab
+            activeTasks={activeTasks}
+            completedTasks={completedTasks}
+            stats={stats}
+            quota={quota}
+            onStatusChange={updateStatus}
+            onNavigateToDetail={handleNavigateToDetail}
+          />
         </TabsContent>
 
         <TabsContent value="ads" className="mt-0">
