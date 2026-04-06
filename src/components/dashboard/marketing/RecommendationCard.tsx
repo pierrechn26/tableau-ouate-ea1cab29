@@ -421,9 +421,10 @@ interface RecommendationCardProps {
   recommendation: Recommendation;
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   category: "ads" | "emails" | "offers";
+  onOpenFeedback?: (rec: Recommendation) => void;
 }
 
-export function RecommendationCard({ recommendation: rec, onStatusChange, category }: RecommendationCardProps) {
+export function RecommendationCard({ recommendation: rec, onStatusChange, category, onOpenFeedback }: RecommendationCardProps) {
   const isDone = rec.action_status === "done";
   const { getName } = usePersonaProfiles();
 
