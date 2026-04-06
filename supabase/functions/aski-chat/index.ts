@@ -282,10 +282,11 @@ serve(async (req) => {
 
       supabase
         .from("marketing_recommendations")
-        .select("ads_recommendations, email_recommendations, offers_recommendations, checklist, week_start")
+        .select("category, title, brief, persona_cible, content, targeting, feedback_score, feedback_results, feedback_notes, completed_at, generated_at, action_status")
+        .eq("recommendation_version", 3)
         .eq("status", "active")
-        .order("week_start", { ascending: false })
-        .limit(1),
+        .order("generated_at", { ascending: false })
+        .limit(20),
 
       supabase
         .from("marketing_sources")
@@ -426,14 +427,42 @@ Appuie-toi sur ces ressources pour orienter tes recommandations quand c'est pert
       ? (((currentMonthSessions - prevMonthSessions) / prevMonthSessions) * 100).toFixed(1) + "%"
       : "N/A";
 
-    // === SECTION DERNIÈRES RECOS MARKETING ===
+    // === SECTION RECOMMANDATIONS MARKETING & RÉSULTATS ===
     let recosContext = "";
-    if (latestRecos?.[0]) {
-      const r = latestRecos[0];
-      const checklistItems = Array.isArray(r.checklist)
-        ? r.checklist.filter((item: any) => !item.completed).slice(0, 5).map((item: any) => `  - ${item.task || item.text || item.label}`).join("\n")
-        : "";
-      recosContext = `Semaine du ${r.week_start}${checklistItems ? "\nTâches en cours :\n" + checklistItems : ""}`;
+    const recos = latestRecos ?? [];
+    if (recos.length > 0) {
+      const withFeedback = recos.filter((r: any) => r.feedback_score);
+      const active = recos.filter((r: any) => r.action_status === "todo" || r.action_status === "in_progress");
+      const done = recos.filter((r: any) => r.action_status === "done");
+
+      const parts: string[] = [];
+
+      if (active.length > 0) {
+        parts.push(`Recommandations en cours (${active.length}) :\n` + active.map((r: any) =>
+          `- [${r.category}] ${r.title} — Pour ${r.persona_cible} — ${r.action_status === "in_progress" ? "En cours" : "À faire"}`
+        ).join("\n"));
+      }
+
+      if (withFeedback.length > 0) {
+        const formatResult = (r: any) => {
+          const score = r.feedback_score === "good" ? "🟢 Bon" : r.feedback_score === "average" ? "🟡 Moyen" : "🔴 Mauvais";
+          const format = r.content?.format || r.content?.type_offre || r.content?.type_email || "";
+          const results = r.feedback_results || {};
+          const metrics = Object.entries(results)
+            .filter(([k]) => k !== "periode" && typeof results[k] === "number")
+            .map(([k, v]) => `${k}: ${v}`)
+            .slice(0, 5)
+            .join(", ");
+          return `- [${r.category}] ${r.title} — ${r.persona_cible} — Format: ${format} — ${score}${metrics ? ` — ${metrics}` : ""}${r.feedback_notes ? ` — Notes: ${r.feedback_notes}` : ""}`;
+        };
+        parts.push(`Résultats des recommandations terminées (${withFeedback.length}) :\n` + withFeedback.map(formatResult).join("\n"));
+      }
+
+      if (done.length > 0 && withFeedback.length === 0) {
+        parts.push(`Recommandations terminées sans résultats renseignés : ${done.length}`);
+      }
+
+      recosContext = parts.join("\n\n");
     }
 
     // === SYSTEM PROMPT ===
@@ -585,8 +614,11 @@ ${perplexityContext}
 
 Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
-${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
-${recosContext}` : ""}
+${recosContext ? `=== RECOMMANDATIONS MARKETING & RÉSULTATS DE PERFORMANCE ===
+
+${recosContext}
+
+Tu peux utiliser ces données pour répondre à des questions sur la performance des campagnes, les formats qui fonctionnent le mieux, les ROAS, les taux d'ouverture, etc. Si la marque demande "quel type d'ads fonctionne le mieux", base-toi sur les feedback_score des recommandations terminées.` : ""}
 
 ${(askiMemories ?? []).length > 0 ? `=== MÉMOIRE DE LA MARQUE (${(askiMemories ?? []).length} directives confirmées) ===
 

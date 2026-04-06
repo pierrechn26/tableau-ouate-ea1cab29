@@ -609,7 +609,7 @@ serve(async (req) => {
     const [intelRes, personasRes, feedbackRes, weekRecosRes, productsRes] = await Promise.all([
       supabase.from("market_intelligence").select("*").eq("status", "complete").order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("personas").select("code, name, full_label, session_count, avg_matching_score, criteria, description").eq("is_active", true),
-      supabase.from("marketing_recommendations").select("category, title, brief, persona_cible, feedback_score, feedback_results, feedback_notes")
+      supabase.from("marketing_recommendations").select("category, title, brief, persona_cible, content, targeting, feedback_score, feedback_results, feedback_notes, completed_at")
         .not("feedback_score", "is", null).order("completed_at", { ascending: false }).limit(15),
       supabase.from("marketing_recommendations").select("title, persona_cible, content")
         .eq("category", category).eq("week_start", weekStart).eq("recommendation_version", 3),
@@ -641,8 +641,34 @@ ${JSON.stringify(personasSnapshot?.metrics || personas.reduce((acc: any, p: any)
   return acc;
 }, {}), null, 1).slice(0, 2000)}
 
-=== FEEDBACK DES 15 DERNIÈRES RECOMMANDATIONS ===
-${feedback.length > 0 ? JSON.stringify(feedback, null, 1).slice(0, 1500) : "Aucun feedback disponible."}
+=== HISTORIQUE DES RÉSULTATS — Ce qui a fonctionné et ce qui n'a pas fonctionné ===
+${feedback.length > 0 ? (() => {
+  const formatFeedbackEntry = (r: any) => {
+    const format = r.content?.format || r.content?.type_offre || r.content?.type_email || "N/A";
+    const audience = r.targeting?.type_audience || r.targeting?.segment || "N/A";
+    const results = r.feedback_results || {};
+    const metricsSummary = Object.entries(results)
+      .filter(([k]) => !["periode"].includes(k) && typeof results[k] === "number")
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(", ");
+    return `- [${r.category}] ${r.title} — Pour ${r.persona_cible} — Format : ${format} — Audience : ${audience}\n  Résultats : ${metricsSummary || "Métriques non détaillées"}\n  Notes marque : ${r.feedback_notes || "Aucune note"}`;
+  };
+  const good = feedback.filter((r: any) => r.feedback_score === "good");
+  const average = feedback.filter((r: any) => r.feedback_score === "average");
+  const poor = feedback.filter((r: any) => r.feedback_score === "poor");
+  let out = "";
+  if (good.length > 0) out += `Résultats BONS (à reproduire) :\n${good.map(formatFeedbackEntry).join("\n")}\n\n`;
+  if (average.length > 0) out += `Résultats MOYENS (à améliorer) :\n${average.map(formatFeedbackEntry).join("\n")}\n\n`;
+  if (poor.length > 0) out += `Résultats MAUVAIS (à éviter) :\n${poor.map(formatFeedbackEntry).join("\n")}\n\n`;
+  out += `INSTRUCTIONS D'APPRENTISSAGE :
+- Si un format a eu un bon résultat (ex: UGC → good), privilégie ce format pour le même persona
+- Si un angle a eu un mauvais résultat (ex: promotion agressive → poor), évite cet angle
+- Si un type d'offre a eu un bon résultat (ex: cadeau avec achat → good), propose des variantes similaires
+- Si un segment email a eu un mauvais résultat (ex: base large → poor), affine le ciblage
+- Cite explicitement dans ton brief pourquoi tu proposes cette approche en lien avec les résultats passés quand c'est pertinent (ex: 'Le format UGC ayant obtenu un excellent ROAS de 3.5x pour Clara, nous recommandons de capitaliser sur ce format.')
+- Ne reproduis JAMAIS exactement la même recommandation qu'une qui a mal fonctionné`;
+  return out;
+})() : "Aucun feedback disponible — c'est la première génération. Applique les meilleures pratiques marketing générales."}
 
 === RECOMMANDATIONS DÉJÀ GÉNÉRÉES CETTE SEMAINE (${category}) — NE PAS DUPLIQUER ===
 ${weekRecos.length > 0 ? weekRecos.map((r: any) => `- "${r.title}" (${r.persona_cible})`).join("\n") : "Aucune."}
