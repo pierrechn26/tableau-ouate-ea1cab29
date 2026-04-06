@@ -89,7 +89,7 @@ function generateAnalysis(rec: Recommendation): AnalysisBlock | null {
     }
   });
 
-  const formatLabel = format ? `format "${format}"` : "ce format";
+  const formatLabel = format ? `le format ${getFormatLabel(format)}` : "ce format";
   const categoryLabel = CATEGORY_LABELS[category] || category;
 
   if (score === "good") {
