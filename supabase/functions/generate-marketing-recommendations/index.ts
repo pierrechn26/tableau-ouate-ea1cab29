@@ -99,18 +99,35 @@ function parseRange(val: string): { low: number; high: number } | null {
 function calculateFeedbackScore(results: any, kpiAttendu: any, category: string): string | null {
   if (!results || !kpiAttendu || typeof kpiAttendu !== "object") return null;
 
+  // Normalize KPI structure: handle both { CTR: "2-3%" } and { metrique: "CTR", valeur_cible: "2-3%" }
+  const normalizedKpi: Record<string, string> = {};
+  if (kpiAttendu.metrique && kpiAttendu.valeur_cible) {
+    normalizedKpi[kpiAttendu.metrique] = kpiAttendu.valeur_cible;
+  }
+  if (kpiAttendu.metrique_secondaire && kpiAttendu.valeur_secondaire) {
+    normalizedKpi[kpiAttendu.metrique_secondaire] = kpiAttendu.valeur_secondaire;
+  }
+  // Also support flat format { CTR: "2-3%", ROAS: "3-4x" }
+  for (const [k, v] of Object.entries(kpiAttendu)) {
+    if (!["metrique", "valeur_cible", "metrique_secondaire", "valeur_secondaire"].includes(k) && typeof v === "string") {
+      normalizedKpi[k] = v;
+    }
+  }
+
+  if (Object.keys(normalizedKpi).length === 0) return null;
+
   const mappings: Record<string, { resultKey: string; kpiKeys: string[] }[]> = {
     ads: [
       { resultKey: "ctr", kpiKeys: ["CTR", "ctr"] },
       { resultKey: "roas", kpiKeys: ["ROAS", "roas"] },
     ],
     emails: [
-      { resultKey: "taux_ouverture", kpiKeys: ["taux_ouverture_vise", "Ouverture", "ouverture"] },
-      { resultKey: "taux_clic", kpiKeys: ["taux_clic_vise", "Clic", "clic"] },
+      { resultKey: "taux_ouverture", kpiKeys: ["taux_ouverture_vise", "Ouverture", "ouverture", "Taux d'ouverture"] },
+      { resultKey: "taux_clic", kpiKeys: ["taux_clic_vise", "Clic", "clic", "Taux de clic"] },
     ],
     offers: [
       { resultKey: "taux_conversion", kpiKeys: ["Taux de conversion", "taux_conversion", "conversion"] },
-      { resultKey: "panier_moyen", kpiKeys: ["AOV impact", "panier_moyen", "aov"] },
+      { resultKey: "panier_moyen", kpiKeys: ["AOV impact", "panier_moyen", "aov", "Panier moyen"] },
     ],
   };
 
@@ -123,7 +140,7 @@ function calculateFeedbackScore(results: any, kpiAttendu: any, category: string)
 
     let range: { low: number; high: number } | null = null;
     for (const k of m.kpiKeys) {
-      if (kpiAttendu[k]) { range = parseRange(kpiAttendu[k]); break; }
+      if (normalizedKpi[k]) { range = parseRange(normalizedKpi[k]); break; }
     }
     if (!range) continue;
 
