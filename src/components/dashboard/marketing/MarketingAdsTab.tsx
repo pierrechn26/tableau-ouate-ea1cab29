@@ -84,7 +84,6 @@ export function MarketingAdsTab({ recommendations, onGenerateRecommendation, onS
               />
             </div>
           ))}
-          ))}
         </div>
       )}
     </div>
