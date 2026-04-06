@@ -22,6 +22,18 @@ function getMonthBounds(period: string) {
   return { startOfMonth, nextMonthStart };
 }
 
+async function fetchPendingFeedback(supabase: any) {
+  const { data, error } = await supabase
+    .from("marketing_recommendations")
+    .select("id, title, category, completed_at")
+    .eq("action_status", "done")
+    .is("feedback_score", null)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 async function fetchMonthData(supabase: any, startOfMonth: string, nextMonthStart: string) {
   const [
     { count: questionsAsked, error: countError },
