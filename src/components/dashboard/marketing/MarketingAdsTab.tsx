@@ -82,6 +82,7 @@ export function MarketingAdsTab({ recommendations, onGenerateRecommendation, onS
                 recommendation={rec}
                 onStatusChange={onStatusChange}
                 category="ads"
+                onOpenFeedback={onOpenFeedback}
               />
             </div>
           ))}

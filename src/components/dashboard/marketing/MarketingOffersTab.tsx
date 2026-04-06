@@ -65,7 +65,7 @@ export function MarketingOffersTab({ recommendations, onGenerateRecommendation, 
         <div className="space-y-3">
           {recommendations.map((rec) => (
             <div key={rec.id} id={`reco-${rec.id}`}>
-              <RecommendationCard recommendation={rec} onStatusChange={onStatusChange} category="offers" />
+              <RecommendationCard recommendation={rec} onStatusChange={onStatusChange} category="offers" onOpenFeedback={onOpenFeedback} />
             </div>
           ))}
         </div>
