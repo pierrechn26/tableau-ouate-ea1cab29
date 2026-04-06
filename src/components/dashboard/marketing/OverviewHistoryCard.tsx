@@ -374,6 +374,13 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                             });
                             return out;
                           }
+                          if (kpi.metrique && kpi.valeur_cible) {
+                            const out: Record<string, string> = { [kpi.metrique]: String(kpi.valeur_cible) };
+                            if (kpi.metrique_secondaire && kpi.valeur_secondaire) {
+                              out[kpi.metrique_secondaire] = String(kpi.valeur_secondaire);
+                            }
+                            return out;
+                          }
                           const out: Record<string, string> = {};
                           Object.entries(kpi).forEach(([k, v]) => { out[k] = String(v); });
                           return out;
