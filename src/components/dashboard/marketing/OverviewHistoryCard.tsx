@@ -363,8 +363,8 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Feedback results vs KPI */}
                 {rec.feedback_entered_at && kpiAttendus && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Résultats vs objectifs</p>
-                    <div className="text-xs text-foreground/80 space-y-0.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Résultats vs objectifs</p>
+                    <div className="space-y-2">
                       {(() => {
                         const normalize = (kpi: any): Record<string, string> => {
                           if (Array.isArray(kpi)) {
@@ -385,6 +385,24 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                           Object.entries(kpi).forEach(([k, v]) => { out[k] = String(v); });
                           return out;
                         };
+
+                        // Format metric values with proper units
+                        const formatMetricValue = (key: string, value: any): string => {
+                          if (value === undefined || value === null) return "—";
+                          const num = parseFloat(String(value));
+                          if (isNaN(num)) return String(value);
+                          const k = key.toLowerCase();
+                          if (k.includes("ctr") || k.includes("taux") || k.includes("ouverture") || k.includes("clic")) {
+                            return `${num.toFixed(1)}%`;
+                          }
+                          if (k.includes("roas")) return `${num.toFixed(1)}x`;
+                          if (k.includes("cpa") || k.includes("cpc") || k.includes("budget") || k.includes("ca") || k.includes("aov") || k.includes("panier")) {
+                            return `${num.toFixed(0)}€`;
+                          }
+                          if (Number.isInteger(num)) return num.toLocaleString("fr-FR");
+                          return num.toFixed(1);
+                        };
+
                         const kpiNorm = normalize(kpiAttendus);
                         return Object.entries(kpiNorm).map(([k, v]) => {
                           const resultKey = k === "CTR" ? "ctr" : k === "ROAS" ? "roas" : k === "taux_ouverture_vise" ? "taux_ouverture" : k === "taux_clic_vise" ? "taux_clic" : k;
@@ -393,21 +411,25 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                           const targetNum = parseFloat(String(v).replace(/[^0-9.,]/g, "").replace(",", "."));
                           const isAbove = !isNaN(actualNum) && !isNaN(targetNum) && actualNum > targetNum;
                           const isBelow = !isNaN(actualNum) && !isNaN(targetNum) && actualNum < targetNum * 0.8;
+                          const statusColor = isAbove ? "border-emerald-500/40 bg-emerald-500/5" : isBelow ? "border-destructive/40 bg-destructive/5" : "border-border bg-muted/30";
 
                           return (
-                            <p key={k} className="flex items-center gap-1">
-                              <span className="text-muted-foreground">{k} :</span>{" "}
-                              {actual !== undefined ? (
-                                <span className={cn("font-medium", isAbove ? "text-emerald-600" : isBelow ? "text-destructive" : "")}>
-                                  {actual}
-                                  {isAbove && <TrendingUp className="inline w-3 h-3 ml-0.5" />}
-                                  {isBelow && <TrendingDown className="inline w-3 h-3 ml-0.5" />}
+                            <div key={k} className={cn("rounded-md border p-2.5 flex items-center justify-between", statusColor)}>
+                              <div className="flex items-center gap-2">
+                                {isAbove && <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                                {isBelow && <TrendingDown className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                                {!isAbove && !isBelow && <span className="w-3.5 h-3.5 shrink-0" />}
+                                <span className="text-xs font-medium text-foreground/70">{k}</span>
+                              </div>
+                              <div className="flex items-baseline gap-2">
+                                <span className={cn("text-sm font-bold", isAbove ? "text-emerald-600" : isBelow ? "text-destructive" : "text-foreground")}>
+                                  {formatMetricValue(k, actual)}
                                 </span>
-                              ) : (
-                                <span className="text-muted-foreground/50">—</span>
-                              )}
-                              <span className="text-muted-foreground/60 ml-1">(obj: {String(v)})</span>
-                            </p>
+                                <span className="text-[10px] text-muted-foreground">
+                                  objectif {String(v)}
+                                </span>
+                              </div>
+                            </div>
                           );
                         });
                       })()}
