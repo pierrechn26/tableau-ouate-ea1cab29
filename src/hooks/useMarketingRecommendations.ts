@@ -265,6 +265,7 @@ export function useMarketingRecommendations() {
     isGenerating,
     generateRecommendation,
     updateStatus,
+    submitFeedback,
     refresh: fetchRecommendations,
     refetch: fetchRecommendations,
   };
