@@ -239,10 +239,10 @@ serve(async (req) => {
       if (action === "submit_feedback") {
         const { results, notes } = body;
 
-        // Get the recommendation to access kpi_attendu
+        // Get the recommendation to access kpi_attendu and category
         const { data: rec, error: recErr } = await supabase
           .from("marketing_recommendations")
-          .select("targeting, content")
+          .select("targeting, content, category")
           .eq("id", recommendation_id)
           .single();
 
@@ -253,20 +253,26 @@ serve(async (req) => {
           );
         }
 
-        // Calculate feedback_score
+        // Calculate feedback_score using category-aware logic
         const kpiAttendu = rec.targeting?.kpi_attendu || {};
-        const feedbackScore = calculateFeedbackScore(results, kpiAttendu);
+        const recCategory = rec.category || "ads";
+        const feedbackScore = calculateFeedbackScore(results, kpiAttendu, recCategory);
+
+        const updatePayload: any = {
+          feedback_results: results || {},
+          feedback_score: feedbackScore,
+          feedback_notes: notes || null,
+          feedback_entered_at: new Date().toISOString(),
+        };
+        // Only set completed if not already done
+        if (!rec.targeting?.already_done) {
+          updatePayload.action_status = "done";
+          updatePayload.completed_at = new Date().toISOString();
+        }
 
         const { error } = await supabase
           .from("marketing_recommendations")
-          .update({
-            feedback_results: results || {},
-            feedback_score: feedbackScore,
-            feedback_notes: notes || null,
-            feedback_entered_at: new Date().toISOString(),
-            action_status: "done",
-            completed_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq("id", recommendation_id);
 
         if (error) throw error;
