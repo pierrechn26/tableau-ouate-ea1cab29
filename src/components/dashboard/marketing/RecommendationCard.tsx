@@ -11,6 +11,7 @@ import {
   BookOpen,
   Target,
   Lightbulb,
+  BarChart3,
 } from "lucide-react";
 import { PersonaBadge } from "./shared/PersonaBadge";
 import { FormatBadge } from "./shared/FormatBadge";
