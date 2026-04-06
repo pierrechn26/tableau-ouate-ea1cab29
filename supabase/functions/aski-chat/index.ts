@@ -614,8 +614,11 @@ ${perplexityContext}
 
 Utilise ces informations fraîches pour compléter ta réponse avec les tendances les plus récentes. Vérifie que les sources citées datent de moins de 12 mois.` : ""}
 
-${recosContext ? `=== DERNIÈRES RECOMMANDATIONS MARKETING (${latestRecos?.[0]?.week_start}) ===
-${recosContext}` : ""}
+${recosContext ? `=== RECOMMANDATIONS MARKETING & RÉSULTATS DE PERFORMANCE ===
+
+${recosContext}
+
+Tu peux utiliser ces données pour répondre à des questions sur la performance des campagnes, les formats qui fonctionnent le mieux, les ROAS, les taux d'ouverture, etc. Si la marque demande "quel type d'ads fonctionne le mieux", base-toi sur les feedback_score des recommandations terminées.` : ""}
 
 ${(askiMemories ?? []).length > 0 ? `=== MÉMOIRE DE LA MARQUE (${(askiMemories ?? []).length} directives confirmées) ===
 
