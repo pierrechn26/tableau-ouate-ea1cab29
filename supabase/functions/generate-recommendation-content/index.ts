@@ -122,6 +122,30 @@ Quand tu cibles un groupe, indique le nom du groupe dans persona_cible et les co
 IMPORTANT : n'utilise JAMAIS les codes techniques (P1, P2...) dans le contenu visible NI dans persona_cible. Utilise uniquement les prénoms.
 Dans le champ persona_cible, mets TOUJOURS les PRÉNOMS des personas (ex: 'Clara et Nathalie'), JAMAIS les codes techniques (PAS 'P1,P2'). Le champ persona_code est le seul endroit pour les codes techniques.
 
+RÈGLE ABSOLUE — CODES PERSONAS INTERDITS PARTOUT :
+N'utilise JAMAIS les codes P0, P1, P2, P3, P4, P5, P6, P7, P8, P9 dans AUCUN champ du JSON retourné SAUF dans le champ persona_code.
+Pas dans le brief. Pas dans le script. Pas dans le messaging. Pas dans le plan de lancement. Pas dans les sources. NULLE PART.
+Utilise TOUJOURS les prénoms : Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine.
+Exemple INTERDIT : 'Email exclusif aux fidèles P8/P9'
+Exemple CORRECT : 'Email exclusif aux fidèles Virginie et Marine'
+
+RÈGLE ABSOLUE — CLAIMS ET STATISTIQUES :
+N'invente JAMAIS de chiffre, de statistique, de claim ou de promesse qui ne provient pas directement des données du dashboard ou du catalogue produit.
+INTERDIT :
+- '73% de nos clientes ajoutent...' → sauf si c'est une vraie stat du dashboard
+- 'Résultats visibles en 7 jours' → sauf si c'est écrit sur la fiche produit
+- 'Garantie satisfaction' → sauf si la marque le propose réellement
+- 'Communauté de 15 000 parents' → sauf si c'est une donnée vérifiée
+- 'Testé et approuvé par les dermatologues' → sauf si c'est un claim officiel du produit
+- Tout pourcentage, tout délai de résultat, toute taille de communauté inventés
+AUTORISÉ :
+- Les vraies métriques du dashboard (AOV, conversion, volume sessions) → tu les as dans le contexte
+- Les vrais prix et noms de produits du catalogue
+- Les vrais claims écrits dans les descriptions produit du catalogue
+- Des formulations prudentes : 'Des milliers de parents nous font confiance' (vague, acceptable) au lieu de '15 000 parents' (précis, non vérifié)
+- 'Résultats constatés par nos clientes' au lieu de 'Résultats visibles en 7 jours'
+Si tu veux mentionner un chiffre ou un claim, vérifie qu'il existe dans les données fournies. Si tu ne le trouves pas → ne l'utilise pas.
+
 DÉFINITION DES FORMATS VIDÉO — RESPECTE-LES STRICTEMENT :
 - video_ugc : UGC signifie User Generated Content. La personne PARLE FACE CAMÉRA dans un ton naturel et spontané. Ce n'est PAS une voix off. Le script doit être écrit comme si la personne s'adressait directement à la caméra. Pas de narration en fond, pas de voix off.
 - video_brand : Vidéo produite avec une direction artistique. Peut inclure une voix off, de la musique, des plans produits stylisés. Ton plus professionnel.
@@ -294,6 +318,9 @@ Quand tu génères des recommandations emailing, favorise les NEWSLETTERS (conte
 - 30-40% flows et campagnes (post-diagnostic, winback, abandon panier, promotionnel)
 Les newsletters permettent de toucher toute la base ou de larges segments et de construire la relation de confiance avec la marque.
 
+STRUCTURE EMAIL — ADAPTÉE AU TYPE :
+
+Si type_email = 'newsletter' ou 'campagne' (envoi unique) :
 Retourne :
 {
   "title": "string",
@@ -305,19 +332,66 @@ Retourne :
   "content": {
     "objet": "string",
     "objet_variante": "string",
-    "type_email": "string — newsletter|flow|campagne|relance|winback",
+    "type_email": "newsletter|campagne",
     "contenu_sections": [{ "section": "string", "contenu": "string — 2-3 phrases MAX par section" }],
     "cta": { "texte": "string", "url": null }
   },
   "targeting": {
     "segment": "string",
     "timing": "string",
-    "trigger": "string ou null",
-    "position_dans_flow": "string ou null",
-     "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
+    "trigger": null,
+    "position_dans_flow": null,
+    "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
   },
   "sources_inspirations": [...]
-}`,
+}
+
+Si type_email = 'flow' (séquence automatisée de PLUSIEURS emails) :
+La recommandation doit décrire LE FLOW COMPLET, pas un seul email. Retourne :
+{
+  "title": "string",
+  "brief": "string",
+  "persona_cible": "string",
+  "persona_code": "string",
+  "priority": 1|2|3,
+  "category": "emails",
+  "content": {
+    "objet": "string — objet du premier email",
+    "objet_variante": "string",
+    "type_email": "flow",
+    "flow_details": {
+      "nombre_emails": "number",
+      "trigger": "string — événement déclencheur (ex: premier achat, abandon panier, fin de diagnostic)",
+      "description_flow": "string — résumé du flow en 2-3 phrases",
+      "emails": [
+        {
+          "position": 1,
+          "delai": "string — ex: immédiat, J+2, J+5, J+10",
+          "objet": "string — objet de cet email",
+          "objectif": "string — objectif spécifique (éduquer, rassurer, convertir, relancer)",
+          "contenu_resume": "string — résumé du contenu en 3-4 phrases",
+          "cta": "string"
+        }
+      ]
+    },
+    "cta": { "texte": "string — CTA principal du flow", "url": null }
+  },
+  "targeting": {
+    "segment": "string",
+    "timing": "string",
+    "trigger": "string",
+    "position_dans_flow": null,
+    "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
+  },
+  "sources_inspirations": [...]
+}
+
+Quand tu recommandes un flow :
+- Détaille chaque email du flow (minimum 3, maximum 6 emails)
+- Précise le délai entre chaque email (J+0, J+2, J+5, etc.)
+- Chaque email a un objectif différent dans la progression (éduquer → rassurer → convertir → fidéliser)
+- Le trigger de déclenchement doit être précis et implémentable dans Klaviyo
+- Indique le volume d'emails et la durée totale du flow`,
     offers: `
 TYPES D'OFFRES — VARIÉTÉ OBLIGATOIRE :
 Ne propose PAS uniquement des bundles. Tu DOIS varier les types d'offres. Voici les types à utiliser en alternance :
