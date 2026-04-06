@@ -609,7 +609,7 @@ serve(async (req) => {
     const [intelRes, personasRes, feedbackRes, weekRecosRes, productsRes] = await Promise.all([
       supabase.from("market_intelligence").select("*").eq("status", "complete").order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("personas").select("code, name, full_label, session_count, avg_matching_score, criteria, description").eq("is_active", true),
-      supabase.from("marketing_recommendations").select("category, title, brief, persona_cible, feedback_score, feedback_results, feedback_notes")
+      supabase.from("marketing_recommendations").select("category, title, brief, persona_cible, content, targeting, feedback_score, feedback_results, feedback_notes, completed_at")
         .not("feedback_score", "is", null).order("completed_at", { ascending: false }).limit(15),
       supabase.from("marketing_recommendations").select("title, persona_cible, content")
         .eq("category", category).eq("week_start", weekStart).eq("recommendation_version", 3),
