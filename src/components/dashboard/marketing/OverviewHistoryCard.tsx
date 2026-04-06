@@ -232,15 +232,15 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
           {/* Row 1 */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center flex-wrap gap-1.5">
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-semibold bg-primary/15 text-primary border-primary/30">
+              <Badge variant="outline" className="text-[11px] px-1.5 py-0 h-5 font-semibold bg-primary/15 text-primary border-primary/30">
                 ● Terminée
               </Badge>
               {contentFormat && <FormatBadge value={contentFormat} />}
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
+              <Badge variant="outline" className={cn("text-[11px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
                 {CATEGORY_LABELS[category] || category}
               </Badge>
             </div>
-            {completedDate && <span className="text-[11px] text-muted-foreground">{completedDate}</span>}
+            {completedDate && <span className="text-xs text-muted-foreground">{completedDate}</span>}
           </div>
 
           {/* Title */}
@@ -254,7 +254,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Résultat :</span>
               {feedback ? (
-                <Badge variant="outline" className={cn("text-[10px] px-2 py-0 h-5 font-semibold", feedback.color)}>
+                <Badge variant="outline" className={cn("text-[11px] px-2 py-0 h-5 font-semibold", feedback.color)}>
                   {feedback.label}
                 </Badge>
               ) : (
@@ -281,13 +281,13 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
               {/* Show first 2 bullets as preview */}
               <ul className="space-y-1">
                 {analysis.bullets.slice(0, 2).map((bullet, i) => (
-                  <li key={i} className="text-[11px] leading-relaxed text-foreground/75">{bullet}</li>
+                  <li key={i} className="text-xs leading-relaxed text-foreground/80">{bullet}</li>
                 ))}
               </ul>
               {analysis.bullets.length > 2 && !expanded && (
                 <button
                   onClick={() => setExpanded(true)}
-                  className="text-[11px] font-medium text-primary hover:text-primary/80 mt-1.5 transition-colors"
+                  className="text-xs font-medium text-primary hover:text-primary/80 mt-1.5 transition-colors"
                 >
                   Voir toutes les recommandations ({analysis.bullets.length - 2} de plus) →
                 </button>
@@ -298,7 +298,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
           {/* No feedback yet prompt */}
           {!feedback && rec.action_status === "done" && (
             <div className="rounded-lg border border-dashed border-muted-foreground/20 bg-muted/30 p-3 mt-1">
-              <p className="text-[11px] text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 📊 Ajoutez vos résultats pour débloquer l'analyse de performance et les recommandations d'optimisation
               </p>
             </div>
@@ -336,12 +336,12 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Full analysis bullets */}
                 {analysis && analysis.bullets.length > 2 && (
                   <div className={cn("rounded-lg border p-3", analysis.color)}>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Toutes les recommandations
                     </p>
                     <ul className="space-y-1.5">
                       {analysis.bullets.slice(2).map((bullet, i) => (
-                        <li key={i} className="text-[11px] leading-relaxed text-foreground/75">{bullet}</li>
+                        <li key={i} className="text-xs leading-relaxed text-foreground/80">{bullet}</li>
                       ))}
                     </ul>
                   </div>
@@ -350,7 +350,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Period */}
                 {periode && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Période de test</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Période de test</p>
                     <p className="text-xs text-foreground/80">
                       {new Date(periode.debut).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                       {" → "}
@@ -363,7 +363,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Feedback results vs KPI */}
                 {rec.feedback_entered_at && kpiAttendus && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Résultats vs objectifs</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Résultats vs objectifs</p>
                     <div className="space-y-2">
                       {(() => {
                         const normalize = (kpi: any): Record<string, string> => {
@@ -425,7 +425,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                                 <span className={cn("text-sm font-bold", isAbove ? "text-emerald-600" : isBelow ? "text-destructive" : "text-foreground")}>
                                   {formatMetricValue(k, actual)}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                   objectif {String(v)}
                                 </span>
                               </div>
@@ -440,7 +440,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Brief */}
                 {rec.brief && !rec.feedback_entered_at && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Brief</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Brief</p>
                     <p
                       className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line"
                       dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(rec.brief.replace(/\bP(\d{1,2})\b/g, (m) => getPersonaDisplayName(m))) }}
@@ -451,7 +451,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* KPI attendus (when no feedback yet) */}
                 {!rec.feedback_entered_at && kpiAttendus && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">KPI attendus</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">KPI attendus</p>
                     <div className="text-xs text-foreground/80 space-y-0.5">
                       {(() => {
                         const normalize = (kpi: any): Record<string, string> => {
@@ -484,7 +484,7 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                 {/* Feedback notes */}
                 {rec.feedback_notes && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
                     <p className="text-xs text-foreground/80">{rec.feedback_notes}</p>
                   </div>
                 )}
