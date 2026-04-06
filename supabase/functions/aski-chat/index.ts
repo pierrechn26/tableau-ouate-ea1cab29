@@ -282,10 +282,11 @@ serve(async (req) => {
 
       supabase
         .from("marketing_recommendations")
-        .select("ads_recommendations, email_recommendations, offers_recommendations, checklist, week_start")
+        .select("category, title, brief, persona_cible, content, targeting, feedback_score, feedback_results, feedback_notes, completed_at, generated_at, action_status")
+        .eq("recommendation_version", 3)
         .eq("status", "active")
-        .order("week_start", { ascending: false })
-        .limit(1),
+        .order("generated_at", { ascending: false })
+        .limit(20),
 
       supabase
         .from("marketing_sources")
