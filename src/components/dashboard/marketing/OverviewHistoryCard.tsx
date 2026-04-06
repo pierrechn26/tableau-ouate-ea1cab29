@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Rocket, Target, RefreshCw } from "lucide-react";
-import { FormatBadge } from "./shared/FormatBadge";
+import { FormatBadge, getFormatLabel } from "./shared/FormatBadge";
 import { type Recommendation } from "@/hooks/useMarketingRecommendations";
 import { getPersonaDisplayName } from "@/constants/personas";
 import { cn } from "@/lib/utils";
@@ -62,6 +62,14 @@ function generateAnalysis(rec: Recommendation): AnalysisBlock | null {
       });
       return out;
     }
+    // Handle flat {metrique, valeur_cible, metrique_secondaire, valeur_secondaire} format
+    if (kpi.metrique && kpi.valeur_cible) {
+      const out: Record<string, string> = { [kpi.metrique]: String(kpi.valeur_cible) };
+      if (kpi.metrique_secondaire && kpi.valeur_secondaire) {
+        out[kpi.metrique_secondaire] = String(kpi.valeur_secondaire);
+      }
+      return out;
+    }
     const out: Record<string, string> = {};
     Object.entries(kpi).forEach(([k, v]) => { out[k] = String(v); });
     return out;
@@ -81,7 +89,7 @@ function generateAnalysis(rec: Recommendation): AnalysisBlock | null {
     }
   });
 
-  const formatLabel = format ? `format "${format}"` : "ce format";
+  const formatLabel = format ? `le format ${getFormatLabel(format)}` : "ce format";
   const categoryLabel = CATEGORY_LABELS[category] || category;
 
   if (score === "good") {
@@ -366,6 +374,13 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                             });
                             return out;
                           }
+                          if (kpi.metrique && kpi.valeur_cible) {
+                            const out: Record<string, string> = { [kpi.metrique]: String(kpi.valeur_cible) };
+                            if (kpi.metrique_secondaire && kpi.valeur_secondaire) {
+                              out[kpi.metrique_secondaire] = String(kpi.valeur_secondaire);
+                            }
+                            return out;
+                          }
                           const out: Record<string, string> = {};
                           Object.entries(kpi).forEach(([k, v]) => { out[k] = String(v); });
                           return out;
@@ -423,6 +438,13 @@ export function OverviewHistoryCard({ recommendation: rec, onNavigateToDetail, o
                             kpi.forEach((item: any) => {
                               if (item?.metrique && item?.valeur_cible) out[item.metrique] = String(item.valeur_cible);
                             });
+                            return out;
+                          }
+                          if (kpi.metrique && kpi.valeur_cible) {
+                            const out: Record<string, string> = { [kpi.metrique]: String(kpi.valeur_cible) };
+                            if (kpi.metrique_secondaire && kpi.valeur_secondaire) {
+                              out[kpi.metrique_secondaire] = String(kpi.valeur_secondaire);
+                            }
                             return out;
                           }
                           const out: Record<string, string> = {};
