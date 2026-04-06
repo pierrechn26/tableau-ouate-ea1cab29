@@ -112,34 +112,45 @@ interface FieldDef {
   label: string;
   placeholder: string;
   decimal?: boolean;
+  derived?: boolean; // auto-calculated, shown read-only
 }
 
+// Only essential input fields — derived metrics are auto-calculated
 const ADS_FIELDS: FieldDef[] = [
+  { key: "cout_total", label: "Budget dépensé (€)", placeholder: "ex: 150", decimal: true },
   { key: "impressions", label: "Impressions", placeholder: "ex: 15000" },
   { key: "clics", label: "Clics", placeholder: "ex: 350" },
-  { key: "ctr", label: "CTR (%)", placeholder: "ex: 2.3", decimal: true },
-  { key: "cpc", label: "CPC (€)", placeholder: "ex: 0.45", decimal: true },
-  { key: "cpa", label: "CPA (€)", placeholder: "ex: 12.50", decimal: true },
-  { key: "conversions", label: "Conversions", placeholder: "ex: 12" },
-  { key: "roas", label: "ROAS", placeholder: "ex: 3.2", decimal: true },
-  { key: "cout_total", label: "Coût total (€)", placeholder: "ex: 157.50", decimal: true },
+  { key: "conversions", label: "Conversions / Achats", placeholder: "ex: 12" },
+  { key: "ca_genere", label: "CA généré (€)", placeholder: "ex: 480", decimal: true },
+];
+
+const ADS_DERIVED: FieldDef[] = [
+  { key: "ctr", label: "CTR (%)", placeholder: "", decimal: true, derived: true },
+  { key: "cpc", label: "CPC (€)", placeholder: "", decimal: true, derived: true },
+  { key: "cpa", label: "CPA (€)", placeholder: "", decimal: true, derived: true },
+  { key: "roas", label: "ROAS", placeholder: "", decimal: true, derived: true },
 ];
 
 const EMAILS_FIELDS: FieldDef[] = [
   { key: "envoyes", label: "Emails envoyés", placeholder: "ex: 2500" },
   { key: "ouverts", label: "Ouvertures", placeholder: "ex: 1100" },
-  { key: "taux_ouverture", label: "Taux d'ouverture (%)", placeholder: "ex: 44", decimal: true },
   { key: "clics", label: "Clics", placeholder: "ex: 175" },
-  { key: "taux_clic", label: "Taux de clic (%)", placeholder: "ex: 7", decimal: true },
   { key: "conversions", label: "Conversions", placeholder: "ex: 8" },
-  { key: "revenus", label: "CA généré (€)", placeholder: "ex: 320", decimal: true },
+];
+
+const EMAILS_DERIVED: FieldDef[] = [
+  { key: "taux_ouverture", label: "Taux d'ouverture (%)", placeholder: "", decimal: true, derived: true },
+  { key: "taux_clic", label: "Taux de clic (%)", placeholder: "", decimal: true, derived: true },
 ];
 
 const OFFERS_FIELDS: FieldDef[] = [
   { key: "ventes", label: "Nombre de ventes", placeholder: "ex: 25" },
   { key: "ca_genere", label: "CA généré (€)", placeholder: "ex: 875", decimal: true },
-  { key: "panier_moyen", label: "Panier moyen (€)", placeholder: "ex: 35", decimal: true },
   { key: "taux_conversion", label: "Taux de conversion (%)", placeholder: "ex: 4.2", decimal: true },
+];
+
+const OFFERS_DERIVED: FieldDef[] = [
+  { key: "panier_moyen", label: "Panier moyen (€)", placeholder: "", decimal: true, derived: true },
 ];
 
 const CATEGORY_TITLES: Record<string, string> = {
