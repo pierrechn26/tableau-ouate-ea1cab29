@@ -254,17 +254,21 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
   const hasPeriod = periodeType !== "";
   const canSubmit = hasAtLeastOneMetric && hasPeriod && !submitting;
 
-  // Score preview
-  const numericValues = useMemo(() => {
+  // Score preview — merge input values with derived
+  const allNumericValues = useMemo(() => {
     const result: Record<string, number> = {};
     for (const f of fields) {
       const n = parseFloat(values[f.key]);
       if (!isNaN(n)) result[f.key] = n;
     }
+    for (const [k, v] of Object.entries(derivedValues)) {
+      const n = parseFloat(v);
+      if (!isNaN(n)) result[k] = n;
+    }
     return result;
-  }, [values, fields]);
+  }, [values, fields, derivedValues]);
 
-  const comparisons = useMemo(() => computeComparisons(numericValues, kpi, category), [numericValues, kpi, category]);
+  const comparisons = useMemo(() => computeComparisons(allNumericValues, kpi, category), [allNumericValues, kpi, category]);
   const overallScore = useMemo(() => computeOverallScore(comparisons), [comparisons]);
 
   const handleSubmit = async () => {
@@ -277,9 +281,15 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
           duree_jours: differenceInDays(dateFin, dateDebut),
         },
       };
+      // Save input fields
       for (const f of fields) {
         const n = parseFloat(values[f.key]);
         if (!isNaN(n)) results[f.key] = n;
+      }
+      // Save derived fields too
+      for (const [k, v] of Object.entries(derivedValues)) {
+        const n = parseFloat(v);
+        if (!isNaN(n)) results[k] = n;
       }
       await onSubmit(rec.id, results, notes);
       onOpenChange(false);
