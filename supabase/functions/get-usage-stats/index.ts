@@ -22,6 +22,18 @@ function getMonthBounds(period: string) {
   return { startOfMonth, nextMonthStart };
 }
 
+async function fetchPendingFeedback(supabase: any) {
+  const { data, error } = await supabase
+    .from("marketing_recommendations")
+    .select("id, title, category, completed_at")
+    .eq("action_status", "done")
+    .is("feedback_score", null)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 async function fetchMonthData(supabase: any, startOfMonth: string, nextMonthStart: string) {
   const [
     { count: questionsAsked, error: countError },
@@ -105,16 +117,20 @@ serve(async (req) => {
         m++;
         if (m > 11) { m = 0; y++; }
       }
-      return new Response(JSON.stringify({ success: true, months }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const pending_feedback = await fetchPendingFeedback(supabase);
+      return new Response(JSON.stringify({ success: true, months, pending_feedback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Mode mois spécifique ou mois en cours
     const now = new Date();
     const period = requestedMonth || `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
     const { startOfMonth, nextMonthStart } = getMonthBounds(period);
-    const data = await fetchMonthData(supabase, startOfMonth, nextMonthStart);
+    const [data, pending_feedback] = await Promise.all([
+      fetchMonthData(supabase, startOfMonth, nextMonthStart),
+      fetchPendingFeedback(supabase),
+    ]);
 
-    return new Response(JSON.stringify({ success: true, period, ...data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, period, ...data, pending_feedback }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(JSON.stringify({ success: false, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
