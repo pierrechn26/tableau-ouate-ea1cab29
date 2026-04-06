@@ -43,6 +43,91 @@ function robustJsonParse(raw: string): any {
   return null;
 }
 
+function collectTextFields(value: any, path = ""): Array<{ path: string; value: string }> {
+  if (typeof value === "string") return [{ path, value }];
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectTextFields(item, `${path}[${index}]`));
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value).flatMap(([key, nested]) =>
+      collectTextFields(nested, path ? `${path}.${key}` : key)
+    );
+  }
+  return [];
+}
+
+function shouldValidateTextPath(path: string): boolean {
+  if (!path || path === "persona_code") return false;
+  if (path.startsWith("targeting.")) return false;
+  if (path.endsWith(".url")) return false;
+  return true;
+}
+
+function validateGeneratedCopy(parsed: any): string[] {
+  const issues: string[] = [];
+  const fields = collectTextFields(parsed).filter((entry) => shouldValidateTextPath(entry.path));
+
+  const patterns: Array<{ regex: RegExp; reason: string }> = [
+    {
+      regex: /\b(?:garantie satisfaction|satisfait ou remboursé|politique de retour)\b/i,
+      reason: "garantie ou politique non vérifiée",
+    },
+    {
+      regex: /\b(?:testé dermatologiquement|testé et approuvé par les dermatologues|approuvé par les dermatologues|prouvé cliniquement)\b/i,
+      reason: "claim scientifique ou médical non vérifié",
+    },
+    {
+      regex: /\b(?:\d[\d\s.,]*\s*(?:parents|familles|clientes?|clients?|mamans?)|des milliers de\s+(?:parents|familles|clientes?|clients?|mamans?))\b/i,
+      reason: "taille de communauté potentiellement inventée",
+    },
+    {
+      regex: /\b(?:résultat|résultats|amélior(?:ation|ée|é)|eff(?:et|ets))\b[^.!?]{0,80}\b(?:en|sous|au bout de|dès)\s+\d+\s*(?:jour|jours|semaine|semaines|mois)\b/i,
+      reason: "délai de résultat précis non vérifié",
+    },
+    {
+      regex: /\b(?:résultat|résultats)\b[^.!?]{0,80}\b(?:quelques jours|plusieurs semaines|plusieurs jours)\b/i,
+      reason: "délai de résultat non vérifié",
+    },
+    {
+      regex: /\b(?:CTR|ROAS|taux de clic|taux d'ouverture|taux d’ouverture|conversion|engagement)\b[^.!?]{0,40}\b\d{1,3}\s*%/i,
+      reason: "statistique marketing non vérifiée",
+    },
+    {
+      regex: /\b\d{1,3}\s*%\b[^.!?]{0,40}\b(?:CTR|ROAS|taux de clic|taux d'ouverture|taux d’ouverture|conversion|engagement)\b/i,
+      reason: "statistique marketing non vérifiée",
+    },
+    {
+      regex: /\b(?:UGC|ugc)\b[^.!?]{0,40}\b\d{1,3}\s*%/i,
+      reason: "statistique d'industrie non vérifiée",
+    },
+    {
+      regex: /\bautres mamans de\s*\{prénom_enfant\}/i,
+      reason: "preuve sociale non vérifiée dans l'email",
+    },
+  ];
+
+  for (const { path, value } of fields) {
+    const normalized = value.replace(/\s+/g, " ").trim();
+    if (!normalized) continue;
+
+    for (const pattern of patterns) {
+      if (pattern.regex.test(normalized)) {
+        issues.push(`${path} — ${pattern.reason} — "${normalized.slice(0, 160)}"`);
+      }
+    }
+  }
+
+  return Array.from(new Set(issues));
+}
+
+function buildRetryPrompt(basePrompt: string, issues: string[], reason: "parse" | "validation"): string {
+  if (reason === "parse") {
+    return `${basePrompt}\n\n=== CORRECTION OBLIGATOIRE ===\nTa réponse précédente a été rejetée car le JSON n'était pas parseable. Retourne un JSON VALIDE, complet, sans texte avant ni après.`;
+  }
+
+  return `${basePrompt}\n\n=== CORRECTION OBLIGATOIRE APRÈS VALIDATION ===\nTa réponse précédente a été rejetée pour non-conformité. Corrige TOUS les points suivants :\n${issues.map((issue, index) => `${index + 1}. ${issue}`).join("\n")}\n\nRetourne ensuite UN JSON COMPLET corrigé, sans texte avant ni après, et sans ajouter de chiffres, claims ou délais non vérifiés.`;
+}
+
 async function callSonnet(
   systemPrompt: string, userPrompt: string, maxTokens: number, timeoutMs = 90000
 ): Promise<{ text: string; inputTokens: number; outputTokens: number; totalTokens: number; model: string }> {
