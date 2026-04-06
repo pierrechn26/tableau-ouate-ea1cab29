@@ -657,13 +657,26 @@ ${JSON.stringify(products.map((p: any) => ({
   type: p.product_type,
 })), null, 1)}`;
 
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalTokensUsed = 0;
+    let attempts = 0;
+
     let result = await callSonnet(systemPrompt, userPrompt, 8000, 90000);
+    attempts += 1;
+    totalInputTokens += result.inputTokens;
+    totalOutputTokens += result.outputTokens;
+    totalTokensUsed += result.totalTokens;
 
     // ── STEP 4: PARSE & VALIDATE ──
     let parsed = robustJsonParse(result.text);
     if (!parsed) {
       console.error("[gen-content] JSON parse failed on first pass. Raw (500 chars):", result.text.slice(0, 500));
       result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, [], "parse"), 8000, 90000);
+      attempts += 1;
+      totalInputTokens += result.inputTokens;
+      totalOutputTokens += result.outputTokens;
+      totalTokensUsed += result.totalTokens;
       parsed = robustJsonParse(result.text);
     }
 
@@ -679,6 +692,10 @@ ${JSON.stringify(products.map((p: any) => ({
     if (validationIssues.length > 0) {
       console.warn("[gen-content] Validation issues on first pass:", validationIssues);
       result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, validationIssues, "validation"), 8000, 90000);
+      attempts += 1;
+      totalInputTokens += result.inputTokens;
+      totalOutputTokens += result.outputTokens;
+      totalTokensUsed += result.totalTokens;
       parsed = robustJsonParse(result.text);
 
       if (!parsed) {
@@ -765,24 +782,24 @@ ${JSON.stringify(products.map((p: any) => ({
         edge_function: "generate-recommendation-content",
         api_provider: "anthropic",
         model: result.model,
-        tokens_used: result.totalTokens,
-        input_tokens: result.inputTokens,
-        output_tokens: result.outputTokens,
-        total_tokens: result.totalTokens,
+        tokens_used: totalTokensUsed,
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalTokensUsed,
         api_calls: 1,
-        metadata: { recommendation_id: inserted.id, category, persona: parsed.persona_cible, duration_ms: durationMs },
+        metadata: { recommendation_id: inserted.id, category, persona: parsed.persona_cible, duration_ms: durationMs, attempts },
       });
     } catch (e: any) {
       console.error("[gen-content] Usage log error:", e.message);
     }
 
-    console.log(`[gen-content] ✓ ${inserted.id} (${category}) complete in ${durationMs}ms (${result.totalTokens} tokens)`);
+    console.log(`[gen-content] ✓ ${inserted.id} (${category}) complete in ${durationMs}ms (${totalTokensUsed} tokens, ${attempts} attempt(s))`);
 
     return new Response(JSON.stringify({
       status: "complete",
       recommendation: inserted,
       duration_ms: durationMs,
-      tokens_used: result.totalTokens,
+      tokens_used: totalTokensUsed,
       quota: { used: currentCount + 1, limit: monthlyLimit, remaining: monthlyLimit - currentCount - 1 },
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
