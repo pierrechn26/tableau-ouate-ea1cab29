@@ -91,11 +91,11 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
         <CopyIcon text={value} />
       </div>
       <div
-        className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-xs text-foreground whitespace-pre-line leading-relaxed"
+        className="bg-muted/40 rounded-lg border border-border/50 px-3 py-2.5 text-[13px] text-foreground whitespace-pre-line leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMd(value) }}
       />
     </div>
@@ -105,7 +105,7 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
 function InfoRow({ label, value }: { label: string; value: any }) {
   if (!value) return null;
   return (
-    <div className="flex items-baseline justify-between py-1.5 text-xs border-b border-border/30 last:border-0">
+    <div className="flex items-baseline justify-between py-1.5 text-[13px] border-b border-border/30 last:border-0">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-foreground font-medium text-right max-w-[60%]">{safeStr(value)}</span>
     </div>
@@ -255,7 +255,7 @@ function OffersContent({ content, s }: { content: any; s: (v: string) => string 
       {content.type_offre && <InfoRow label="Type d'offre" value={OFFER_TYPE_LABELS[content.type_offre] || content.type_offre} />}
       {Array.isArray(content.composition) && content.composition.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Composition</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Composition</p>
           <div className="space-y-1">
             {content.composition.map((p: any, i: number) => (
               <div key={i} className="flex items-center justify-between text-xs bg-muted/30 rounded px-2.5 py-1.5 border border-border/40">
@@ -292,7 +292,7 @@ function CtaBadge({ cta }: { cta: any }) {
   if (!ctaText) return null;
   return (
     <div className="flex items-center gap-2 mt-2">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase">CTA :</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase">CTA :</span>
       <Badge variant="outline" className="text-xs font-bold text-primary border-primary/40 bg-primary/5">{ctaText}</Badge>
     </div>
   );
@@ -317,7 +317,7 @@ function AdsTargeting({ targeting }: { targeting: any }) {
       {targeting.type_audience && <InfoRow label="Type d'audience" value={targeting.type_audience} />}
       {Array.isArray(targeting.suggestions_audiences) && targeting.suggestions_audiences.length > 0 && (
         <div className="mb-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
           <ul className="space-y-1">
             {targeting.suggestions_audiences.map((a: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs text-foreground">
@@ -330,7 +330,7 @@ function AdsTargeting({ targeting }: { targeting: any }) {
       )}
       {!targeting.suggestions_audiences && Array.isArray(targeting.audiences) && targeting.audiences.length > 0 && (
         <div className="mb-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Audiences</p>
           <ul className="space-y-1">
             {targeting.audiences.map((a: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs text-foreground">
@@ -454,7 +454,7 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
               <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
                 <span className={cn("text-[10px] font-bold", priorityColor)}>{priorityLabel}</span>
                 {contentFormat && <FormatBadge value={contentFormat} />}
-                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
+                <Badge variant="outline" className={cn("text-[11px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
                   {CATEGORY_LABELS[category]}
                 </Badge>
               </div>

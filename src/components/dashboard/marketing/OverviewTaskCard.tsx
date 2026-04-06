@@ -57,9 +57,9 @@ export function OverviewTaskCard({ recommendation: rec, onStatusChange, onNaviga
         {/* Row 1: badges + status */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center flex-wrap gap-1.5">
-            <span className={cn("text-[10px] font-bold", priorityColor)}>{priorityLabel}</span>
+            <span className={cn("text-[11px] font-bold", priorityColor)}>{priorityLabel}</span>
             {contentFormat && <FormatBadge value={contentFormat} />}
-            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
+            <Badge variant="outline" className={cn("text-[11px] px-1.5 py-0 h-5 font-semibold", CATEGORY_COLORS[category])}>
               {CATEGORY_LABELS[category] || category}
             </Badge>
           </div>
@@ -70,7 +70,7 @@ export function OverviewTaskCard({ recommendation: rec, onStatusChange, onNaviga
                 key={opt.value}
                 onClick={() => onStatusChange(rec.id, opt.value)}
                 className={cn(
-                  "text-[11px] px-2 py-0.5 rounded-full border transition-all font-medium",
+                  "text-xs px-2 py-0.5 rounded-full border transition-all font-medium",
                   rec.action_status === opt.value
                     ? opt.value === "done" ? "bg-primary text-primary-foreground border-primary"
                       : opt.value === "in_progress" ? "bg-accent/20 text-accent-foreground border-accent/40"
