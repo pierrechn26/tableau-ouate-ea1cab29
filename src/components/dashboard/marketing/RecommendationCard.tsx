@@ -537,21 +537,31 @@ export function RecommendationCard({ recommendation: rec, onStatusChange, catego
                           Période : {new Date(rec.feedback_results.periode.debut).toLocaleDateString("fr-FR")} → {new Date(rec.feedback_results.periode.fin).toLocaleDateString("fr-FR")} ({rec.feedback_results.periode.duree_jours}j)
                         </p>
                       )}
-                      {rec.targeting?.kpi_attendu && (
-                        <div className="text-xs space-y-0.5">
-                          {Object.entries(rec.targeting.kpi_attendu).map(([k, v]) => {
-                            const resultKey = k === "CTR" ? "ctr" : k === "ROAS" ? "roas" : k === "taux_ouverture_vise" ? "taux_ouverture" : k === "taux_clic_vise" ? "taux_clic" : k;
-                            const actual = rec.feedback_results?.[resultKey];
-                            return (
-                              <p key={k}>
-                                <span className="text-muted-foreground">{k} :</span>{" "}
-                                {actual !== undefined ? <span className="font-medium text-foreground">{actual}</span> : <span className="text-muted-foreground/50">—</span>}
-                                <span className="text-muted-foreground/60 ml-1">(obj: {String(v)})</span>
-                              </p>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {rec.targeting?.kpi_attendu && (() => {
+                        const kpi = rec.targeting.kpi_attendu;
+                        const entries: [string, string][] = [];
+                        if (kpi.metrique && kpi.valeur_cible) entries.push([kpi.metrique, kpi.valeur_cible]);
+                        if (kpi.metrique_secondaire && kpi.valeur_secondaire) entries.push([kpi.metrique_secondaire, kpi.valeur_secondaire]);
+                        for (const [k, v] of Object.entries(kpi)) {
+                          if (!["metrique", "valeur_cible", "metrique_secondaire", "valeur_secondaire"].includes(k) && typeof v === "string") entries.push([k, v as string]);
+                        }
+                        const resultKeyMap: Record<string, string> = { CTR: "ctr", ROAS: "roas", taux_ouverture_vise: "taux_ouverture", Ouverture: "taux_ouverture", taux_clic_vise: "taux_clic", Clic: "taux_clic", "Taux de conversion": "taux_conversion", "Panier moyen": "panier_moyen" };
+                        return (
+                          <div className="text-xs space-y-0.5">
+                            {entries.map(([k, v]) => {
+                              const rk = resultKeyMap[k] || k.toLowerCase();
+                              const actual = rec.feedback_results?.[rk];
+                              return (
+                                <p key={k}>
+                                  <span className="text-muted-foreground">{k} :</span>{" "}
+                                  {actual !== undefined ? <span className="font-medium text-foreground">{actual}</span> : <span className="text-muted-foreground/50">—</span>}
+                                  <span className="text-muted-foreground/60 ml-1">(obj: {v})</span>
+                                </p>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       {rec.feedback_notes && <p className="text-xs text-foreground/80 italic">{rec.feedback_notes}</p>}
                       {onOpenFeedback && (
                         <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => onOpenFeedback(rec)}>
