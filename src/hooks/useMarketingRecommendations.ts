@@ -198,6 +198,15 @@ export function useMarketingRecommendations() {
     offers: v3Recos.filter((r) => r.category === "offers").sort(sortFn),
   };
 
+  // Flat views for overview
+  const activeTasks = v3Recos
+    .filter((r) => r.action_status === "todo" || r.action_status === "in_progress")
+    .sort((a, b) => a.priority - b.priority || new Date(b.generated_at ?? 0).getTime() - new Date(a.generated_at ?? 0).getTime());
+
+  const completedTasks = v3Recos
+    .filter((r) => r.action_status === "done")
+    .sort((a, b) => new Date(b.completed_at ?? 0).getTime() - new Date(a.completed_at ?? 0).getTime());
+
   const stats: RecommendationStats = {
     total: v3Recos.length,
     pending: v3Recos.filter((r) => r.generation_status === "pending").length,
@@ -210,6 +219,8 @@ export function useMarketingRecommendations() {
   return {
     allRecommendations,
     recommendations,
+    activeTasks,
+    completedTasks,
     stats,
     quota,
     loading: isLoading,
