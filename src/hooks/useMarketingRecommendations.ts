@@ -179,6 +179,43 @@ export function useMarketingRecommendations() {
     }
   }, [allRecommendations, toast]);
 
+  // Submit feedback results
+  const submitFeedback = useCallback(async (recommendationId: string, results: any, notes: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-marketing-recommendations",
+        { body: { action: "submit_feedback", recommendation_id: recommendationId, results, notes } }
+      );
+      if (error) throw error;
+
+      // Optimistic update
+      setAllRecommendations((all) =>
+        all.map((r) => r.id === recommendationId ? {
+          ...r,
+          feedback_results: results,
+          feedback_score: data?.feedback_score || null,
+          feedback_notes: notes || null,
+          feedback_entered_at: new Date().toISOString(),
+          action_status: "done",
+          completed_at: r.completed_at || new Date().toISOString(),
+        } : r)
+      );
+
+      toast({
+        title: "Résultats enregistrés ✓",
+        description: data?.feedback_score ? `Score : ${data.feedback_score === "good" ? "Bon" : data.feedback_score === "poor" ? "Mauvais" : "Moyen"}` : "Résultats sauvegardés.",
+      });
+    } catch (err: any) {
+      console.error("[submitFeedback]", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer les résultats.",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  }, [toast]);
+
   useEffect(() => {
     fetchRecommendations();
   }, [fetchRecommendations]);
