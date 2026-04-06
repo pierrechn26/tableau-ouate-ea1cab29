@@ -318,6 +318,9 @@ Quand tu génères des recommandations emailing, favorise les NEWSLETTERS (conte
 - 30-40% flows et campagnes (post-diagnostic, winback, abandon panier, promotionnel)
 Les newsletters permettent de toucher toute la base ou de larges segments et de construire la relation de confiance avec la marque.
 
+STRUCTURE EMAIL — ADAPTÉE AU TYPE :
+
+Si type_email = 'newsletter' ou 'campagne' (envoi unique) :
 Retourne :
 {
   "title": "string",
@@ -329,19 +332,66 @@ Retourne :
   "content": {
     "objet": "string",
     "objet_variante": "string",
-    "type_email": "string — newsletter|flow|campagne|relance|winback",
+    "type_email": "newsletter|campagne",
     "contenu_sections": [{ "section": "string", "contenu": "string — 2-3 phrases MAX par section" }],
     "cta": { "texte": "string", "url": null }
   },
   "targeting": {
     "segment": "string",
     "timing": "string",
-    "trigger": "string ou null",
-    "position_dans_flow": "string ou null",
-     "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
+    "trigger": null,
+    "position_dans_flow": null,
+    "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
   },
   "sources_inspirations": [...]
-}`,
+}
+
+Si type_email = 'flow' (séquence automatisée de PLUSIEURS emails) :
+La recommandation doit décrire LE FLOW COMPLET, pas un seul email. Retourne :
+{
+  "title": "string",
+  "brief": "string",
+  "persona_cible": "string",
+  "persona_code": "string",
+  "priority": 1|2|3,
+  "category": "emails",
+  "content": {
+    "objet": "string — objet du premier email",
+    "objet_variante": "string",
+    "type_email": "flow",
+    "flow_details": {
+      "nombre_emails": "number",
+      "trigger": "string — événement déclencheur (ex: premier achat, abandon panier, fin de diagnostic)",
+      "description_flow": "string — résumé du flow en 2-3 phrases",
+      "emails": [
+        {
+          "position": 1,
+          "delai": "string — ex: immédiat, J+2, J+5, J+10",
+          "objet": "string — objet de cet email",
+          "objectif": "string — objectif spécifique (éduquer, rassurer, convertir, relancer)",
+          "contenu_resume": "string — résumé du contenu en 3-4 phrases",
+          "cta": "string"
+        }
+      ]
+    },
+    "cta": { "texte": "string — CTA principal du flow", "url": null }
+  },
+  "targeting": {
+    "segment": "string",
+    "timing": "string",
+    "trigger": "string",
+    "position_dans_flow": null,
+    "kpi_attendu": { "taux_ouverture_vise": "40-55%", "taux_clic_vise": "4-8%" }
+  },
+  "sources_inspirations": [...]
+}
+
+Quand tu recommandes un flow :
+- Détaille chaque email du flow (minimum 3, maximum 6 emails)
+- Précise le délai entre chaque email (J+0, J+2, J+5, etc.)
+- Chaque email a un objectif différent dans la progression (éduquer → rassurer → convertir → fidéliser)
+- Le trigger de déclenchement doit être précis et implémentable dans Klaviyo
+- Indique le volume d'emails et la durée totale du flow`,
     offers: `
 TYPES D'OFFRES — VARIÉTÉ OBLIGATOIRE :
 Ne propose PAS uniquement des bundles. Tu DOIS varier les types d'offres. Voici les types à utiliser en alternance :
