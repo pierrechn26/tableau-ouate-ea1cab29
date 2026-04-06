@@ -380,7 +380,6 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
               </div>
             </div>
           )}
-          </div>
 
           {/* ── Score preview ── */}
           {comparisons.length > 0 && (
