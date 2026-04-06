@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, ArrowRight, TrendingUp, TrendingDown, AlertTriangle, Rocket, Target, RefreshCw } from "lucide-react";
-import { FormatBadge } from "./shared/FormatBadge";
+import { FormatBadge, getFormatLabel } from "./shared/FormatBadge";
 import { type Recommendation } from "@/hooks/useMarketingRecommendations";
 import { getPersonaDisplayName } from "@/constants/personas";
 import { cn } from "@/lib/utils";
