@@ -112,34 +112,45 @@ interface FieldDef {
   label: string;
   placeholder: string;
   decimal?: boolean;
+  derived?: boolean; // auto-calculated, shown read-only
 }
 
+// Only essential input fields — derived metrics are auto-calculated
 const ADS_FIELDS: FieldDef[] = [
+  { key: "cout_total", label: "Budget dépensé (€)", placeholder: "ex: 150", decimal: true },
   { key: "impressions", label: "Impressions", placeholder: "ex: 15000" },
   { key: "clics", label: "Clics", placeholder: "ex: 350" },
-  { key: "ctr", label: "CTR (%)", placeholder: "ex: 2.3", decimal: true },
-  { key: "cpc", label: "CPC (€)", placeholder: "ex: 0.45", decimal: true },
-  { key: "cpa", label: "CPA (€)", placeholder: "ex: 12.50", decimal: true },
-  { key: "conversions", label: "Conversions", placeholder: "ex: 12" },
-  { key: "roas", label: "ROAS", placeholder: "ex: 3.2", decimal: true },
-  { key: "cout_total", label: "Coût total (€)", placeholder: "ex: 157.50", decimal: true },
+  { key: "conversions", label: "Conversions / Achats", placeholder: "ex: 12" },
+  { key: "ca_genere", label: "CA généré (€)", placeholder: "ex: 480", decimal: true },
+];
+
+const ADS_DERIVED: FieldDef[] = [
+  { key: "ctr", label: "CTR (%)", placeholder: "", decimal: true, derived: true },
+  { key: "cpc", label: "CPC (€)", placeholder: "", decimal: true, derived: true },
+  { key: "cpa", label: "CPA (€)", placeholder: "", decimal: true, derived: true },
+  { key: "roas", label: "ROAS", placeholder: "", decimal: true, derived: true },
 ];
 
 const EMAILS_FIELDS: FieldDef[] = [
   { key: "envoyes", label: "Emails envoyés", placeholder: "ex: 2500" },
   { key: "ouverts", label: "Ouvertures", placeholder: "ex: 1100" },
-  { key: "taux_ouverture", label: "Taux d'ouverture (%)", placeholder: "ex: 44", decimal: true },
   { key: "clics", label: "Clics", placeholder: "ex: 175" },
-  { key: "taux_clic", label: "Taux de clic (%)", placeholder: "ex: 7", decimal: true },
   { key: "conversions", label: "Conversions", placeholder: "ex: 8" },
-  { key: "revenus", label: "CA généré (€)", placeholder: "ex: 320", decimal: true },
+];
+
+const EMAILS_DERIVED: FieldDef[] = [
+  { key: "taux_ouverture", label: "Taux d'ouverture (%)", placeholder: "", decimal: true, derived: true },
+  { key: "taux_clic", label: "Taux de clic (%)", placeholder: "", decimal: true, derived: true },
 ];
 
 const OFFERS_FIELDS: FieldDef[] = [
   { key: "ventes", label: "Nombre de ventes", placeholder: "ex: 25" },
   { key: "ca_genere", label: "CA généré (€)", placeholder: "ex: 875", decimal: true },
-  { key: "panier_moyen", label: "Panier moyen (€)", placeholder: "ex: 35", decimal: true },
   { key: "taux_conversion", label: "Taux de conversion (%)", placeholder: "ex: 4.2", decimal: true },
+];
+
+const OFFERS_DERIVED: FieldDef[] = [
+  { key: "panier_moyen", label: "Panier moyen (€)", placeholder: "", decimal: true, derived: true },
 ];
 
 const CATEGORY_TITLES: Record<string, string> = {
@@ -160,6 +171,8 @@ interface FeedbackFormProps {
 export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit }: FeedbackFormProps) {
   const category = rec.category || "ads";
   const fields = category === "emails" ? EMAILS_FIELDS : category === "offers" ? OFFERS_FIELDS : ADS_FIELDS;
+  const derivedFields = category === "emails" ? EMAILS_DERIVED : category === "offers" ? OFFERS_DERIVED : ADS_DERIVED;
+  const allFields = [...fields, ...derivedFields];
   const kpi = rec.targeting?.kpi_attendu || {};
 
   // Existing feedback for edit mode
@@ -175,7 +188,7 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
   // Metrics state
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    fields.forEach((f) => {
+    allFields.forEach((f) => {
       const v = existing[f.key];
       init[f.key] = v !== undefined && v !== null ? String(v) : "";
     });
@@ -193,65 +206,69 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
     }
   }, [periodeType]);
 
-  // Auto-calculations
-  useEffect(() => {
-    const v = { ...values };
-    let changed = false;
+  // Auto-calculations for derived fields
+  const derivedValues = useMemo(() => {
+    const d: Record<string, string> = {};
 
     if (category === "ads") {
-      const impressions = parseFloat(v.impressions);
-      const clics = parseFloat(v.clics);
-      const coutTotal = parseFloat(v.cout_total);
-      const conversions = parseFloat(v.conversions);
+      const impressions = parseFloat(values.impressions);
+      const clics = parseFloat(values.clics);
+      const coutTotal = parseFloat(values.cout_total);
+      const conversions = parseFloat(values.conversions);
+      const caGenere = parseFloat(values.ca_genere);
 
-      if (!isNaN(impressions) && !isNaN(clics) && impressions > 0 && !v.ctr) {
-        v.ctr = ((clics / impressions) * 100).toFixed(2);
-        changed = true;
-      }
-      if (!isNaN(coutTotal) && !isNaN(clics) && clics > 0 && !v.cpc) {
-        v.cpc = (coutTotal / clics).toFixed(2);
-        changed = true;
-      }
-      if (!isNaN(coutTotal) && !isNaN(conversions) && conversions > 0 && !v.cpa) {
-        v.cpa = (coutTotal / conversions).toFixed(2);
-        changed = true;
-      }
+      if (!isNaN(impressions) && !isNaN(clics) && impressions > 0)
+        d.ctr = ((clics / impressions) * 100).toFixed(2);
+      if (!isNaN(coutTotal) && !isNaN(clics) && clics > 0)
+        d.cpc = (coutTotal / clics).toFixed(2);
+      if (!isNaN(coutTotal) && !isNaN(conversions) && conversions > 0)
+        d.cpa = (coutTotal / conversions).toFixed(2);
+      if (!isNaN(caGenere) && !isNaN(coutTotal) && coutTotal > 0)
+        d.roas = (caGenere / coutTotal).toFixed(2);
     }
 
     if (category === "emails") {
-      const envoyes = parseFloat(v.envoyes);
-      const ouverts = parseFloat(v.ouverts);
-      const clics = parseFloat(v.clics);
+      const envoyes = parseFloat(values.envoyes);
+      const ouverts = parseFloat(values.ouverts);
+      const clics = parseFloat(values.clics);
 
-      if (!isNaN(envoyes) && !isNaN(ouverts) && envoyes > 0 && !v.taux_ouverture) {
-        v.taux_ouverture = ((ouverts / envoyes) * 100).toFixed(1);
-        changed = true;
-      }
-      if (!isNaN(envoyes) && !isNaN(clics) && envoyes > 0 && !v.taux_clic) {
-        v.taux_clic = ((clics / envoyes) * 100).toFixed(1);
-        changed = true;
-      }
+      if (!isNaN(envoyes) && !isNaN(ouverts) && envoyes > 0)
+        d.taux_ouverture = ((ouverts / envoyes) * 100).toFixed(1);
+      if (!isNaN(envoyes) && !isNaN(clics) && envoyes > 0)
+        d.taux_clic = ((clics / envoyes) * 100).toFixed(1);
     }
 
-    if (changed) setValues(v);
-  }, [values.impressions, values.clics, values.cout_total, values.conversions, values.envoyes, values.ouverts]);
+    if (category === "offers") {
+      const ventes = parseFloat(values.ventes);
+      const caGenere = parseFloat(values.ca_genere);
+
+      if (!isNaN(ventes) && !isNaN(caGenere) && ventes > 0)
+        d.panier_moyen = (caGenere / ventes).toFixed(2);
+    }
+
+    return d;
+  }, [values, category]);
 
   // Check validity
   const hasAtLeastOneMetric = fields.some((f) => values[f.key] && values[f.key].trim() !== "");
   const hasPeriod = periodeType !== "";
   const canSubmit = hasAtLeastOneMetric && hasPeriod && !submitting;
 
-  // Score preview
-  const numericValues = useMemo(() => {
+  // Score preview — merge input values with derived
+  const allNumericValues = useMemo(() => {
     const result: Record<string, number> = {};
     for (const f of fields) {
       const n = parseFloat(values[f.key]);
       if (!isNaN(n)) result[f.key] = n;
     }
+    for (const [k, v] of Object.entries(derivedValues)) {
+      const n = parseFloat(v);
+      if (!isNaN(n)) result[k] = n;
+    }
     return result;
-  }, [values, fields]);
+  }, [values, fields, derivedValues]);
 
-  const comparisons = useMemo(() => computeComparisons(numericValues, kpi, category), [numericValues, kpi, category]);
+  const comparisons = useMemo(() => computeComparisons(allNumericValues, kpi, category), [allNumericValues, kpi, category]);
   const overallScore = useMemo(() => computeOverallScore(comparisons), [comparisons]);
 
   const handleSubmit = async () => {
@@ -264,9 +281,15 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
           duree_jours: differenceInDays(dateFin, dateDebut),
         },
       };
+      // Save input fields
       for (const f of fields) {
         const n = parseFloat(values[f.key]);
         if (!isNaN(n)) results[f.key] = n;
+      }
+      // Save derived fields too
+      for (const [k, v] of Object.entries(derivedValues)) {
+        const n = parseFloat(v);
+        if (!isNaN(n)) results[k] = n;
       }
       await onSubmit(rec.id, results, notes);
       onOpenChange(false);
@@ -317,9 +340,10 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
             )}
           </div>
 
-          {/* ── Metrics ── */}
+          {/* ── Metrics (input) ── */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground">Métriques</p>
+            <p className="text-xs font-semibold text-foreground">Données brutes</p>
+            <p className="text-[10px] text-muted-foreground -mt-1">Entrez uniquement les chiffres de votre plateforme — les ratios sont calculés automatiquement.</p>
             <div className="grid grid-cols-2 gap-3">
               {fields.map((f) => (
                 <div key={f.key}>
@@ -336,6 +360,26 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
               ))}
             </div>
           </div>
+
+          {/* ── Derived metrics (auto-calculated) ── */}
+          {Object.keys(derivedValues).length > 0 && (
+            <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Calculés automatiquement</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {derivedFields.map((f) => {
+                  const val = derivedValues[f.key];
+                  if (!val) return null;
+                  const suffix = f.label.includes("(%)") ? "%" : f.label.includes("(€)") ? " €" : f.label.includes("ROAS") ? "x" : "";
+                  return (
+                    <div key={f.key} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{f.label.replace(/ \(.*\)/, "")}</span>
+                      <span className="font-medium text-foreground">{val}{suffix}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── Score preview ── */}
           {comparisons.length > 0 && (
