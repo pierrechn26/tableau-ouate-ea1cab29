@@ -657,17 +657,47 @@ ${JSON.stringify(products.map((p: any) => ({
   type: p.product_type,
 })), null, 1)}`;
 
-    const result = await callSonnet(systemPrompt, userPrompt, 8000, 90000);
+    let result = await callSonnet(systemPrompt, userPrompt, 8000, 90000);
 
-    // ── STEP 4: PARSE & PERSIST ──
-    const parsed = robustJsonParse(result.text);
+    // ── STEP 4: PARSE & VALIDATE ──
+    let parsed = robustJsonParse(result.text);
     if (!parsed) {
-      console.error("[gen-content] JSON parse failed. Raw (500 chars):", result.text.slice(0, 500));
-      // Do NOT deduct credit
+      console.error("[gen-content] JSON parse failed on first pass. Raw (500 chars):", result.text.slice(0, 500));
+      result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, [], "parse"), 8000, 90000);
+      parsed = robustJsonParse(result.text);
+    }
+
+    if (!parsed) {
+      console.error("[gen-content] JSON parse failed after retry. Raw (500 chars):", result.text.slice(0, 500));
       return new Response(JSON.stringify({
         error: "parse_failed",
         message: "La génération a échoué (parsing). Réessayez.",
       }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    let validationIssues = validateGeneratedCopy(parsed);
+    if (validationIssues.length > 0) {
+      console.warn("[gen-content] Validation issues on first pass:", validationIssues);
+      result = await callSonnet(systemPrompt, buildRetryPrompt(userPrompt, validationIssues, "validation"), 8000, 90000);
+      parsed = robustJsonParse(result.text);
+
+      if (!parsed) {
+        console.error("[gen-content] JSON parse failed after validation retry. Raw (500 chars):", result.text.slice(0, 500));
+        return new Response(JSON.stringify({
+          error: "parse_failed",
+          message: "La génération a échoué (parsing après correction). Réessayez.",
+        }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      validationIssues = validateGeneratedCopy(parsed);
+      if (validationIssues.length > 0) {
+        console.error("[gen-content] Validation failed after retry:", validationIssues);
+        return new Response(JSON.stringify({
+          error: "validation_failed",
+          message: "La génération a été rejetée car elle contenait des claims ou statistiques non vérifiés.",
+          issues: validationIssues,
+        }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // Insert recommendation
