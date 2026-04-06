@@ -122,6 +122,30 @@ Quand tu cibles un groupe, indique le nom du groupe dans persona_cible et les co
 IMPORTANT : n'utilise JAMAIS les codes techniques (P1, P2...) dans le contenu visible NI dans persona_cible. Utilise uniquement les prénoms.
 Dans le champ persona_cible, mets TOUJOURS les PRÉNOMS des personas (ex: 'Clara et Nathalie'), JAMAIS les codes techniques (PAS 'P1,P2'). Le champ persona_code est le seul endroit pour les codes techniques.
 
+RÈGLE ABSOLUE — CODES PERSONAS INTERDITS PARTOUT :
+N'utilise JAMAIS les codes P0, P1, P2, P3, P4, P5, P6, P7, P8, P9 dans AUCUN champ du JSON retourné SAUF dans le champ persona_code.
+Pas dans le brief. Pas dans le script. Pas dans le messaging. Pas dans le plan de lancement. Pas dans les sources. NULLE PART.
+Utilise TOUJOURS les prénoms : Clara, Nathalie, Amandine, Julie, Stéphanie, Camille, Sandrine, Virginie, Marine.
+Exemple INTERDIT : 'Email exclusif aux fidèles P8/P9'
+Exemple CORRECT : 'Email exclusif aux fidèles Virginie et Marine'
+
+RÈGLE ABSOLUE — CLAIMS ET STATISTIQUES :
+N'invente JAMAIS de chiffre, de statistique, de claim ou de promesse qui ne provient pas directement des données du dashboard ou du catalogue produit.
+INTERDIT :
+- '73% de nos clientes ajoutent...' → sauf si c'est une vraie stat du dashboard
+- 'Résultats visibles en 7 jours' → sauf si c'est écrit sur la fiche produit
+- 'Garantie satisfaction' → sauf si la marque le propose réellement
+- 'Communauté de 15 000 parents' → sauf si c'est une donnée vérifiée
+- 'Testé et approuvé par les dermatologues' → sauf si c'est un claim officiel du produit
+- Tout pourcentage, tout délai de résultat, toute taille de communauté inventés
+AUTORISÉ :
+- Les vraies métriques du dashboard (AOV, conversion, volume sessions) → tu les as dans le contexte
+- Les vrais prix et noms de produits du catalogue
+- Les vrais claims écrits dans les descriptions produit du catalogue
+- Des formulations prudentes : 'Des milliers de parents nous font confiance' (vague, acceptable) au lieu de '15 000 parents' (précis, non vérifié)
+- 'Résultats constatés par nos clientes' au lieu de 'Résultats visibles en 7 jours'
+Si tu veux mentionner un chiffre ou un claim, vérifie qu'il existe dans les données fournies. Si tu ne le trouves pas → ne l'utilise pas.
+
 DÉFINITION DES FORMATS VIDÉO — RESPECTE-LES STRICTEMENT :
 - video_ugc : UGC signifie User Generated Content. La personne PARLE FACE CAMÉRA dans un ton naturel et spontané. Ce n'est PAS une voix off. Le script doit être écrit comme si la personne s'adressait directement à la caméra. Pas de narration en fond, pas de voix off.
 - video_brand : Vidéo produite avec une direction artistique. Peut inclure une voix off, de la musique, des plans produits stylisés. Ton plus professionnel.
