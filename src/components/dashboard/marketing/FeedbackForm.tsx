@@ -340,9 +340,10 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
             )}
           </div>
 
-          {/* ── Metrics ── */}
+          {/* ── Metrics (input) ── */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground">Métriques</p>
+            <p className="text-xs font-semibold text-foreground">Données brutes</p>
+            <p className="text-[10px] text-muted-foreground -mt-1">Entrez uniquement les chiffres de votre plateforme — les ratios sont calculés automatiquement.</p>
             <div className="grid grid-cols-2 gap-3">
               {fields.map((f) => (
                 <div key={f.key}>
@@ -358,6 +359,27 @@ export function FeedbackForm({ open, onOpenChange, recommendation: rec, onSubmit
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ── Derived metrics (auto-calculated) ── */}
+          {Object.keys(derivedValues).length > 0 && (
+            <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1.5">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Calculés automatiquement</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {derivedFields.map((f) => {
+                  const val = derivedValues[f.key];
+                  if (!val) return null;
+                  const suffix = f.label.includes("(%)") ? "%" : f.label.includes("(€)") ? " €" : f.label.includes("ROAS") ? "x" : "";
+                  return (
+                    <div key={f.key} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{f.label.replace(/ \(.*\)/, "")}</span>
+                      <span className="font-medium text-foreground">{val}{suffix}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           </div>
 
           {/* ── Score preview ── */}
