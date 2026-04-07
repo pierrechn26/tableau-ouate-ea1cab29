@@ -38,7 +38,6 @@ import { cn } from "@/lib/utils";
 export default function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
   const [exportSections, setExportSections] = useState({
     all: true,
     overview: true,
