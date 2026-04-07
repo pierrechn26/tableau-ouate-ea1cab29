@@ -5,6 +5,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Fire-and-forget: notify Ask-it portal when quota threshold is crossed
+async function notifyPortalThreshold(
+  resourceType: "aski" | "recommendations" | "diagnostic",
+  threshold: 80 | 100,
+  current: number,
+  limit: number
+) {
+  try {
+    const portalEndpoint = "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/quota-threshold-reached";
+    const apiKey = Deno.env.get("USAGE_STATS_API_KEY") || "askit-usage-stats-2026";
+    const organizationId = Deno.env.get("ORGANIZATION_ID");
+    if (!organizationId) { console.warn("[quota-notify] ORGANIZATION_ID not set"); return; }
+    fetch(portalEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({ organization_id: organizationId, resource_type: resourceType, threshold, current_usage: current, limit }),
+    }).catch((e) => console.error("[quota-notify] Failed:", e.message));
+  } catch (e) { console.error("[quota-notify] Error:", e); }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -594,9 +614,23 @@ serve(async (req) => {
     const monthlyLimit = planRes.data?.recos_monthly_limit ?? planLimits[planName] ?? 60;
     const currentCount = countRes.count ?? 0;
 
+    // Fire-and-forget: notify portal at 80% and 100% thresholds
+    const usagePercent = monthlyLimit > 0 ? (currentCount / monthlyLimit) * 100 : 0;
+    if (currentCount > 0) {
+      const prevPercent = ((currentCount - 1) / monthlyLimit) * 100;
+      if (prevPercent < 80 && usagePercent >= 80) {
+        notifyPortalThreshold("recommendations", 80, currentCount, monthlyLimit);
+      }
+      if (prevPercent < 100 && usagePercent >= 100) {
+        notifyPortalThreshold("recommendations", 100, currentCount, monthlyLimit);
+      }
+    }
+
     if (currentCount >= monthlyLimit) {
       return new Response(JSON.stringify({
         error: "quota_exceeded",
+        blocked: true,
+        reason: "quota_exceeded",
         current: currentCount,
         limit: monthlyLimit,
         remaining: 0,

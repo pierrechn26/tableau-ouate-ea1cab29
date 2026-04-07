@@ -1,5 +1,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Fire-and-forget: notify Ask-it portal when quota threshold is crossed
+async function notifyPortalThreshold(
+  resourceType: "aski" | "recommendations" | "diagnostic",
+  threshold: 80 | 100,
+  current: number,
+  limit: number
+) {
+  try {
+    const portalEndpoint = "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/quota-threshold-reached";
+    const apiKey = Deno.env.get("USAGE_STATS_API_KEY") || "askit-usage-stats-2026";
+    const organizationId = Deno.env.get("ORGANIZATION_ID");
+    if (!organizationId) { console.warn("[quota-notify] ORGANIZATION_ID not set"); return; }
+    fetch(portalEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({ organization_id: organizationId, resource_type: resourceType, threshold, current_usage: current, limit }),
+    }).catch((e) => console.error("[quota-notify] Failed:", e.message));
+  } catch (e) { console.error("[quota-notify] Error:", e); }
+}
+
 async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
   try {
     const apiKey = Deno.env.get("MONITORING_API_KEY");
@@ -292,6 +312,36 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
       { error: "Failed to save session", details: sessionError.message },
       500
     );
+  }
+
+  // ── Check diagnostic quota and flag over_quota sessions ──
+  const diagNow = new Date();
+  const diagMonthStart = new Date(Date.UTC(diagNow.getUTCFullYear(), diagNow.getUTCMonth(), 1)).toISOString();
+  const diagNextMonth = new Date(Date.UTC(diagNow.getUTCFullYear(), diagNow.getUTCMonth() + 1, 1)).toISOString();
+
+  const [{ count: sessionsThisMonth }, { data: diagPlanData }] = await Promise.all([
+    supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true })
+      .gte("created_at", diagMonthStart).lt("created_at", diagNextMonth),
+    supabase.from("client_plan").select("sessions_limit, plan")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+
+  const diagnosticLimit = diagPlanData?.sessions_limit ?? 500;
+  const totalSessions = sessionsThisMonth ?? 0;
+  const isOverQuota = totalSessions > diagnosticLimit;
+
+  if (isOverQuota) {
+    await supabase.from("diagnostic_sessions").update({ over_quota: true }).eq("id", session.id);
+  }
+
+  // Fire-and-forget: notify portal at 80% and 100% thresholds
+  const diagPercent = diagnosticLimit > 0 ? (totalSessions / diagnosticLimit) * 100 : 0;
+  const diagPrevPercent = diagnosticLimit > 0 ? ((totalSessions - 1) / diagnosticLimit) * 100 : 0;
+  if (diagPrevPercent < 80 && diagPercent >= 80) {
+    notifyPortalThreshold("diagnostic", 80, totalSessions, diagnosticLimit);
+  }
+  if (diagPrevPercent < 100 && diagPercent >= 100) {
+    notifyPortalThreshold("diagnostic", 100, totalSessions, diagnosticLimit);
   }
 
   console.log("[diagnostic-webhook] Session saved:", session.id);

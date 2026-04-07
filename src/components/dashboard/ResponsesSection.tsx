@@ -6,6 +6,8 @@ import {
   Search,
   Loader2,
   RefreshCw,
+  ArrowUpRight,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosticSessions } from "@/hooks/useDiagnosticSessions";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { SessionsTable, getColumnDefs, getDisplayStatus } from "./SessionsTable";
 import { CATEGORIES } from "@/types/diagnostic";
 import type { DiagnosticSession } from "@/types/diagnostic";
@@ -71,6 +74,8 @@ export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [conversionFilter, setConversionFilter] = useState("all");
   const { toast } = useToast();
+  const { sessions: sessionUsage, upgrade } = useUsageLimits();
+  const overQuotaCount = useMemo(() => sessions.filter(s => s.over_quota).length, [sessions]);
 
   const filteredCount = useMemo(() => {
     let result = sessions;
@@ -231,6 +236,33 @@ export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
         <RefreshCw className="w-3.5 h-3.5" />
         <span>Mise à jour automatique toutes les 2 min</span>
       </div>
+
+      {/* Over-quota banner */}
+      {overQuotaCount > 0 && (
+        <div className="rounded-lg border-2 border-destructive/20 bg-destructive/5 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Lock className="w-5 h-5 text-destructive shrink-0" />
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">{overQuotaCount} session{overQuotaCount > 1 ? "s" : ""}</span>{" "}
+              au-delà de votre forfait {overQuotaCount > 1 ? "sont masquées" : "est masquée"}.{" "}
+              {upgrade.nextPlan
+                ? <>Passez au plan <span className="font-semibold">{upgrade.nextPlanLabel}</span> pour les débloquer.</>
+                : <>Contactez-nous pour un plan personnalisé.</>
+              }
+            </p>
+          </div>
+          {upgrade.nextPlan && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+              onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+            >
+              Mettre à niveau <ArrowUpRight className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <SessionsTable

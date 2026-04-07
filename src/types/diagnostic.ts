@@ -68,6 +68,7 @@ export interface DiagnosticSession {
   content_format_preference: string | null;
   persona_code: string | null;
   matching_score: number | null;
+  over_quota: boolean;
   children: DiagnosticChild[];
   _source: "new" | "legacy";
 }

@@ -385,6 +385,7 @@ export type Database = {
           number_of_children: number | null
           optin_email: boolean | null
           optin_sms: boolean | null
+          over_quota: boolean | null
           persona_code: string | null
           phone: string | null
           priorities_ordered: string | null
@@ -434,6 +435,7 @@ export type Database = {
           number_of_children?: number | null
           optin_email?: boolean | null
           optin_sms?: boolean | null
+          over_quota?: boolean | null
           persona_code?: string | null
           phone?: string | null
           priorities_ordered?: string | null
@@ -483,6 +485,7 @@ export type Database = {
           number_of_children?: number | null
           optin_email?: boolean | null
           optin_sms?: boolean | null
+          over_quota?: boolean | null
           persona_code?: string | null
           phone?: string | null
           priorities_ordered?: string | null

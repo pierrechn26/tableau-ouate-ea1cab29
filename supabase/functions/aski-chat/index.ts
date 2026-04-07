@@ -1,6 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Fire-and-forget: notify Ask-it portal when quota threshold is crossed
+async function notifyPortalThreshold(
+  resourceType: "aski" | "recommendations" | "diagnostic",
+  threshold: 80 | 100,
+  current: number,
+  limit: number
+) {
+  try {
+    const portalEndpoint = "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/quota-threshold-reached";
+    const apiKey = Deno.env.get("USAGE_STATS_API_KEY") || "askit-usage-stats-2026";
+    const organizationId = Deno.env.get("ORGANIZATION_ID");
+    if (!organizationId) { console.warn("[quota-notify] ORGANIZATION_ID not set"); return; }
+    fetch(portalEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({ organization_id: organizationId, resource_type: resourceType, threshold, current_usage: current, limit }),
+    }).catch((e) => console.error("[quota-notify] Failed:", e.message));
+  } catch (e) { console.error("[quota-notify] Error:", e); }
+}
+
 async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
   try {
     const apiKey = Deno.env.get("MONITORING_API_KEY");
@@ -210,14 +230,29 @@ serve(async (req) => {
     ]);
 
     const askiLimit: number = clientPlanData?.aski_limit ?? 100; // fallback Starter
+    const questionsAsked = count ?? 0;
+    const usagePercent = askiLimit > 0 ? (questionsAsked / askiLimit) * 100 : 0;
 
-    if ((count ?? 0) >= askiLimit) {
+    // Fire-and-forget: notify portal at 80% and 100% thresholds
+    if (questionsAsked > 0) {
+      const previousPercent = ((questionsAsked - 1) / askiLimit) * 100;
+      if (previousPercent < 80 && usagePercent >= 80) {
+        notifyPortalThreshold("aski", 80, questionsAsked, askiLimit);
+      }
+      if (previousPercent < 100 && usagePercent >= 100) {
+        notifyPortalThreshold("aski", 100, questionsAsked, askiLimit);
+      }
+    }
+
+    if (questionsAsked >= askiLimit) {
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
       const nextMonthStr = nextMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
       return new Response(JSON.stringify({
         error: "limit_reached",
+        blocked: true,
+        reason: "quota_exceeded",
         message: `Vous avez atteint la limite de ${askiLimit} conversations ce mois-ci. Le compteur se réinitialise le 1er ${nextMonthStr}.`,
-        questions_used: count,
+        questions_used: questionsAsked,
         questions_limit: askiLimit,
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
