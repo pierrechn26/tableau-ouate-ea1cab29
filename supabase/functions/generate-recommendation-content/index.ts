@@ -614,9 +614,23 @@ serve(async (req) => {
     const monthlyLimit = planRes.data?.recos_monthly_limit ?? planLimits[planName] ?? 60;
     const currentCount = countRes.count ?? 0;
 
+    // Fire-and-forget: notify portal at 80% and 100% thresholds
+    const usagePercent = monthlyLimit > 0 ? (currentCount / monthlyLimit) * 100 : 0;
+    if (currentCount > 0) {
+      const prevPercent = ((currentCount - 1) / monthlyLimit) * 100;
+      if (prevPercent < 80 && usagePercent >= 80) {
+        notifyPortalThreshold("recommendations", 80, currentCount, monthlyLimit);
+      }
+      if (prevPercent < 100 && usagePercent >= 100) {
+        notifyPortalThreshold("recommendations", 100, currentCount, monthlyLimit);
+      }
+    }
+
     if (currentCount >= monthlyLimit) {
       return new Response(JSON.stringify({
         error: "quota_exceeded",
+        blocked: true,
+        reason: "quota_exceeded",
         current: currentCount,
         limit: monthlyLimit,
         remaining: 0,
