@@ -231,17 +231,19 @@ serve(async (req) => {
 
     const askiLimit: number = clientPlanData?.aski_limit ?? 100; // fallback Starter
     const questionsAsked = count ?? 0;
-    const usagePercent = askiLimit > 0 ? (questionsAsked / askiLimit) * 100 : 0;
+    // +1 because we count BEFORE inserting the current message
+    const questionsAfterThis = questionsAsked + 1;
+    const usagePercent = askiLimit > 0 ? (questionsAfterThis / askiLimit) * 100 : 0;
+    const previousPercent = askiLimit > 0 ? (questionsAsked / askiLimit) * 100 : 0;
 
     // Fire-and-forget: notify portal at 80% and 100% thresholds
-    if (questionsAsked > 0) {
-      const previousPercent = ((questionsAsked - 1) / askiLimit) * 100;
-      if (previousPercent < 80 && usagePercent >= 80) {
-        notifyPortalThreshold("aski", 80, questionsAsked, askiLimit);
-      }
-      if (previousPercent < 100 && usagePercent >= 100) {
-        notifyPortalThreshold("aski", 100, questionsAsked, askiLimit);
-      }
+    if (previousPercent < 80 && usagePercent >= 80) {
+      console.log(`[quota-notify] Crossing 80% threshold: ${questionsAfterThis}/${askiLimit}`);
+      notifyPortalThreshold("aski", 80, questionsAfterThis, askiLimit);
+    }
+    if (previousPercent < 100 && usagePercent >= 100) {
+      console.log(`[quota-notify] Crossing 100% threshold: ${questionsAfterThis}/${askiLimit}`);
+      notifyPortalThreshold("aski", 100, questionsAfterThis, askiLimit);
     }
 
     if (questionsAsked >= askiLimit) {
