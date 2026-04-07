@@ -314,6 +314,36 @@ async function handleNewFormat(supabase: SupabaseClient, payload: any) {
     );
   }
 
+  // ── Check diagnostic quota and flag over_quota sessions ──
+  const diagNow = new Date();
+  const diagMonthStart = new Date(Date.UTC(diagNow.getUTCFullYear(), diagNow.getUTCMonth(), 1)).toISOString();
+  const diagNextMonth = new Date(Date.UTC(diagNow.getUTCFullYear(), diagNow.getUTCMonth() + 1, 1)).toISOString();
+
+  const [{ count: sessionsThisMonth }, { data: diagPlanData }] = await Promise.all([
+    supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true })
+      .gte("created_at", diagMonthStart).lt("created_at", diagNextMonth),
+    supabase.from("client_plan").select("sessions_limit, plan")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+
+  const diagnosticLimit = diagPlanData?.sessions_limit ?? 500;
+  const totalSessions = sessionsThisMonth ?? 0;
+  const isOverQuota = totalSessions > diagnosticLimit;
+
+  if (isOverQuota) {
+    await supabase.from("diagnostic_sessions").update({ over_quota: true }).eq("id", session.id);
+  }
+
+  // Fire-and-forget: notify portal at 80% and 100% thresholds
+  const diagPercent = diagnosticLimit > 0 ? (totalSessions / diagnosticLimit) * 100 : 0;
+  const diagPrevPercent = diagnosticLimit > 0 ? ((totalSessions - 1) / diagnosticLimit) * 100 : 0;
+  if (diagPrevPercent < 80 && diagPercent >= 80) {
+    notifyPortalThreshold("diagnostic", 80, totalSessions, diagnosticLimit);
+  }
+  if (diagPrevPercent < 100 && diagPercent >= 100) {
+    notifyPortalThreshold("diagnostic", 100, totalSessions, diagnosticLimit);
+  }
+
   console.log("[diagnostic-webhook] Session saved:", session.id);
 
   // Children: delete-then-insert for idempotent upserts
