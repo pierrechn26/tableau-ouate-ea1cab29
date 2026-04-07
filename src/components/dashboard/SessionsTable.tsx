@@ -465,15 +465,23 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                 paginatedSessions.map((session) => (
                   <TableRow
                     key={session.id}
-                    className="hover:bg-muted/40 transition-colors"
+                    className={cn(
+                      "transition-colors",
+                      session.over_quota
+                        ? "opacity-40 blur-[2px] pointer-events-none select-none"
+                        : "hover:bg-muted/40"
+                    )}
+                    title={session.over_quota ? "Session au-delà de votre forfait. Passez au plan supérieur pour y accéder." : undefined}
                   >
                      {columns.map((col) => (
                       <TableCell
                         key={col.key}
                         className="px-3 py-2 text-xs max-w-[250px] truncate"
-                        title={col.getValue(session)}
+                        title={session.over_quota ? "🔒 Session hors quota" : col.getValue(session)}
                       >
-                        {col.key === "adapted_tone"
+                        {session.over_quota && col.key === "session_code"
+                          ? <span className="flex items-center gap-1">🔒 {col.getValue(session)}</span>
+                          : col.key === "adapted_tone"
                           ? <AdaptedToneBadge value={session.adapted_tone} />
                           : col.getValue(session)}
                       </TableCell>
