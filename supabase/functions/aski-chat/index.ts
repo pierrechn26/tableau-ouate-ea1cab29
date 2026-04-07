@@ -210,14 +210,29 @@ serve(async (req) => {
     ]);
 
     const askiLimit: number = clientPlanData?.aski_limit ?? 100; // fallback Starter
+    const questionsAsked = count ?? 0;
+    const usagePercent = askiLimit > 0 ? (questionsAsked / askiLimit) * 100 : 0;
 
-    if ((count ?? 0) >= askiLimit) {
+    // Fire-and-forget: notify portal at 80% and 100% thresholds
+    if (questionsAsked > 0) {
+      const previousPercent = ((questionsAsked - 1) / askiLimit) * 100;
+      if (previousPercent < 80 && usagePercent >= 80) {
+        notifyPortalThreshold("aski", 80, questionsAsked, askiLimit);
+      }
+      if (previousPercent < 100 && usagePercent >= 100) {
+        notifyPortalThreshold("aski", 100, questionsAsked, askiLimit);
+      }
+    }
+
+    if (questionsAsked >= askiLimit) {
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
       const nextMonthStr = nextMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
       return new Response(JSON.stringify({
         error: "limit_reached",
+        blocked: true,
+        reason: "quota_exceeded",
         message: `Vous avez atteint la limite de ${askiLimit} conversations ce mois-ci. Le compteur se réinitialise le 1er ${nextMonthStr}.`,
-        questions_used: count,
+        questions_used: questionsAsked,
         questions_limit: askiLimit,
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
