@@ -6,6 +6,8 @@ import {
   Search,
   Loader2,
   RefreshCw,
+  ArrowUpRight,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useDiagnosticSessions } from "@/hooks/useDiagnosticSessions";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { SessionsTable, getColumnDefs, getDisplayStatus } from "./SessionsTable";
 import { CATEGORIES } from "@/types/diagnostic";
 import type { DiagnosticSession } from "@/types/diagnostic";
