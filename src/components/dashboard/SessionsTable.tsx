@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { usePersonaProfiles } from "@/hooks/usePersonaProfiles";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 /* ── Adapted tone badge ─────────────────────────────────── */
 
