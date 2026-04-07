@@ -74,6 +74,8 @@ export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [conversionFilter, setConversionFilter] = useState("all");
   const { toast } = useToast();
+  const { sessions: sessionUsage, upgrade } = useUsageLimits();
+  const overQuotaCount = useMemo(() => sessions.filter(s => s.over_quota).length, [sessions]);
 
   const filteredCount = useMemo(() => {
     let result = sessions;
