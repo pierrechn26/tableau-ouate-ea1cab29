@@ -1,6 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Fire-and-forget: notify Ask-it portal when quota threshold is crossed
+async function notifyPortalThreshold(
+  resourceType: "aski" | "recommendations" | "diagnostic",
+  threshold: 80 | 100,
+  current: number,
+  limit: number
+) {
+  try {
+    const portalEndpoint = "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/quota-threshold-reached";
+    const apiKey = Deno.env.get("USAGE_STATS_API_KEY") || "askit-usage-stats-2026";
+    const organizationId = Deno.env.get("ORGANIZATION_ID");
+    if (!organizationId) { console.warn("[quota-notify] ORGANIZATION_ID not set"); return; }
+    fetch(portalEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+      body: JSON.stringify({ organization_id: organizationId, resource_type: resourceType, threshold, current_usage: current, limit }),
+    }).catch((e) => console.error("[quota-notify] Failed:", e.message));
+  } catch (e) { console.error("[quota-notify] Error:", e); }
+}
+
 async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
   try {
     const apiKey = Deno.env.get("MONITORING_API_KEY");
