@@ -41,12 +41,16 @@ async function fetchMonthData(supabase: any, startOfMonth: string, nextMonthStar
     { count: diagnosticSessions, error: sessionsError },
     { count: marketingRecommendations, error: marketingError },
     { data: usageData, error: usageError },
+    { count: overQuotaSessions, error: overQuotaError },
+    { data: planData, error: planError },
   ] = await Promise.all([
     supabase.from("aski_messages").select("*", { count: "exact", head: true }).eq("role", "user").gte("created_at", startOfMonth).lt("created_at", nextMonthStart),
     supabase.from("aski_messages").select("tokens_used").eq("role", "assistant").gte("created_at", startOfMonth).lt("created_at", nextMonthStart),
     supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth).lt("created_at", nextMonthStart),
     supabase.from("marketing_recommendations").select("*", { count: "exact", head: true }).gte("generated_at", startOfMonth).lt("generated_at", nextMonthStart),
     supabase.from("api_usage_logs").select("edge_function, api_provider, model, input_tokens, output_tokens, total_tokens, tokens_used, api_calls").gte("created_at", startOfMonth).lt("created_at", nextMonthStart),
+    supabase.from("diagnostic_sessions").select("*", { count: "exact", head: true }).eq("over_quota", true).gte("created_at", startOfMonth).lt("created_at", nextMonthStart),
+    supabase.from("client_plan").select("plan, aski_limit, recos_monthly_limit, sessions_limit").order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (countError) throw countError;
@@ -54,6 +58,7 @@ async function fetchMonthData(supabase: any, startOfMonth: string, nextMonthStar
   if (sessionsError) throw sessionsError;
   if (marketingError) throw marketingError;
   if (usageError) throw usageError;
+  if (overQuotaError) throw overQuotaError;
 
   const tokensUsed = (tokenData ?? []).reduce((sum: number, row: any) => sum + (row.tokens_used ?? 0), 0);
 
@@ -70,11 +75,30 @@ async function fetchMonthData(supabase: any, startOfMonth: string, nextMonthStar
     g.calls += row.api_calls ?? 1;
   }
 
+  // Quota flags
+  const askiLimit = planData?.aski_limit ?? 100;
+  const recoLimit = planData?.recos_monthly_limit ?? 24;
+  const diagnosticLimit = planData?.sessions_limit ?? 500;
+  const qAsked = questionsAsked ?? 0;
+  const dSessions = diagnosticSessions ?? 0;
+  const mRecos = marketingRecommendations ?? 0;
+
   return {
-    questions_asked: questionsAsked ?? 0,
+    questions_asked: qAsked,
     tokens_used: tokensUsed,
-    diagnostic_sessions: diagnosticSessions ?? 0,
-    marketing_recommendations: marketingRecommendations ?? 0,
+    diagnostic_sessions: dSessions,
+    diagnostic_sessions_over_quota: overQuotaSessions ?? 0,
+    marketing_recommendations: mRecos,
+    aski_limit: askiLimit,
+    aski_blocked: qAsked >= askiLimit,
+    aski_usage_percent: askiLimit > 0 ? Math.round((qAsked / askiLimit) * 100) : 0,
+    reco_generated: mRecos,
+    reco_limit: recoLimit,
+    reco_blocked: mRecos >= recoLimit,
+    reco_usage_percent: recoLimit > 0 ? Math.round((mRecos / recoLimit) * 100) : 0,
+    diagnostic_limit: diagnosticLimit,
+    diagnostic_over_limit: dSessions > diagnosticLimit,
+    diagnostic_usage_percent: diagnosticLimit > 0 ? Math.round((dSessions / diagnosticLimit) * 100) : 0,
     api_usage: Object.values(groupMap).sort((a: any, b: any) => b.total_tokens - a.total_tokens),
   };
 }
