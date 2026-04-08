@@ -340,8 +340,7 @@ export function AskiChat() {
               {usageLimits.upgrade.nextPlan && (
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="text-xs gap-1.5 border-foreground/20 hover:border-primary/60 hover:text-primary"
+                  className="text-xs gap-1.5 bg-destructive text-white hover:bg-destructive/90"
                   onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
