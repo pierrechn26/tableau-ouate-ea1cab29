@@ -477,13 +477,18 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                      {columns.map((col) => (
                       <TableCell
                         key={col.key}
-                        className="px-3 py-2 text-xs max-w-[250px] truncate"
+                        className={cn(
+                          "px-3 py-2 text-xs max-w-[250px]",
+                          session.over_quota ? "relative overflow-hidden" : "truncate"
+                        )}
                         title={session.over_quota ? "🔒 Session hors quota" : col.getValue(session)}
                       >
                         {session.over_quota ? (
-                          col.key === "session_code"
-                            ? <span className="flex items-center gap-1 text-muted-foreground">🔒 <span className="blur-[5px]">{col.getValue(session)}</span></span>
-                            : <span className="blur-[5px] text-muted-foreground">{col.key === "adapted_tone" ? <AdaptedToneBadge value={session.adapted_tone} /> : col.getValue(session)}</span>
+                          <div className="filter blur-sm select-none pointer-events-none text-muted-foreground truncate">
+                            {col.key === "adapted_tone"
+                              ? <AdaptedToneBadge value={session.adapted_tone} />
+                              : (col.getValue(session) || "—")}
+                          </div>
                         ) : (
                           col.key === "adapted_tone"
                           ? <AdaptedToneBadge value={session.adapted_tone} />
