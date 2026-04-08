@@ -172,8 +172,7 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
 
       setSessionsUsed(sessionCountRes.count ?? 0);
       setAskiUsed(askiCountRes.count ?? 0);
-      // ⚠️ TEST SIMULATION: Recos à 100% — supprimer après test
-      setRecosUsed(resolvedRecos);
+      setRecosUsed(recosCountRes.count ?? 0);
     } catch (err) {
       console.error("[useUsageLimits]", err);
     } finally {
