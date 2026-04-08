@@ -167,10 +167,10 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
         });
       }
 
-      // ⚠️ TEST SIMULATION: Sessions à 100% — supprimer après test
-      setSessionsUsed(clientLimits.sessions);
+      setSessionsUsed(sessionCountRes.count ?? 0);
       setAskiUsed(askiCountRes.count ?? 0);
-      setRecosUsed(recosCountRes.count ?? 0);
+      // ⚠️ TEST SIMULATION: Recos à 80% — supprimer après test
+      setRecosUsed(Math.ceil(clientLimits.recos * 0.8));
     } catch (err) {
       console.error("[useUsageLimits]", err);
     } finally {
