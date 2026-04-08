@@ -167,7 +167,8 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
         });
       }
 
-      setSessionsUsed(sessionCountRes.count ?? 0);
+      // ⚠️ TEST SIMULATION: Sessions à 100% — supprimer après test
+      setSessionsUsed(clientLimits.sessions);
       setAskiUsed(askiCountRes.count ?? 0);
       setRecosUsed(recosCountRes.count ?? 0);
     } catch (err) {
