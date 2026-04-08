@@ -469,7 +469,7 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                     className={cn(
                       "transition-colors",
                       session.over_quota
-                        ? "opacity-40 blur-[2px] pointer-events-none select-none"
+                        ? "pointer-events-none select-none bg-muted/20"
                         : "hover:bg-muted/40"
                     )}
                     title={session.over_quota ? "Session au-delà de votre forfait. Passez au plan supérieur pour y accéder." : undefined}
@@ -480,11 +480,15 @@ export function SessionsTable({ sessions, searchTerm, dateFrom, dateTo, statusFi
                         className="px-3 py-2 text-xs max-w-[250px] truncate"
                         title={session.over_quota ? "🔒 Session hors quota" : col.getValue(session)}
                       >
-                        {session.over_quota && col.key === "session_code"
-                          ? <span className="flex items-center gap-1">🔒 {col.getValue(session)}</span>
-                          : col.key === "adapted_tone"
+                        {session.over_quota ? (
+                          col.key === "session_code"
+                            ? <span className="flex items-center gap-1 text-muted-foreground">🔒 <span className="blur-[5px]">{col.getValue(session)}</span></span>
+                            : <span className="blur-[5px] text-muted-foreground">{col.key === "adapted_tone" ? <AdaptedToneBadge value={session.adapted_tone} /> : col.getValue(session)}</span>
+                        ) : (
+                          col.key === "adapted_tone"
                           ? <AdaptedToneBadge value={session.adapted_tone} />
-                          : col.getValue(session)}
+                          : col.getValue(session)
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
