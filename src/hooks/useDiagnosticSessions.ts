@@ -38,7 +38,15 @@ export function useDiagnosticSessions(dateRange?: DateRange): SessionsData {
         if (!data) throw new Error("No data returned");
 
         if (isMounted) {
-          setSessions(data.sessions || []);
+          // ⚠️ TEST SIMULATION: Flouter les 10 dernières sessions — supprimer après test
+          const allSessions = data.sessions || [];
+          const simulated = allSessions.map((s: DiagnosticSession, i: number) => {
+            if (i >= allSessions.length - 10) {
+              return { ...s, over_quota: true };
+            }
+            return s;
+          });
+          setSessions(simulated);
           setError(null);
         }
       } catch (err) {
