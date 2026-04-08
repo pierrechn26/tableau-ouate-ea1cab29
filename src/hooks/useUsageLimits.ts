@@ -156,21 +156,24 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
       ]);
 
       // Plan
+      let resolvedRecos = PLAN_LIMITS.scale.recos;
       if (planRes.data) {
         const d = planRes.data as any;
         const p = (d.plan || "scale") as PlanType;
-        setPlan(p);
-        setClientLimits({
+        const limits = {
           sessions: d.sessions_limit    ?? PLAN_LIMITS[p].sessions,
           aski:     d.aski_limit        ?? PLAN_LIMITS[p].aski,
           recos:    d.recos_monthly_limit ?? PLAN_LIMITS[p].recos,
-        });
+        };
+        setPlan(p);
+        setClientLimits(limits);
+        resolvedRecos = limits.recos;
       }
 
       setSessionsUsed(sessionCountRes.count ?? 0);
       setAskiUsed(askiCountRes.count ?? 0);
       // ⚠️ TEST SIMULATION: Recos à 80% — supprimer après test
-      setRecosUsed(Math.ceil(clientLimits.recos * 0.8));
+      setRecosUsed(Math.ceil(resolvedRecos * 0.8));
     } catch (err) {
       console.error("[useUsageLimits]", err);
     } finally {
