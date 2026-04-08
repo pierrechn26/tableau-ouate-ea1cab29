@@ -37,8 +37,9 @@ export function QuotaBanner() {
             <div className="flex items-center gap-3 flex-1">
               <span className="text-base">🚫</span>
               <p className="text-sm text-foreground">
-                <span className="font-semibold">Limite atteinte</span> sur{" "}
+                <span className="font-semibold">Limite atteinte</span> sur vos{" "}
                 {exceededAlerts.map(a => a.label).join(", ")}.{" "}
+                Vos données ne seront pas mises à jour.{" "}
                 {upgrade.nextPlan
                   ? <>Passez au plan <span className="font-semibold">{upgrade.nextPlanLabel}</span> pour continuer.</>
                   : <>Contactez-nous pour un plan personnalisé.</>
