@@ -51,13 +51,22 @@ export function RecosQuotaBanner({ percentage, isWarning, isExceeded, used, limi
     <div className="rounded-lg border border-[hsl(38,92%,50%)]/30 bg-[hsl(48,96%,89%)]/50 p-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-[hsl(38,92%,50%)] mt-0.5 shrink-0" />
-        <div className="flex-1">
+        <div className="flex-1 space-y-2">
           <p className="text-sm text-foreground">
             Vous avez utilisé <span className="font-semibold">{percentage}%</span> de vos recommandations marketing ({used}/{limit}).
             {hasNextPlan && (
               <> Pensez à passer au plan <span className="font-semibold">{nextPlanLabel}</span> pour augmenter votre limite.</>
             )}
           </p>
+          {hasNextPlan && (
+            <Button
+              size="sm"
+              className="mt-1 bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
+            >
+              Mettre à niveau <ArrowUpRight className="w-3 h-3 ml-1" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
