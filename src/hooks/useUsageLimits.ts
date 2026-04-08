@@ -168,7 +168,8 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
       }
 
       setSessionsUsed(sessionCountRes.count ?? 0);
-      setAskiUsed(askiCountRes.count ?? 0);
+      // ⚠️ TEST TEMPORAIRE : simuler 100% Aski atteint
+      setAskiUsed(clientLimits.aski); // Force usage = limit (100%)
       setRecosUsed(recosCountRes.count ?? 0);
     } catch (err) {
       console.error("[useUsageLimits]", err);
