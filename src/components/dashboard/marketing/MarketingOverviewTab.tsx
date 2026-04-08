@@ -28,6 +28,7 @@ export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota
 
   return (
     <div className="space-y-8">
+      {recosUsage && <RecosQuotaBanner {...recosUsage} />}
       {/* Header stats */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="space-y-1">
