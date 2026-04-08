@@ -342,7 +342,7 @@ export function AskiChat() {
                   size="sm"
                   variant="outline"
                   className="text-xs gap-1.5 border-foreground/20 hover:border-primary/60 hover:text-primary"
-                  onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+                  onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
                   Découvrir le plan {usageLimits.upgrade.nextPlanLabel} — {usageLimits.upgrade.nextPlanPrice}

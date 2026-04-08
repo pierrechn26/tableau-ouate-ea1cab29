@@ -155,7 +155,7 @@ export function UsageOverview() {
           <Button
             size="sm"
             className="gap-1.5 text-sm bg-primary text-primary-foreground hover:bg-primary-foreground hover:text-primary border border-primary transition-colors duration-150"
-            onClick={() => window.open("https://ask-it.ai/pricing", "_blank")}
+            onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
           >
             Mettre à niveau mon abonnement
             <ArrowUpRight className="w-3.5 h-3.5" />

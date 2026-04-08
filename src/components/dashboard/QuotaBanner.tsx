@@ -50,7 +50,7 @@ export function QuotaBanner() {
                 size="sm"
                 variant="outline"
                 className="shrink-0 text-xs h-7 px-2.5 gap-1 border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
               >
                 Mettre à niveau <ArrowUpRight className="w-3 h-3" />
               </Button>
@@ -80,7 +80,7 @@ export function QuotaBanner() {
                   size="sm"
                   variant="outline"
                   className="shrink-0 text-xs h-7 px-2.5 gap-1 border-amber-500/40 text-foreground hover:bg-amber-500/10"
-                  onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+                  onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
                 >
                   Mettre à niveau <ArrowUpRight className="w-3 h-3" />
                 </Button>

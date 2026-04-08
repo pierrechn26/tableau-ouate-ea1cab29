@@ -256,7 +256,7 @@ export function ResponsesSection({ dateRange }: ResponsesSectionProps) {
               size="sm"
               variant="outline"
               className="shrink-0 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
-              onClick={() => window.open("https://app.ask-it.ai/pricing", "_blank")}
+              onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
             >
               Mettre à niveau <ArrowUpRight className="w-3 h-3" />
             </Button>
