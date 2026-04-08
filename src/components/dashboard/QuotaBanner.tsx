@@ -79,7 +79,7 @@ onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
                 <Button
                   size="sm"
                   variant="outline"
-                  className="shrink-0 text-xs h-7 px-2.5 gap-1 border-amber-500/40 text-foreground hover:bg-amber-500/10"
+                  className="shrink-0 text-xs h-7 px-2.5 gap-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={() => window.open("https://app.ask-it.ai/dashboard/billing", "_blank")}
                 >
                   Mettre à niveau <ArrowUpRight className="w-3 h-3" />
