@@ -167,9 +167,9 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
         });
       }
 
-      setSessionsUsed(sessionCountRes.count ?? 0);
-      // ⚠️ TEST TEMPORAIRE : simuler 100% Aski atteint
-      setAskiUsed(clientLimits.aski); // Force usage = limit (100%)
+      // ⚠️ TEST TEMPORAIRE : simuler 80% Sessions atteint
+      setSessionsUsed(Math.round(clientLimits.sessions * 0.8)); // Force usage = 80% de la limite
+      setAskiUsed(askiCountRes.count ?? 0);
       setRecosUsed(recosCountRes.count ?? 0);
     } catch (err) {
       console.error("[useUsageLimits]", err);
