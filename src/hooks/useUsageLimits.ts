@@ -167,8 +167,7 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
         });
       }
 
-      // ⚠️ TEST TEMPORAIRE : simuler 80% Sessions atteint
-      setSessionsUsed(Math.round(clientLimits.sessions * 0.8)); // Force usage = 80% de la limite
+      setSessionsUsed(sessionCountRes.count ?? 0);
       setAskiUsed(askiCountRes.count ?? 0);
       setRecosUsed(recosCountRes.count ?? 0);
     } catch (err) {
