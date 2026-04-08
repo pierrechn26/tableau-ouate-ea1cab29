@@ -47,7 +47,7 @@ export function UpgradePrompt({
   nextPlanLabel,
   nextPlanPrice,
   nextLimit,
-  upgradeUrl = "https://app.ask-it.ai/pricing",
+  upgradeUrl = "https://app.ask-it.ai/dashboard/billing",
   className,
 }: UpgradePromptProps) {
   const isExceeded = severity === "exceeded";
