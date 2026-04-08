@@ -4,6 +4,12 @@ import { ClipboardList, History, Sparkles } from "lucide-react";
 import { type Recommendation, type RecommendationStats, type QuotaData } from "@/hooks/useMarketingRecommendations";
 import { OverviewTaskCard } from "./OverviewTaskCard";
 import { OverviewHistoryCard } from "./OverviewHistoryCard";
+import { RecosQuotaBanner } from "./shared/RecosQuotaBanner";
+
+interface RecosUsage {
+  percentage: number; isWarning: boolean; isExceeded: boolean;
+  used: number; limit: number; nextPlanLabel: string; nextPlanPrice: string; hasNextPlan: boolean;
+}
 
 interface Props {
   activeTasks: Recommendation[];
@@ -13,9 +19,10 @@ interface Props {
   onStatusChange: (id: string, status: "todo" | "in_progress" | "done") => void;
   onNavigateToDetail: (rec: Recommendation) => void;
   onOpenFeedback: (rec: Recommendation) => void;
+  recosUsage?: RecosUsage;
 }
 
-export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota, onStatusChange, onNavigateToDetail, onOpenFeedback }: Props) {
+export function MarketingOverviewTab({ activeTasks, completedTasks, stats, quota, onStatusChange, onNavigateToDetail, onOpenFeedback, recosUsage }: Props) {
   const activeCount = activeTasks.length;
   const doneCount = completedTasks.length;
 
