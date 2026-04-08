@@ -8,6 +8,7 @@ import {
   Mail,
 } from "lucide-react";
 import { useMarketingRecommendations, type Recommendation } from "@/hooks/useMarketingRecommendations";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { MarketingOverviewTab } from "./MarketingOverviewTab";
 import { MarketingAdsTab } from "./MarketingAdsTab";
 import { MarketingOffersTab } from "./MarketingOffersTab";
@@ -28,6 +29,8 @@ export function MarketingRecommendations() {
     updateStatus,
     submitFeedback,
   } = useMarketingRecommendations();
+
+  const usageLimits = useUsageLimits();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [feedbackRec, setFeedbackRec] = useState<Recommendation | null>(null);
@@ -52,6 +55,17 @@ export function MarketingRecommendations() {
       </div>
     );
   }
+
+  const recosUsage = {
+    percentage: usageLimits.recos.percentage,
+    isWarning: usageLimits.recos.isWarning,
+    isExceeded: usageLimits.recos.isExceeded,
+    used: usageLimits.recos.used,
+    limit: usageLimits.recos.limit,
+    nextPlanLabel: usageLimits.upgrade.nextPlanLabel,
+    nextPlanPrice: usageLimits.upgrade.nextPlanPrice,
+    hasNextPlan: !!usageLimits.upgrade.nextPlan,
+  };
 
   return (
     <div className="space-y-6">
@@ -92,6 +106,7 @@ export function MarketingRecommendations() {
             onStatusChange={updateStatus}
             onNavigateToDetail={handleNavigateToDetail}
             onOpenFeedback={handleOpenFeedback}
+            recosUsage={recosUsage}
           />
         </TabsContent>
 
@@ -103,6 +118,7 @@ export function MarketingRecommendations() {
             isGenerating={isGenerating === "ads"}
             quota={quota}
             onOpenFeedback={handleOpenFeedback}
+            recosUsage={recosUsage}
           />
         </TabsContent>
 
@@ -114,6 +130,7 @@ export function MarketingRecommendations() {
             isGenerating={isGenerating === "offers"}
             quota={quota}
             onOpenFeedback={handleOpenFeedback}
+            recosUsage={recosUsage}
           />
         </TabsContent>
 
@@ -125,6 +142,7 @@ export function MarketingRecommendations() {
             isGenerating={isGenerating === "emails"}
             quota={quota}
             onOpenFeedback={handleOpenFeedback}
+            recosUsage={recosUsage}
           />
         </TabsContent>
       </Tabs>
