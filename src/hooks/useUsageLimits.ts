@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addMonths, startOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -29,6 +29,18 @@ const PLAN_LABEL: Record<PlanType, string> = {
   growth:  "Growth",
   scale:   "Scale",
 };
+
+// ── Cache for org limits (5 minutes) ──────────────────────────────────────────
+const CACHE_TTL_MS = 5 * 60 * 1000;
+let limitsCache: { data: OrgLimitsResponse; fetchedAt: number } | null = null;
+
+interface OrgLimitsResponse {
+  plan: string;
+  aski_limit: number;
+  sessions_limit: number;
+  recos_limit: number;
+  source: string;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function frenchOrdinal(day: number): string {
@@ -106,6 +118,50 @@ function makeUpgrade(plan: PlanType): UpgradeInfo {
   };
 }
 
+// ── Fetch limits from portal (via proxy edge function) ────────────────────────
+async function fetchOrgLimits(): Promise<OrgLimitsResponse | null> {
+  // Return cached data if still fresh
+  if (limitsCache && Date.now() - limitsCache.fetchedAt < CACHE_TTL_MS) {
+    return limitsCache.data;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke("get-org-limits", {
+      method: "POST",
+    });
+
+    if (error || !data || !data.plan) {
+      console.warn("[useUsageLimits] get-org-limits failed, will use local fallback", error);
+      return null;
+    }
+
+    const response = data as OrgLimitsResponse;
+    limitsCache = { data: response, fetchedAt: Date.now() };
+    return response;
+  } catch (err) {
+    console.warn("[useUsageLimits] get-org-limits network error", err);
+    return null;
+  }
+}
+
+// ── Fallback: read local client_plan ──────────────────────────────────────────
+async function fetchLocalLimits(projectId: string) {
+  const { data } = await supabase
+    .from("client_plan")
+    .select("plan, sessions_limit, aski_limit, recos_monthly_limit")
+    .eq("project_id", projectId)
+    .single();
+
+  if (!data) return null;
+  const d = data as any;
+  return {
+    plan: (d.plan || "scale") as PlanType,
+    sessions: d.sessions_limit ?? PLAN_LIMITS.scale.sessions,
+    aski: d.aski_limit ?? PLAN_LIMITS.scale.aski,
+    recos: d.recos_monthly_limit ?? PLAN_LIMITS.scale.recos,
+  };
+}
+
 // ── Hook ───────────────────────────────────────────────────────────────────────
 export function useUsageLimits(projectId = "ouate"): UsageLimits {
   const [loading, setLoading] = useState(true);
@@ -118,28 +174,20 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // ── Dates strictement UTC pour éviter tout décalage timezone client ──────
       const now = new Date();
       const utcMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
       const utcNextMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 
-      const [planRes, sessionCountRes, askiCountRes, recosCountRes] = await Promise.all([
-        // 1. Lire le plan client (colonne renommée recos_monthly_limit)
-        supabase
-          .from("client_plan" as any)
-          .select("plan, sessions_limit, aski_limit, recos_monthly_limit")
-          .eq("project_id", projectId)
-          .single(),
+      // Fetch limits from portal (with cache) + usage counts in parallel
+      const [orgLimits, sessionCountRes, askiCountRes, recosCountRes] = await Promise.all([
+        fetchOrgLimits(),
 
-        // 2. Compter TOUTES les sessions créées ce mois (aucun filtre statut)
-        // Chaque session créée consomme un crédit, qu'elle soit en_cours, terminée ou abandonnée
         supabase
           .from("diagnostic_sessions")
           .select("*", { count: "exact", head: true })
           .gte("created_at", utcMonthStart)
           .lt("created_at", utcNextMonthStart),
 
-        // 3. Compter les questions Aski du mois (via aski_messages)
         supabase
           .from("aski_messages")
           .select("*", { count: "exact", head: true })
@@ -147,7 +195,6 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
           .gte("created_at", utcMonthStart)
           .lt("created_at", utcNextMonthStart),
 
-        // 4. Compter les recos générées CE MOIS (mensuel, plus hebdomadaire)
         supabase
           .from("marketing_recommendations")
           .select("*", { count: "exact", head: true })
@@ -155,21 +202,31 @@ export function useUsageLimits(projectId = "ouate"): UsageLimits {
           .lt("generated_at", utcNextMonthStart),
       ]);
 
-      // Plan
-      let resolvedRecos = PLAN_LIMITS.scale.recos;
-      if (planRes.data) {
-        const d = planRes.data as any;
-        const p = (d.plan || "scale") as PlanType;
-        const limits = {
-          sessions: d.sessions_limit    ?? PLAN_LIMITS[p].sessions,
-          aski:     d.aski_limit        ?? PLAN_LIMITS[p].aski,
-          recos:    d.recos_monthly_limit ?? PLAN_LIMITS[p].recos,
+      // Resolve limits: portal first, then local fallback
+      let resolvedPlan: PlanType;
+      let resolvedLimits: { sessions: number; aski: number; recos: number };
+
+      if (orgLimits) {
+        resolvedPlan = (orgLimits.plan as PlanType) || "scale";
+        resolvedLimits = {
+          sessions: orgLimits.sessions_limit,
+          aski: orgLimits.aski_limit,
+          recos: orgLimits.recos_limit,
         };
-        setPlan(p);
-        setClientLimits(limits);
-        resolvedRecos = limits.recos;
+      } else {
+        // Fallback to local client_plan
+        const local = await fetchLocalLimits(projectId);
+        if (local) {
+          resolvedPlan = local.plan;
+          resolvedLimits = { sessions: local.sessions, aski: local.aski, recos: local.recos };
+        } else {
+          resolvedPlan = "scale";
+          resolvedLimits = PLAN_LIMITS.scale;
+        }
       }
 
+      setPlan(resolvedPlan);
+      setClientLimits(resolvedLimits);
       setSessionsUsed(sessionCountRes.count ?? 0);
       setAskiUsed(askiCountRes.count ?? 0);
       setRecosUsed(recosCountRes.count ?? 0);
