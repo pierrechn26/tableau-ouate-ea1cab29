@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const PORTAL_URL =
-  "https://app-ask-it-ai.lovable.app/functions/v1/get-organization-limits";
+  "https://srzbcuhwrpkfhubbbeuw.supabase.co/functions/v1/get-organization-limits";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
