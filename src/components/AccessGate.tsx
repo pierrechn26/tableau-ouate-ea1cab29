@@ -50,11 +50,11 @@ function AccessLoader() {
       className="fixed inset-0 flex flex-col items-center justify-center"
       style={{ backgroundColor: "#0F0F0F", fontFamily: "DM Sans, sans-serif" }}
     >
+      <img src={askItLogo} alt="Ask-It" className="mb-8 object-contain" style={{ height: 80 }} />
       <div
-        className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin mb-4"
-        style={{ borderColor: "#DB143C", borderTopColor: "transparent" }}
+        className="rounded-full border-4 border-t-transparent animate-spin mb-4"
+        style={{ width: 40, height: 40, borderColor: "#DB143C", borderTopColor: "transparent" }}
       />
-      <p className="text-white/60 text-sm">Vérification de votre accès...</p>
     </div>
   );
 }
