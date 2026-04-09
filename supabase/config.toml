@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.weekly-intelligence-refresh]
 verify_jwt = false
+
+[functions.get-org-limits]
+verify_jwt = false
