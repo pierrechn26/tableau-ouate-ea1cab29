@@ -188,18 +188,51 @@ Deno.serve(async (req) => {
       },
     };
 
-    // 6. Appel Klaviyo profile-import
-    const klaviyoResponse = await fetch("https://a.klaviyo.com/api/profile-import/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Klaviyo-API-Key ${klaviyoApiKey}`,
-        revision: "2024-02-15",
-      },
-      body: JSON.stringify(klaviyoPayload),
-    });
+    // 6. Appel Klaviyo profile-import with timeout + retry
+    async function callKlaviyoWithRetry(url: string, payload: unknown, maxAttempts = 3): Promise<{ response: Response; body: string }> {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Klaviyo-API-Key ${klaviyoApiKey}`,
+              revision: "2024-02-15",
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          const body = await resp.text();
+          // Retry on 5xx / 429
+          if ((resp.status >= 500 || resp.status === 429) && attempt < maxAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            console.log(`[sync-klaviyo-persona] Attempt ${attempt} got ${resp.status}, retrying in ${delay}ms...`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+          return { response: resp, body };
+        } catch (err) {
+          clearTimeout(timeoutId);
+          if (attempt < maxAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            console.log(`[sync-klaviyo-persona] Attempt ${attempt} failed (${(err as Error).message}), retrying in ${delay}ms...`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw new Error("Max retry attempts reached");
+    }
 
-    const responseText = await klaviyoResponse.text();
+    const { response: klaviyoResponse, body: responseText } = await callKlaviyoWithRetry(
+      "https://a.klaviyo.com/api/profile-import/",
+      klaviyoPayload
+    );
+
     console.log("[sync-klaviyo-persona] Klaviyo profile-import response:", klaviyoResponse.status, responseText);
 
     // 409 = profile already exists, treat as success (upsert behavior)
@@ -209,7 +242,7 @@ Deno.serve(async (req) => {
       console.error("[sync-klaviyo-persona] Klaviyo error:", klaviyoResponse.status, responseText);
       await reportEdgeFunctionError("sync-klaviyo-persona", new Error(`Klaviyo profile import failed: ${klaviyoResponse.status}`), { type: "sync_failure", severity: "error" });
       return new Response(
-        JSON.stringify({ success: false, error: `Klaviyo ${klaviyoResponse.status}`, details: responseText }),
+        JSON.stringify({ success: false, error: `Klaviyo ${klaviyoResponse.status}`, details: responseText, fallback: klaviyoResponse.status >= 500 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
