@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
     async function callKlaviyoWithRetry(url: string, payload: unknown, maxAttempts = 3): Promise<{ response: Response; body: string }> {
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
         try {
           const resp = await fetch(url, {
             method: "POST",
