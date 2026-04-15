@@ -696,9 +696,9 @@ IMPORTANT : Ces directives sont prioritaires sur tes propres suppositions. Ne le
     let responseText = "";
     let inputTokens = 0;
     let outputTokens = 0;
-    let modelUsed = "claude-sonnet-4-6";
+    let modelUsed = "claude-sonnet-4-5";
 
-    const sonnetModel = "claude-sonnet-4-6";
+    const sonnetModel = "claude-sonnet-4-5";
     const geminiModel = "google/gemini-2.5-pro";
 
     let sonnetSucceeded = false;
