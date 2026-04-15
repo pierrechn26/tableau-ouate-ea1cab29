@@ -333,6 +333,24 @@ Pour les sources de type 'source_marketing' (principes marketing), ne mets PAS d
 N'invente JAMAIS d'URL — si tu ne connais pas l'URL exacte d'une marque, mets null.
 Si tu n'as pas de source spécifique, cite les principes marketing sur lesquels tu t'appuies (ex: { source_name: 'Principe de réciprocité', description: 'Un cadeau sans condition crée un sentiment de dette positive qui augmente la probabilité d achat', type: 'source_marketing' }).
 
+RÈGLE ABSOLUE POUR sources_inspirations.description :
+Le champ description doit expliquer POURQUOI une source ou un principe est pertinent pour cette recommandation. Il ne doit JAMAIS contenir :
+- De pourcentages (ex: '19,6%', '16,5%', '+40% de CTR')
+- De montants en euros ou dans toute devise (ex: '45,07€', '3,2€ de CPA')
+- De taux ou ratios chiffrés (ex: 'ROAS 3.5x', 'conversion 4.2%')
+- De statistiques d'industrie inventées (ex: 'génère X% de performance en plus')
+- De benchmarks chiffrés non sourcés (ex: 'moyenne du secteur : 28%')
+EXEMPLES INTERDITS dans sources_inspirations.description :
+❌ 'Les emails post-diagnostic génèrent 40% de taux de clic supplémentaires vs génériques'
+❌ 'Taux de conversion moyen 19,6% vs 16,5% sur les audiences froides'
+❌ 'Panier moyen 45,07€ sur ce segment'
+EXEMPLES AUTORISÉS dans sources_inspirations.description :
+✅ 'Approche de personnalisation post-diagnostic qui capitalise sur l engagement immédiat du visiteur pour proposer des produits adaptés à son profil'
+✅ 'Les témoignages de parents ayant vécu les mêmes frustrations créent une identification forte et rassurent sur la légitimité des besoins'
+✅ 'Les pré-ados rejettent les produits infantilisants, ce qui rend le ciblage spécifique 9-12 ans plus efficace que les messages génériques'
+La règle est simple : dans sources_inspirations.description, tu expliques un RAISONNEMENT QUALITATIF, pas des CHIFFRES. Si tu veux citer un chiffre, tu dois pouvoir le sourcer dans le contexte fourni (market_intelligence ou métriques de la marque). Sinon, reformule en qualitatif.
+Cette règle s'applique à TOUS les autres champs texte de la recommandation (brief, script, messaging, contenu_resume, etc.) : les seules statistiques autorisées sont celles qui figurent dans le contexte fourni. Toute invention de chiffre est une violation grave qui rend la recommandation inutilisable.
+
 SCRIPTS VIDÉO — FORMATAGE :
 Pour les scripts vidéo, insère DEUX sauts de ligne (\\n\\n) entre chaque scène pour garantir une séparation visuelle nette. Format :
 **[0-3s] Scène 1 — Hook**
@@ -715,7 +733,11 @@ ${JSON.stringify(products.map((p: any) => ({
   title: p.title,
   prix: p.price_min !== p.price_max ? `${p.price_min}-${p.price_max}€` : `${p.price_min}€`,
   type: p.product_type,
-})), null, 1)}`;
+})), null, 1)}
+
+RAPPEL FINAL : dans sources_inspirations.description, explique le raisonnement qualitatif derrière chaque source. N'inscris AUCUN pourcentage, aucun montant, aucun taux, aucun ratio. Si tu as tendance à écrire un chiffre, remplace-le par une formulation qualitative ('plus engageant', 'significativement supérieur', 'très performant pour ce segment').
+
+Génère maintenant la recommandation au format JSON.`;
 
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
