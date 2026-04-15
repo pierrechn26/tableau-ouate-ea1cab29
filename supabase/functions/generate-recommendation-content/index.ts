@@ -32,7 +32,7 @@ const corsHeaders = {
 };
 
 const PROJECT_ID = "ouate";
-const SONNET_MODEL = "claude-sonnet-4-20250514";
+const SONNET_MODEL = "claude-sonnet-4-5";
 
 function getMonday(d: Date): string {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
