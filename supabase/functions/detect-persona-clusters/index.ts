@@ -633,12 +633,25 @@ function computeScore(sessionData: Any, children: Any[], personas: Any[]): { cod
    Runs at EVERY execution, independent of cluster detection.
    ============================================================ */
 async function updateAllPersonaSessionCounts(supabase: Any): Promise<{ updated: number; counters: Record<string, number> }> {
-  const { data: personaCounts } = await supabase
-    .from("diagnostic_sessions")
-    .select("persona_code, matching_score")
-    .eq("status", "termine");
+  // Paginate (PostgREST caps each query at 1000 rows)
+  const PAGE_SIZE = 1000;
+  const personaCounts: Any[] = [];
+  let pcFrom = 0;
+  let pcHasMore = true;
+  while (pcHasMore) {
+    const { data, error } = await supabase
+      .from("diagnostic_sessions")
+      .select("persona_code, matching_score")
+      .eq("status", "termine")
+      .range(pcFrom, pcFrom + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    personaCounts.push(...data);
+    pcHasMore = data.length === PAGE_SIZE;
+    pcFrom += PAGE_SIZE;
+  }
 
-  if (!personaCounts) return { updated: 0, counters: {} };
+  if (personaCounts.length === 0) return { updated: 0, counters: {} };
 
   const counters: Record<string, { cnt: number; sum: number }> = {};
   for (const s of personaCounts) {
