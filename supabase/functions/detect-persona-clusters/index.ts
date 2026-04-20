@@ -633,12 +633,25 @@ function computeScore(sessionData: Any, children: Any[], personas: Any[]): { cod
    Runs at EVERY execution, independent of cluster detection.
    ============================================================ */
 async function updateAllPersonaSessionCounts(supabase: Any): Promise<{ updated: number; counters: Record<string, number> }> {
-  const { data: personaCounts } = await supabase
-    .from("diagnostic_sessions")
-    .select("persona_code, matching_score")
-    .eq("status", "termine");
+  // Paginate (PostgREST caps each query at 1000 rows)
+  const PAGE_SIZE = 1000;
+  const personaCounts: Any[] = [];
+  let pcFrom = 0;
+  let pcHasMore = true;
+  while (pcHasMore) {
+    const { data, error } = await supabase
+      .from("diagnostic_sessions")
+      .select("persona_code, matching_score")
+      .eq("status", "termine")
+      .range(pcFrom, pcFrom + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    personaCounts.push(...data);
+    pcHasMore = data.length === PAGE_SIZE;
+    pcFrom += PAGE_SIZE;
+  }
 
-  if (!personaCounts) return { updated: 0, counters: {} };
+  if (personaCounts.length === 0) return { updated: 0, counters: {} };
 
   const counters: Record<string, { cnt: number; sum: number }> = {};
   for (const s of personaCounts) {
@@ -696,21 +709,61 @@ Deno.serve(async (req) => {
     console.log(`[detect-persona-clusters] START — dry_run=${dry_run}, min_cluster=${min_cluster_size}`);
 
     /* ── PHASE A: Load data ── */
-    const [{ data: personas }, { data: rawSessions }] = await Promise.all([
-      supabase.from("personas").select("code, name, criteria, is_active, is_auto_created, auto_created_at, min_sessions").eq("is_active", true).eq("is_pool", false),
-      supabase.from("diagnostic_sessions").select("id, email, persona_code, matching_score, status, relationship, is_existing_client, number_of_children, priorities_ordered, trust_triggers_ordered, routine_size_preference, content_format_preference").eq("status", "termine"),
+    // Run personas (small) + first sessions page in parallel to save wall-clock time
+    const PAGE_SIZE = 1000;
+    const sessionsSelect = "id, email, persona_code, matching_score, status, relationship, is_existing_client, number_of_children, priorities_ordered, trust_triggers_ordered, routine_size_preference, content_format_preference";
+
+    const [{ data: personas }, { data: firstSessionsPage, error: firstSessionsError }] = await Promise.all([
+      supabase.from("personas")
+        .select("code, name, criteria, is_active, is_auto_created, auto_created_at, min_sessions")
+        .eq("is_active", true)
+        .eq("is_pool", false),
+      supabase.from("diagnostic_sessions")
+        .select(sessionsSelect)
+        .eq("status", "termine")
+        .range(0, PAGE_SIZE - 1),
     ]);
 
-    if (!personas || !rawSessions) throw new Error("Failed to load personas or sessions");
+    if (!personas) throw new Error("Failed to load personas");
+    if (firstSessionsError) throw firstSessionsError;
 
-    // Load ALL children with pagination (server cap is 1000 rows per query)
+    // Accumulate sessions starting with the first page already fetched
+    const rawSessions: Any[] = firstSessionsPage || [];
+    let hasMoreSessions = rawSessions.length === PAGE_SIZE;
+    let sFrom = PAGE_SIZE;
+    while (hasMoreSessions) {
+      const { data, error } = await supabase
+        .from("diagnostic_sessions")
+        .select(sessionsSelect)
+        .eq("status", "termine")
+        .range(sFrom, sFrom + PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        hasMoreSessions = false;
+        break;
+      }
+      rawSessions.push(...data);
+      hasMoreSessions = data.length === PAGE_SIZE;
+      sFrom += PAGE_SIZE;
+    }
+
+    // Load ALL children with pagination (replaces old 2-batch manual paging — safe beyond 2000 rows)
     const sessionIds = rawSessions.map((s: Any) => s.id);
     const childrenSelect = "session_id, child_index, skin_concern, age_range, has_routine, skin_reactivity, routine_satisfaction, exclude_fragrance, has_ouate_products";
-    const [{ data: childBatch1 }, { data: childBatch2 }] = await Promise.all([
-      supabase.from("diagnostic_children").select(childrenSelect).range(0, 999),
-      supabase.from("diagnostic_children").select(childrenSelect).range(1000, 1999),
-    ]);
-    const allChildren = [...(childBatch1 || []), ...(childBatch2 || [])];
+    const allChildren: Any[] = [];
+    let cFrom = 0;
+    let hasMoreChildren = true;
+    while (hasMoreChildren) {
+      const { data, error } = await supabase
+        .from("diagnostic_children")
+        .select(childrenSelect)
+        .range(cFrom, cFrom + PAGE_SIZE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allChildren.push(...data);
+      hasMoreChildren = data.length === PAGE_SIZE;
+      cFrom += PAGE_SIZE;
+    }
 
     console.log(`[detect-persona-clusters] Loaded ${allChildren.length} children rows`);
 
@@ -903,13 +956,24 @@ Deno.serve(async (req) => {
 
     /* ── PHASE E: Klaviyo sync for changed sessions ── */
     if (reassigned > 0) {
-      // Reload updated sessions for Klaviyo
-      const { data: updatedSessions } = await supabase
-        .from("diagnostic_sessions")
-        .select("id, email, persona_code, matching_score, optin_email, optin_sms")
-        .eq("status", "termine")
-        .not("email", "is", null)
-        .neq("email", "");
+      // Reload updated sessions for Klaviyo (paginated to bypass 1000-row cap)
+      const updatedSessions: Any[] = [];
+      let usFrom = 0;
+      let usHasMore = true;
+      while (usHasMore) {
+        const { data, error } = await supabase
+          .from("diagnostic_sessions")
+          .select("id, email, persona_code, matching_score, optin_email, optin_sms")
+          .eq("status", "termine")
+          .not("email", "is", null)
+          .neq("email", "")
+          .range(usFrom, usFrom + 999);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        updatedSessions.push(...data);
+        usHasMore = data.length === 1000;
+        usFrom += 1000;
+      }
 
       if (updatedSessions && KLAVIYO_API_KEY) {
         const BATCH_K = 20;
