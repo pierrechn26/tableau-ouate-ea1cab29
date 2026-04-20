@@ -956,13 +956,24 @@ Deno.serve(async (req) => {
 
     /* ── PHASE E: Klaviyo sync for changed sessions ── */
     if (reassigned > 0) {
-      // Reload updated sessions for Klaviyo
-      const { data: updatedSessions } = await supabase
-        .from("diagnostic_sessions")
-        .select("id, email, persona_code, matching_score, optin_email, optin_sms")
-        .eq("status", "termine")
-        .not("email", "is", null)
-        .neq("email", "");
+      // Reload updated sessions for Klaviyo (paginated to bypass 1000-row cap)
+      const updatedSessions: Any[] = [];
+      let usFrom = 0;
+      let usHasMore = true;
+      while (usHasMore) {
+        const { data, error } = await supabase
+          .from("diagnostic_sessions")
+          .select("id, email, persona_code, matching_score, optin_email, optin_sms")
+          .eq("status", "termine")
+          .not("email", "is", null)
+          .neq("email", "")
+          .range(usFrom, usFrom + 999);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        updatedSessions.push(...data);
+        usHasMore = data.length === 1000;
+        usFrom += 1000;
+      }
 
       if (updatedSessions && KLAVIYO_API_KEY) {
         const BATCH_K = 20;
