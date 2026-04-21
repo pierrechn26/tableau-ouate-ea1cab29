@@ -106,13 +106,14 @@ async function collectPersonaData(supabase: any) {
     .eq("is_active", true)
     .order("session_count", { ascending: false });
 
-  const { data: recentSessions } = await supabase
-    .from("diagnostic_sessions")
-    .select(
-      "persona_code,conversion,selected_cart_amount,validated_cart_amount,engagement_score,is_existing_client,optin_email,optin_sms"
-    )
-    .gte("created_at", dateStr)
-    .not("persona_code", "is", null);
+  const recentSessions = await paginateQuery<any>(supabase, (qb) =>
+    qb.from("diagnostic_sessions")
+      .select(
+        "persona_code,conversion,selected_cart_amount,validated_cart_amount,engagement_score,is_existing_client,optin_email,optin_sms"
+      )
+      .gte("created_at", dateStr)
+      .not("persona_code", "is", null)
+  );
 
   const personaMap: Record<string, any> = {};
   for (const s of recentSessions || []) {

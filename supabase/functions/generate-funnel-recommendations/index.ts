@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 async function reportEdgeFunctionError(functionName: string, error: unknown, context?: Record<string, unknown>) {
   try {
@@ -43,14 +44,16 @@ Deno.serve(async (req) => {
     monday.setDate(now.getDate() - mondayOffset);
     const weekStart = monday.toISOString().split("T")[0];
 
-    // ===== Fetch funnel data from last 7 days =====
-    const { data: sessions, error: sessErr } = await supabase
-      .from("diagnostic_sessions")
-      .select("status, optin_email, optin_sms, recommended_products, selected_cart_amount, checkout_started, conversion, validated_cart_amount, duration_seconds, question_path, abandoned_at_step")
-      .gte("created_at", fromISO)
-      .lte("created_at", toISO);
-
-    if (sessErr) {
+    // ===== Fetch funnel data from last 7 days (paginated) =====
+    let sessions: any[];
+    try {
+      sessions = await paginateQuery<any>(supabase, (qb) =>
+        qb.from("diagnostic_sessions")
+          .select("status, optin_email, optin_sms, recommended_products, selected_cart_amount, checkout_started, conversion, validated_cart_amount, duration_seconds, question_path, abandoned_at_step")
+          .gte("created_at", fromISO)
+          .lte("created_at", toISO)
+      );
+    } catch (sessErr) {
       console.error("Sessions query error:", sessErr);
       return new Response(JSON.stringify({ error: "DB error" }), {
         status: 500,
