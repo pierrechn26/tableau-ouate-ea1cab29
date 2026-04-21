@@ -30,29 +30,13 @@ export function useRevenueTimeseries(
     const fetchData = async () => {
       setIsLoading(true);
 
-      const from = dateRange?.from ?? subDays(new Date(), 29);
-      const toRaw = dateRange?.to ?? new Date();
-      const to = new Date(toRaw);
-      to.setHours(23, 59, 59, 999);
+      const from = dateRange?.from;
+      const toRaw = dateRange?.to;
+      const to = toRaw ? new Date(toRaw) : undefined;
+      if (to) to.setHours(23, 59, 59, 999);
 
-      // Step 1: find the actual earliest order date if no dateRange is set
-      let effectiveFrom = from;
-      if (!dateRange?.from) {
-        const { data: earliest } = await supabase
-          .from("shopify_orders")
-          .select("created_at")
-          .gt("total_price", 0)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .single();
-        if (earliest?.created_at) {
-          effectiveFrom = new Date(earliest.created_at);
-          effectiveFrom.setHours(0, 0, 0, 0);
-        }
-      }
-
-      const fromISO = effectiveFrom.toISOString();
-      const toISO = to.toISOString();
+      const fromISO = from ? from.toISOString() : undefined;
+      const toISO = to ? to.toISOString() : undefined;
 
       // Paginate to bypass the PostgREST 1000-row server cap
       const PAGE_SIZE = 1000;
@@ -63,14 +47,15 @@ export function useRevenueTimeseries(
       while (hasMore) {
         const from_idx = page * PAGE_SIZE;
         const to_idx = from_idx + PAGE_SIZE - 1;
-        const { data: batch, error } = await supabase
+        let q = supabase
           .from("shopify_orders")
           .select("created_at, total_price, is_from_diagnostic")
           .gt("total_price", 0)
-          .gte("created_at", fromISO)
-          .lte("created_at", toISO)
           .order("created_at", { ascending: true })
           .range(from_idx, to_idx);
+        if (fromISO) q = q.gte("created_at", fromISO);
+        if (toISO) q = q.lte("created_at", toISO);
+        const { data: batch, error } = await q;
 
         if (error || !batch) {
           setData([]);
@@ -85,6 +70,11 @@ export function useRevenueTimeseries(
       }
 
       const orders = allOrders;
+
+      // Effective bounds: use provided range or derive from data
+      const effectiveFrom = from ?? (orders.length > 0 ? new Date(orders[0].created_at!) : new Date());
+      effectiveFrom.setHours(0, 0, 0, 0);
+      const effectiveTo = to ?? new Date();
 
       setIsEmpty(orders.length === 0);
 
