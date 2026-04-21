@@ -64,7 +64,7 @@ serve(async (req) => {
           .in("chat_id", chatIds)
           .order("created_at", { ascending: true })
     );
-    console.log("[test] messages loaded:", allMessages.length); // TEMP debug T3
+    
 
     if (!allMessages || allMessages.length === 0) {
       return new Response(JSON.stringify({ success: true, analyzed: 0, extracted: 0 }), {
