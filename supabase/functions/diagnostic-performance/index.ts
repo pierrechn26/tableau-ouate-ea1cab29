@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,19 +51,40 @@ Deno.serve(async (req) => {
     /* ====== NEW FORMAT: diagnostic_sessions + children ====== */
     const cutoffDate = "2026-02-08T00:00:00.000Z";
 
-    let sessionsQuery = supabase
-      .from("diagnostic_sessions")
-      .select("*, diagnostic_children(*)")
-      .gte("created_at", cutoffDate)
-      .order("created_at", { ascending: false });
+    // Paginate sessions (no embed — embed breaks .range() pagination)
+    const sessionsRaw = await paginateQuery<any>(supabase, (client) => {
+      let q = client
+        .from("diagnostic_sessions")
+        .select("*")
+        .gte("created_at", cutoffDate)
+        .order("created_at", { ascending: false });
+      if (from && new Date(from) > new Date(cutoffDate)) q = q.gte("created_at", from.toISOString());
+      if (to) q = q.lte("created_at", to.toISOString());
+      return q;
+    });
 
-    if (from && new Date(from) > new Date(cutoffDate)) sessionsQuery = sessionsQuery.gte("created_at", from.toISOString());
-    if (to) sessionsQuery = sessionsQuery.lte("created_at", to.toISOString());
+    // Paginate children separately, filtered by session ids
+    const sessionIds = sessionsRaw.map((s: any) => s.id);
+    console.log("[perf] childrenSessionIds count:", sessionIds.length); // TEMP debug T1
+    const childrenRaw = sessionIds.length > 0
+      ? await paginateQuery<any>(supabase, (client) =>
+          client.from("diagnostic_children").select("*").in("session_id", sessionIds)
+        )
+      : [];
+    console.log("[perf] childrenRaw count:", childrenRaw.length); // TEMP debug T1
 
-    const { data: sessionsRaw, error: sessionsError } = await sessionsQuery;
-    if (sessionsError) console.error("[perf] Sessions query error:", sessionsError);
+    // Re-attach children to sessions
+    const childrenBySession = new Map<string, any[]>();
+    for (const c of childrenRaw) {
+      const arr = childrenBySession.get(c.session_id) ?? [];
+      arr.push(c);
+      childrenBySession.set(c.session_id, arr);
+    }
     // deno-lint-ignore no-explicit-any
-    const sessions: any[] = sessionsRaw ?? [];
+    const sessions: any[] = sessionsRaw.map((s: any) => ({
+      ...s,
+      diagnostic_children: childrenBySession.get(s.id) ?? [],
+    }));
 
     let newTotal = 0,
       newCompleted = 0,
@@ -222,16 +244,16 @@ Deno.serve(async (req) => {
     let funnelOrderAmountAvg: number | null = null;
     let orphanOrderCount = 0;
     {
-      let ordQ = supabase
-        .from("shopify_orders")
-        .select("total_price, diagnostic_session_id")
-        .eq("is_from_diagnostic", true)
-        .gt("total_price", 0);
-      if (from) ordQ = ordQ.gte("created_at", from.toISOString());
-      if (to) ordQ = ordQ.lte("created_at", to.toISOString());
-      const { data: diagOrders, error: diagOrdErr } = await ordQ;
-      if (diagOrdErr) console.error("[perf] Diag orders query error:", diagOrdErr);
-      const dOrders = diagOrders ?? [];
+      const dOrders = await paginateQuery<any>(supabase, (client) => {
+        let q = client
+          .from("shopify_orders")
+          .select("total_price, diagnostic_session_id")
+          .eq("is_from_diagnostic", true)
+          .gt("total_price", 0);
+        if (from) q = q.gte("created_at", from.toISOString());
+        if (to) q = q.lte("created_at", to.toISOString());
+        return q;
+      });
       funnelPurchaseCount = dOrders.length;
       orphanOrderCount = dOrders.filter((o: any) => !o.diagnostic_session_id).length;
       if (funnelPurchaseCount > 0) {
@@ -270,19 +292,16 @@ Deno.serve(async (req) => {
     /* ====== REVENUE TIMESERIES from shopify_orders ====== */
     let revenueTimeseries: { date: string; withDiag: number; withoutDiag: number }[] = [];
     {
-      let ordersQuery = supabase
-        .from("shopify_orders")
-        .select("created_at, total_price, is_from_diagnostic")
-        .gt("total_price", 0)
-        .order("created_at", { ascending: true });
-
-      if (from) ordersQuery = ordersQuery.gte("created_at", from.toISOString());
-      if (to) ordersQuery = ordersQuery.lte("created_at", to.toISOString());
-
-      const { data: ordersData, error: ordersError } = await ordersQuery;
-      if (ordersError) console.error("[perf] Orders timeseries error:", ordersError);
-
-      const orders = ordersData ?? [];
+      const orders = await paginateQuery<any>(supabase, (client) => {
+        let q = client
+          .from("shopify_orders")
+          .select("created_at, total_price, is_from_diagnostic")
+          .gt("total_price", 0)
+          .order("created_at", { ascending: true });
+        if (from) q = q.gte("created_at", from.toISOString());
+        if (to) q = q.lte("created_at", to.toISOString());
+        return q;
+      });
       // Group by day in Europe/Paris timezone
       const dayMap: Record<string, { withDiag: number; withoutDiag: number }> = {};
       for (const o of orders as any[]) {
