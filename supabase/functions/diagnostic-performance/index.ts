@@ -244,16 +244,16 @@ Deno.serve(async (req) => {
     let funnelOrderAmountAvg: number | null = null;
     let orphanOrderCount = 0;
     {
-      let ordQ = supabase
-        .from("shopify_orders")
-        .select("total_price, diagnostic_session_id")
-        .eq("is_from_diagnostic", true)
-        .gt("total_price", 0);
-      if (from) ordQ = ordQ.gte("created_at", from.toISOString());
-      if (to) ordQ = ordQ.lte("created_at", to.toISOString());
-      const { data: diagOrders, error: diagOrdErr } = await ordQ;
-      if (diagOrdErr) console.error("[perf] Diag orders query error:", diagOrdErr);
-      const dOrders = diagOrders ?? [];
+      const dOrders = await paginateQuery<any>(supabase, (client) => {
+        let q = client
+          .from("shopify_orders")
+          .select("total_price, diagnostic_session_id")
+          .eq("is_from_diagnostic", true)
+          .gt("total_price", 0);
+        if (from) q = q.gte("created_at", from.toISOString());
+        if (to) q = q.lte("created_at", to.toISOString());
+        return q;
+      });
       funnelPurchaseCount = dOrders.length;
       orphanOrderCount = dOrders.filter((o: any) => !o.diagnostic_session_id).length;
       if (funnelPurchaseCount > 0) {
