@@ -292,19 +292,16 @@ Deno.serve(async (req) => {
     /* ====== REVENUE TIMESERIES from shopify_orders ====== */
     let revenueTimeseries: { date: string; withDiag: number; withoutDiag: number }[] = [];
     {
-      let ordersQuery = supabase
-        .from("shopify_orders")
-        .select("created_at, total_price, is_from_diagnostic")
-        .gt("total_price", 0)
-        .order("created_at", { ascending: true });
-
-      if (from) ordersQuery = ordersQuery.gte("created_at", from.toISOString());
-      if (to) ordersQuery = ordersQuery.lte("created_at", to.toISOString());
-
-      const { data: ordersData, error: ordersError } = await ordersQuery;
-      if (ordersError) console.error("[perf] Orders timeseries error:", ordersError);
-
-      const orders = ordersData ?? [];
+      const orders = await paginateQuery<any>(supabase, (client) => {
+        let q = client
+          .from("shopify_orders")
+          .select("created_at, total_price, is_from_diagnostic")
+          .gt("total_price", 0)
+          .order("created_at", { ascending: true });
+        if (from) q = q.gte("created_at", from.toISOString());
+        if (to) q = q.lte("created_at", to.toISOString());
+        return q;
+      });
       // Group by day in Europe/Paris timezone
       const dayMap: Record<string, { withDiag: number; withoutDiag: number }> = {};
       for (const o of orders as any[]) {
