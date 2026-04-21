@@ -63,14 +63,29 @@ Deno.serve(async (req) => {
       return q;
     });
 
-    // Paginate children separately, filtered by session ids
+    // Paginate children separately, filtered by session ids (batched in parallel to avoid URL length limits)
     const sessionIds = sessionsRaw.map((s: any) => s.id);
     console.log("[perf] childrenSessionIds count:", sessionIds.length); // TEMP debug T1
-    const childrenRaw = sessionIds.length > 0
-      ? await paginateQuery<any>(supabase, (client) =>
-          client.from("diagnostic_children").select("*").in("session_id", sessionIds)
-        )
-      : [];
+
+    const CHUNK_SIZE = 200;
+    const chunks: string[][] = [];
+    for (let i = 0; i < sessionIds.length; i += CHUNK_SIZE) {
+      chunks.push(sessionIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    const childrenBatches = await Promise.all(
+      chunks.map(async (chunk, idx) => {
+        try {
+          return await paginateQuery<any>(supabase, (client) =>
+            client.from("diagnostic_children").select("*").in("session_id", chunk)
+          );
+        } catch (e) {
+          console.error(`[perf] children batch error (idx=${idx}, size=${chunk.length}):`, e);
+          throw e;
+        }
+      })
+    );
+    const childrenRaw = childrenBatches.flat();
     console.log("[perf] childrenRaw count:", childrenRaw.length); // TEMP debug T1
 
     // Re-attach children to sessions
