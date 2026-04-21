@@ -100,7 +100,7 @@ export function useRevenueTimeseries(
       const allDays: string[] = [];
       const cur = new Date(effectiveFrom);
       cur.setHours(12, 0, 0, 0); // noon to avoid DST edge cases
-      const end = new Date(to);
+      const end = new Date(effectiveTo);
       end.setHours(12, 0, 0, 0);
       while (cur <= end) {
         allDays.push(toParisDate(cur.toISOString()));
