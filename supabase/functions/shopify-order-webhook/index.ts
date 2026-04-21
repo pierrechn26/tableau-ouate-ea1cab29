@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
 
     let matched = false;
     let isFromDiagnostic = false;
+    let resolvedSessionCode: string | null = diagSession || null;
 
     // --- Direct match by session_code ---
     if (diagSession) {
@@ -153,6 +154,7 @@ Deno.serve(async (req) => {
           console.log(`✅ Session ${session.session_code} marked as converted (email fallback)`);
           matched = true;
           isFromDiagnostic = true;
+          resolvedSessionCode = session.session_code;
         }
       } else {
         console.log(`No matching session found for email ${order.email} in the last 5 days`);
@@ -160,6 +162,12 @@ Deno.serve(async (req) => {
     }
 
     // --- ALWAYS upsert order into shopify_orders ---
+    if (matched) {
+      console.log('[shopify-order-webhook] matched via',
+        diagSession ? 'line_item_property' : 'email_fallback',
+        'session_code:', resolvedSessionCode);
+    }
+
     const { error: upsertError } = await supabase
       .from("shopify_orders")
       .upsert(
@@ -170,7 +178,7 @@ Deno.serve(async (req) => {
           currency: order.currency || "EUR",
           created_at: order.created_at || new Date().toISOString(),
           is_from_diagnostic: isFromDiagnostic,
-          diagnostic_session_id: diagSession || null,
+          diagnostic_session_id: resolvedSessionCode,
           customer_email: order.email || null,
         },
         { onConflict: "shopify_order_id" }
