@@ -81,8 +81,8 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       
 
       // GA4 data for conversion rate denominators
-      const startDate = format(from, "yyyy-MM-dd");
-      const endDate = format(to, "yyyy-MM-dd");
+      const startDate = format(ga4From, "yyyy-MM-dd");
+      const endDate = format(ga4To, "yyyy-MM-dd");
       let siteSessions = 0;
       let diagnosticPageViews = 0;
 
