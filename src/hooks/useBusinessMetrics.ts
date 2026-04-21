@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DateRange } from "react-day-picker";
-import { subDays, format } from "date-fns";
+import { format } from "date-fns";
 
 interface BusinessMetricsData {
   // Diagnostic data (from diagnostic_sessions — single source of truth)
@@ -44,14 +44,18 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
     const fetchData = async () => {
       setData((d) => ({ ...d, isLoading: true }));
 
-      const from = dateRange?.from ?? subDays(new Date(), 29);
-      const toRaw = dateRange?.to ?? new Date();
+      const from = dateRange?.from;
+      const toRaw = dateRange?.to;
       // Align with useDiagnosticStats: include the full end day
-      const to = new Date(toRaw);
-      to.setHours(23, 59, 59, 999);
+      const to = toRaw ? new Date(toRaw) : undefined;
+      if (to) to.setHours(23, 59, 59, 999);
 
-      const fromISO = from.toISOString();
-      const toISO = to.toISOString();
+      const fromISO = from ? from.toISOString() : undefined;
+      const toISO = to ? to.toISOString() : undefined;
+
+      // For GA4 fallback when no range: use a wide window (start of 2026)
+      const ga4From = from ?? new Date("2026-01-01T00:00:00.000Z");
+      const ga4To = to ?? new Date();
 
       // Paginate to bypass the PostgREST 1000-row server cap
       const PAGE_SIZE = 1000;
@@ -60,14 +64,15 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       let hasMore = true;
       while (hasMore) {
         const from_idx = page * PAGE_SIZE;
-        const { data: batch } = await supabase
+        let q = supabase
           .from("shopify_orders")
           .select("total_price, is_from_diagnostic")
           .gt("total_price", 0)
-          .gte("created_at", fromISO)
-          .lte("created_at", toISO)
           .order("created_at", { ascending: true })
           .range(from_idx, from_idx + PAGE_SIZE - 1);
+        if (fromISO) q = q.gte("created_at", fromISO);
+        if (toISO) q = q.lte("created_at", toISO);
+        const { data: batch } = await q;
         if (!batch || batch.length === 0) break;
         allOrdersList = allOrdersList.concat(batch);
         hasMore = batch.length === PAGE_SIZE;
@@ -76,8 +81,8 @@ export function useBusinessMetrics(dateRange?: DateRange): BusinessMetricsData {
       
 
       // GA4 data for conversion rate denominators
-      const startDate = format(from, "yyyy-MM-dd");
-      const endDate = format(to, "yyyy-MM-dd");
+      const startDate = format(ga4From, "yyyy-MM-dd");
+      const endDate = format(ga4To, "yyyy-MM-dd");
       let siteSessions = 0;
       let diagnosticPageViews = 0;
 
