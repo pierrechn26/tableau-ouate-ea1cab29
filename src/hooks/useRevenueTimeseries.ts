@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DateRange } from "react-day-picker";
-import { subDays, getISOWeek, format, parse } from "date-fns";
+import { getISOWeek, format, parse } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export type Granularity = "day" | "week" | "month";
