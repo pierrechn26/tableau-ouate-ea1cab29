@@ -5,6 +5,7 @@
 // ============================================================
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,24 +80,26 @@ serve(async (req) => {
     // B) Refresh persona metrics from last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [sessionsRes, ordersRes, personasRes] = await Promise.all([
-      supabase
-        .from("diagnostic_sessions")
-        .select("persona_code, status, conversion, validated_cart_amount, recommended_products")
-        .gte("created_at", thirtyDaysAgo),
-      supabase
-        .from("shopify_orders")
-        .select("diagnostic_session_id, total_price, customer_email")
-        .gte("created_at", thirtyDaysAgo)
-        .eq("is_from_diagnostic", true),
+    const [sessionsPaginated, ordersPaginated, personasRes] = await Promise.all([
+      paginateQuery<any>(supabase, (qb) =>
+        qb.from("diagnostic_sessions")
+          .select("persona_code, status, conversion, validated_cart_amount, recommended_products")
+          .gte("created_at", thirtyDaysAgo)
+      ),
+      paginateQuery<any>(supabase, (qb) =>
+        qb.from("shopify_orders")
+          .select("diagnostic_session_id, total_price, customer_email")
+          .gte("created_at", thirtyDaysAgo)
+          .eq("is_from_diagnostic", true)
+      ),
       supabase
         .from("personas")
         .select("code, name, full_label, session_count, avg_matching_score, is_active")
         .eq("is_active", true),
     ]);
 
-    const sessions = sessionsRes.data || [];
-    const orders = ordersRes.data || [];
+    const sessions = sessionsPaginated;
+    const orders = ordersPaginated;
     const personas = personasRes.data || [];
 
     // Calculate per-persona metrics

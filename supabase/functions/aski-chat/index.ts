@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 // Fire-and-forget: notify Ask-it portal when quota threshold is crossed
 async function notifyPortalThreshold(
@@ -287,8 +288,8 @@ serve(async (req) => {
     // === CHARGEMENT PARALLÈLE DE TOUTES LES DONNÉES ===
     const [
       { data: personaRows },
-      { data: allSessions },
-      { data: allChildren },
+      allSessions,
+      allChildren,
       { data: shopifyProducts },
       { data: latestRecos },
       { data: marketingSourcesData },
@@ -302,14 +303,16 @@ serve(async (req) => {
         .eq("is_active", true)
         .order("code"),
 
-      supabase
-        .from("diagnostic_sessions")
-        .select("id, persona_code, matching_score, adapted_tone, priorities_ordered, trust_triggers_ordered, routine_size_preference, content_format_preference, relationship, is_existing_client, number_of_children, engagement_score, conversion, selected_cart_amount, optin_email, optin_sms, duration_seconds, created_at")
-        .eq("status", "termine"),
+      paginateQuery<any>(supabase, (qb) =>
+        qb.from("diagnostic_sessions")
+          .select("id, persona_code, matching_score, adapted_tone, priorities_ordered, trust_triggers_ordered, routine_size_preference, content_format_preference, relationship, is_existing_client, number_of_children, engagement_score, conversion, selected_cart_amount, optin_email, optin_sms, duration_seconds, created_at")
+          .eq("status", "termine")
+      ),
 
-      supabase
-        .from("diagnostic_children")
-        .select("session_id, skin_concern, age_range, has_routine, skin_reactivity, has_ouate_products"),
+      paginateQuery<any>(supabase, (qb) =>
+        qb.from("diagnostic_children")
+          .select("session_id, skin_concern, age_range, has_routine, skin_reactivity, has_ouate_products")
+      ),
 
       supabase
         .from("ouate_products")

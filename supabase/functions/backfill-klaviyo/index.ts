@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,18 +22,23 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Load all terminated sessions with email since the given date
-    const { data: sessions, error } = await supabase
-      .from("diagnostic_sessions")
-      .select("id, email, persona_code, matching_score")
-      .eq("status", "termine")
-      .not("email", "is", null)
-      .neq("email", "")
-      .gte("created_at", since)
-      .order("created_at", { ascending: true });
+    // Load all terminated sessions with email since the given date (paginated)
+    const sessions = await paginateQuery<{
+      id: string;
+      email: string;
+      persona_code: string | null;
+      matching_score: number | null;
+    }>(supabase, (qb) =>
+      qb.from("diagnostic_sessions")
+        .select("id, email, persona_code, matching_score")
+        .eq("status", "termine")
+        .not("email", "is", null)
+        .neq("email", "")
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+    );
 
-    if (error) throw new Error(`Sessions fetch error: ${error.message}`);
-    if (!sessions || sessions.length === 0) {
+    if (sessions.length === 0) {
       return new Response(
         JSON.stringify({ success: true, processed: 0, message: "No sessions to backfill" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
