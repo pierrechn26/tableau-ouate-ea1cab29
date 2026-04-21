@@ -53,13 +53,18 @@ serve(async (req) => {
       });
     }
 
-    // Load messages for each chat
+    // Load messages for each chat (paginated to bypass 1000-row cap)
     const chatIds = recentChats.map(c => c.id);
-    const { data: allMessages } = await supabase
-      .from("aski_messages")
-      .select("chat_id, role, content")
-      .in("chat_id", chatIds)
-      .order("created_at", { ascending: true });
+    const allMessages = await paginateQuery<{ chat_id: string; role: string; content: string }>(
+      supabase,
+      (client) =>
+        client
+          .from("aski_messages")
+          .select("chat_id, role, content")
+          .in("chat_id", chatIds)
+          .order("created_at", { ascending: true })
+    );
+    console.log("[test] messages loaded:", allMessages.length); // TEMP debug T3
 
     if (!allMessages || allMessages.length === 0) {
       return new Response(JSON.stringify({ success: true, analyzed: 0, extracted: 0 }), {
