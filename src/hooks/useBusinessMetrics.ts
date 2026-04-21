@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DateRange } from "react-day-picker";
-import { subDays, format } from "date-fns";
+import { format } from "date-fns";
 
 interface BusinessMetricsData {
   // Diagnostic data (from diagnostic_sessions — single source of truth)
