@@ -51,19 +51,40 @@ Deno.serve(async (req) => {
     /* ====== NEW FORMAT: diagnostic_sessions + children ====== */
     const cutoffDate = "2026-02-08T00:00:00.000Z";
 
-    let sessionsQuery = supabase
-      .from("diagnostic_sessions")
-      .select("*, diagnostic_children(*)")
-      .gte("created_at", cutoffDate)
-      .order("created_at", { ascending: false });
+    // Paginate sessions (no embed — embed breaks .range() pagination)
+    const sessionsRaw = await paginateQuery<any>(supabase, (client) => {
+      let q = client
+        .from("diagnostic_sessions")
+        .select("*")
+        .gte("created_at", cutoffDate)
+        .order("created_at", { ascending: false });
+      if (from && new Date(from) > new Date(cutoffDate)) q = q.gte("created_at", from.toISOString());
+      if (to) q = q.lte("created_at", to.toISOString());
+      return q;
+    });
 
-    if (from && new Date(from) > new Date(cutoffDate)) sessionsQuery = sessionsQuery.gte("created_at", from.toISOString());
-    if (to) sessionsQuery = sessionsQuery.lte("created_at", to.toISOString());
+    // Paginate children separately, filtered by session ids
+    const sessionIds = sessionsRaw.map((s: any) => s.id);
+    console.log("[perf] childrenSessionIds count:", sessionIds.length); // TEMP debug T1
+    const childrenRaw = sessionIds.length > 0
+      ? await paginateQuery<any>(supabase, (client) =>
+          client.from("diagnostic_children").select("*").in("session_id", sessionIds)
+        )
+      : [];
+    console.log("[perf] childrenRaw count:", childrenRaw.length); // TEMP debug T1
 
-    const { data: sessionsRaw, error: sessionsError } = await sessionsQuery;
-    if (sessionsError) console.error("[perf] Sessions query error:", sessionsError);
+    // Re-attach children to sessions
+    const childrenBySession = new Map<string, any[]>();
+    for (const c of childrenRaw) {
+      const arr = childrenBySession.get(c.session_id) ?? [];
+      arr.push(c);
+      childrenBySession.set(c.session_id, arr);
+    }
     // deno-lint-ignore no-explicit-any
-    const sessions: any[] = sessionsRaw ?? [];
+    const sessions: any[] = sessionsRaw.map((s: any) => ({
+      ...s,
+      diagnostic_children: childrenBySession.get(s.id) ?? [],
+    }));
 
     let newTotal = 0,
       newCompleted = 0,
