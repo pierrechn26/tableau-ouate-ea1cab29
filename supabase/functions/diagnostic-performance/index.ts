@@ -65,7 +65,6 @@ Deno.serve(async (req) => {
 
     // Paginate children separately, filtered by session ids (batched in parallel to avoid URL length limits)
     const sessionIds = sessionsRaw.map((s: any) => s.id);
-    console.log("[perf] childrenSessionIds count:", sessionIds.length); // TEMP debug T1
 
     const CHUNK_SIZE = 200;
     const chunks: string[][] = [];
@@ -86,7 +85,6 @@ Deno.serve(async (req) => {
       })
     );
     const childrenRaw = childrenBatches.flat();
-    console.log("[perf] childrenRaw count:", childrenRaw.length); // TEMP debug T1
 
     // Re-attach children to sessions
     const childrenBySession = new Map<string, any[]>();
