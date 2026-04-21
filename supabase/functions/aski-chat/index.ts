@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { paginateQuery } from "../_shared/paginate.ts";
 
 // Fire-and-forget: notify Ask-it portal when quota threshold is crossed
 async function notifyPortalThreshold(
