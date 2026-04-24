@@ -231,7 +231,7 @@ export default function Dashboard() {
   };
   return <div className="min-h-screen bg-background">
       {/* Header with stronger visual emphasis */}
-      <header className="border-b border-border bg-black backdrop-blur-sm sticky top-0 z-50 shadow-lg">
+      <header className="border-b border-border backdrop-blur-sm sticky top-0 z-50 shadow-lg" style={{ backgroundColor: "#0F0F0F" }}>
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-col flex items-start justify-start">
