@@ -237,12 +237,12 @@ export default function Dashboard() {
             <div className="flex-col flex items-start justify-start">
                <img
                 alt="Ask-It Logo"
-                className="h-[61px] w-auto object-contain"
+                className="h-[40px] w-auto object-contain"
                 src={askItLogo}
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
-                style={{ opacity: 1 }}
+                style={{ opacity: 1, filter: "brightness(0) invert(1)" }}
               />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
