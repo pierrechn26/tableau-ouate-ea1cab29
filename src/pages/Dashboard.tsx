@@ -26,7 +26,7 @@ import { QuotaBanner } from "@/components/dashboard/QuotaBanner";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
-import askItLogo from "@/assets/ask-it-logo-white.png";
+import askItLogo from "@/assets/ask-it-logo-white-v2.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -237,15 +237,12 @@ export default function Dashboard() {
             <div className="flex-col flex items-start justify-start">
                <img
                 alt="Ask-It Logo"
-                className="h-[92px] w-auto object-contain"
+                className="h-[61px] w-auto object-contain"
                 src={askItLogo}
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
-                style={{
-                  filter: "brightness(0) invert(1) drop-shadow(0 0 0 #fff) drop-shadow(0 0 0 #fff) drop-shadow(0 0 0 #fff)",
-                  opacity: 1,
-                }}
+                style={{ opacity: 1 }}
               />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
