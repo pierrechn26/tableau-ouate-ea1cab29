@@ -235,7 +235,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-col flex items-start justify-start">
-               <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src={askItLogo} />
+               <img alt="Ask-It Logo" className="h-[92px] w-auto object-contain brightness-0 invert" src={askItLogo} loading="eager" fetchPriority="high" decoding="async" />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
                   Dashboard Ouate Paris — Plan <span className="capitalize">{usageLimits.plan}</span>
