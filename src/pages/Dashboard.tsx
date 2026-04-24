@@ -26,7 +26,7 @@ import { QuotaBanner } from "@/components/dashboard/QuotaBanner";
 import { TopPersonasPotential } from "@/components/dashboard/TopPersonasPotential";
 import { useDiagnosticStats } from "@/hooks/useDiagnosticStats";
 import { useUsageLimits } from "@/hooks/useUsageLimits";
-import askItLogo from "@/assets/ask-it-logo.png";
+import askItLogo from "@/assets/ask-it-logo-white.png";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -231,11 +231,11 @@ export default function Dashboard() {
   };
   return <div className="min-h-screen bg-background">
       {/* Header with stronger visual emphasis */}
-      <header className="border-b border-border bg-gradient-to-r from-primary via-secondary to-accent backdrop-blur-sm sticky top-0 z-50 shadow-lg">
+      <header className="border-b border-border bg-black backdrop-blur-sm sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-col flex items-start justify-start">
-               <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src="/lovable-uploads/30b93e71-30dd-4fdd-aae7-9d008af6fa5c.png" />
+               <img alt="Ask-It Logo" className="h-[61px] w-auto object-contain" src={askItLogo} />
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-base text-white font-medium">
                   Dashboard Ouate Paris — Plan <span className="capitalize">{usageLimits.plan}</span>
